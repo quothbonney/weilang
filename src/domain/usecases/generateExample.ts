@@ -2,7 +2,7 @@
  * Use case for generating example sentences using known words
  */
 
-import { Example } from "../entities";
+import { Example, Word } from "../entities";
 import { WordRepository, ExampleRepository } from "../repositories";
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
 
@@ -16,6 +16,12 @@ export class GenerateExampleUseCase {
   ) {}
 
   async execute(wordId: string, mode: ExampleGenerationMode = 'strict'): Promise<Example> {
+    // Load the target word
+    const targetWord = await this.wordRepository.get(wordId);
+    if (!targetWord) {
+      throw new Error("Word not found");
+    }
+
     // Get known words
     const knownWords = await this.wordRepository.getKnownWords();
     
@@ -26,26 +32,26 @@ export class GenerateExampleUseCase {
         if (knownWords.length === 0) {
           throw new Error("No known words available. Review some words first, or change generation mode in settings!");
         }
-        wordsToUse = knownWords;
+        wordsToUse = [targetWord.hanzi, ...knownWords];
         break;
       
       case 'some-ood':
         // Allow some out-of-distribution words, but prefer known words
         if (knownWords.length === 0) {
-          wordsToUse = ['你好', '谢谢', '水']; // Basic fallback words
+          wordsToUse = [targetWord.hanzi, '你好', '谢谢', '水']; // Basic fallback words
         } else {
-          wordsToUse = knownWords;
+          wordsToUse = [targetWord.hanzi, ...knownWords];
         }
         break;
       
       case 'many-ood':
         // Allow many out-of-distribution words
-        wordsToUse = knownWords.length > 0 ? knownWords : ['你好', '谢谢', '水', '吃', '好'];
+        wordsToUse = knownWords.length > 0 ? [targetWord.hanzi, ...knownWords] : [targetWord.hanzi, '你好', '谢谢', '水', '吃', '好'];
         break;
       
       case 'independent':
         // Generate completely independent examples
-        wordsToUse = [];
+        wordsToUse = [targetWord.hanzi];
         break;
       
       default:
@@ -53,7 +59,7 @@ export class GenerateExampleUseCase {
     }
 
     // Generate sentence using Together API
-    const generated = await this.togetherAdapter.generateSentence(wordsToUse, mode);
+    const generated = await this.togetherAdapter.generateSentence(targetWord, wordsToUse, mode);
 
     // Create example entity
     const example: Example = {
