@@ -23,7 +23,8 @@ export class AddWordUseCase {
       hanzi: params.hanzi,
       pinyin: params.pinyin,
       meaning: params.meaning,
-      addedAt: Date.now(),
+      createdAt: Date.now(),
+      repetitions: 0,
       ...getInitialSRSParams(),
     };
 
