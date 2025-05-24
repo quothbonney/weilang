@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { Shuffle, Eye, EyeOff } from 'lucide-react-native';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { Shuffle, Eye, EyeOff, User } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import * as Speech from "expo-speech";
 import { speakWithAzure } from '../../../infra/tts/azureTts';
 import { Word } from '../../../domain/entities';
@@ -29,37 +30,55 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
   onInputChange,
   onInputSubmit,
 }) => {
+  const router = useRouter();
+  const ttsPlayedForThisRevealRef = useRef(false);
+  const prevShowAnswerRef = useRef(showAnswer);
+  const prevCardIdRef = useRef(currentCard.id);
+  const isNewCardTransitionActiveRef = useRef(false);
+  const ttsSuppressedUntil = useRef(0);
 
-  const previousShowAnswer = useRef(false);
-  const currentCardId = useRef(currentCard.id);
-
-  // Auto-play TTS when answer is revealed in en-to-zh mode
-  useEffect(() => {
-    // Reset tracking when card changes
-    if (currentCardId.current !== currentCard.id) {
-      currentCardId.current = currentCard.id;
-      previousShowAnswer.current = false;
-    }
-
-    // Only play TTS when transitioning from hidden to shown answer
-    const shouldAutoPlay = flashcardSettings.autoPlayTTS && 
-                          flashcardSettings.deckFlipped && 
-                          showAnswer && 
-                          !previousShowAnswer.current;
-    
-    if (shouldAutoPlay) {
-      playTTS(currentCard.hanzi);
-    }
-
-    previousShowAnswer.current = showAnswer;
-  }, [showAnswer, flashcardSettings.autoPlayTTS, flashcardSettings.deckFlipped, currentCard.id, currentCard.hanzi]);
-
-  const playTTS = async (text: string) => {
+  const playTTS = useCallback(async (text: string) => {
     const success = await speakWithAzure(text);
     if (!success) {
       Speech.speak(text, { language: 'zh-CN' });
     }
-  };
+  }, []);
+
+  // Auto-play TTS when answer is revealed in en-to-zh mode
+  useEffect(() => {
+    const cardIdChanged = prevCardIdRef.current !== currentCard.id;
+    const justFlipped = !prevShowAnswerRef.current && showAnswer && !cardIdChanged;
+
+    // On card change, always reset and never play TTS, and suppress TTS for 500ms
+    if (cardIdChanged) {
+      Speech.stop();
+      ttsPlayedForThisRevealRef.current = false;
+      ttsSuppressedUntil.current = Date.now() + 500;
+      prevShowAnswerRef.current = showAnswer;
+      prevCardIdRef.current = currentCard.id;
+      return;
+    }
+
+    // Only play TTS if user explicitly flips the card (not on card change), and suppression window has passed
+    if (
+      justFlipped &&
+      flashcardSettings.autoPlayTTS &&
+      flashcardSettings.deckFlipped &&
+      !ttsPlayedForThisRevealRef.current &&
+      Date.now() > ttsSuppressedUntil.current
+    ) {
+      playTTS(currentCard.hanzi);
+      ttsPlayedForThisRevealRef.current = true;
+    }
+
+    // Reset TTS flag if answer is hidden again
+    if (!showAnswer) {
+      ttsPlayedForThisRevealRef.current = false;
+    }
+
+    prevShowAnswerRef.current = showAnswer;
+    prevCardIdRef.current = currentCard.id;
+  }, [showAnswer, currentCard.id, flashcardSettings.autoPlayTTS, flashcardSettings.deckFlipped, currentCard.hanzi, playTTS]);
 
   const renderFlippedTypingMode = () => (
     <View style={styles.card}>
@@ -121,6 +140,14 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
           </View>
+          
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => router.push(`/profile/${currentCard.id}` as any)}
+          >
+            <User size={16} color="#3b82f6" />
+            <Text style={styles.profileButtonText}>See Profile</Text>
+          </TouchableOpacity>
         </>
       )}
     </View>
@@ -149,6 +176,14 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
           </View>
+          
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => router.push(`/profile/${currentCard.id}` as any)}
+          >
+            <User size={16} color="#3b82f6" />
+            <Text style={styles.profileButtonText}>See Profile</Text>
+          </TouchableOpacity>
         </>
       )}
     </View>
@@ -176,6 +211,14 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
           </View>
+          
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => router.push(`/profile/${currentCard.id}` as any)}
+          >
+            <User size={16} color="#3b82f6" />
+            <Text style={styles.profileButtonText}>See Profile</Text>
+          </TouchableOpacity>
         </>
       )}
     </View>
@@ -312,5 +355,21 @@ const styles = StyleSheet.create({
   wordStatsText: {
     fontSize: 12,
     color: '#9ca3af',
+  },
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 6,
+  },
+  profileButtonText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '500',
   },
 }); 

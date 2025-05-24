@@ -58,10 +58,13 @@ export const useFlashcardLogic = () => {
     setIsReviewing(true);
     try {
       await reviewWord(currentCard.id, quality);
-      advanceSession();
-
+      
       if (quality === 'again') {
+        // For wrong answers, requeue the card and don't advance
         requeueCard(currentCard);
+      } else {
+        // For correct answers, advance normally
+        advanceSession();
       }
 
       const nextCard = getNextCard();
