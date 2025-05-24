@@ -25,20 +25,7 @@ const words = lines.map(line => {
   };
 });
 
-// Generate the import data with proper structure for Word entities
-const importData = words.map((word, index) => ({
-  id: `word-${index + 1}-${Date.now()}`,
-  hanzi: word.hanzi,
-  pinyin: word.pinyin,
-  meaning: word.meaning,
-  // Initial SRS parameters
-  ease: 2.5,
-  interval: 0,
-  repetitions: 0,
-  due: Date.now(),
-  status: "new",
-  createdAt: Date.now(),
-}));
+// Generate the import data with proper structure for Word entitiesconst importData = words.map((word, index) => ({  id: `word-${index + 1}-${Date.now()}`,  hanzi: word.hanzi,  pinyin: word.pinyin,  meaning: word.meaning,  // Initial SRS parameters  ease: 2.5,  interval: 0,  repetitions: 0,  due: Date.now(),  status: "new",  // Learning queue fields  learningStep: 0,  learningDue: undefined,  createdAt: Date.now(),}));
 
 // Write to JSON file
 const outputPath = path.join(__dirname, '..', 'src', 'data', 'words_import.json');

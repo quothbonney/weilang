@@ -3,13 +3,14 @@
  */
 
 import { create } from "zustand";
-import { Word, Example, ReviewQuality } from "../../domain/entities";
+import { Word, Example, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode } from "../../domain/entities";
 import { getWordRepository } from "../../platform/storageProvider";
 import { AddWordUseCase } from "../../domain/usecases/addWord";
 import { ReviewWordUseCase } from "../../domain/usecases/reviewWord";
 import { GenerateExampleUseCase } from "../../domain/usecases/generateExample";
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
 import { storage } from "../../platform/storageUtils";
+import { DEFAULT_REVIEW_SETTINGS } from "../../domain/srs";
 
 // Import 300 words from CSV data
 import wordsData from '../../data/words_import.json';
@@ -29,6 +30,11 @@ interface WeiLangStore {
   lastGeneratedExample: Example | null;
   exampleGenerationMode: ExampleGenerationMode;
   selectedModel: ModelOption;
+  
+  // Review system state
+  reviewSettings: ReviewSettings;
+  currentSession: ReviewSession | null;
+  reviewMode: ReviewMode;
 
   // Actions
   loadWords: () => Promise<void>;
@@ -43,6 +49,13 @@ interface WeiLangStore {
   setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
   setSelectedModel: (model: ModelOption) => void;
   initializeSettings: () => Promise<void>;
+  
+  // Review system actions
+  startReviewSession: (mode: ReviewMode) => Promise<void>;
+  getNextCard: () => Word | null;
+  advanceSession: () => void;
+  updateReviewSettings: (settings: Partial<ReviewSettings>) => void;
+  setReviewMode: (mode: ReviewMode) => void;
 }
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
@@ -65,6 +78,11 @@ export const useStore = create<WeiLangStore>((set, get) => {
     lastGeneratedExample: null,
     exampleGenerationMode: 'independent', // Default to independent for new users
     selectedModel: 'deepseek-ai/DeepSeek-V3',
+    
+    // Review system state
+    reviewSettings: DEFAULT_REVIEW_SETTINGS,
+    currentSession: null,
+    reviewMode: 'mixed',
 
     // Initialize settings from storage and .env
     initializeSettings: async () => {
@@ -261,6 +279,133 @@ export const useStore = create<WeiLangStore>((set, get) => {
     // Set selected model
     setSelectedModel: (model: ModelOption) => {
       set({ selectedModel: model });
+    },
+    
+    // Review system actions
+    startReviewSession: async (mode: ReviewMode) => {
+      set({ isLoading: true, error: null });
+      try {
+        const settings = get().reviewSettings;
+        
+        // Get all available cards (not just due ones for now)
+        const allWords = await wordRepo.listAll();
+        
+        // Filter cards based on availability and mode
+        let availableNewCards: Word[] = [];
+        let availableLearningCards: Word[] = [];
+        let availableReviewCards: Word[] = [];
+        
+        if (mode !== 'review-only') {
+          // New cards - status is 'new'
+          availableNewCards = allWords
+            .filter(w => w.status === 'new')
+            .slice(0, settings.maxNewCardsPerDay);
+        }
+        
+        if (mode !== 'new-only') {
+          // Learning cards - have learningStep > 0 and are due
+          const now = Date.now();
+          availableLearningCards = allWords.filter(w => 
+            w.learningStep > 0 && 
+            w.learningDue !== undefined && 
+            w.learningDue <= now
+          );
+          
+          // Review cards - status is 'review' and are due
+          availableReviewCards = allWords.filter(w => 
+            w.status === 'review' && 
+            w.due <= now
+          );
+        }
+        
+        // For learning-only mode, only show learning cards
+        if (mode === 'learning-only') {
+          availableNewCards = [];
+          availableReviewCards = [];
+        }
+        
+        // Create session based on mode
+        const session: ReviewSession = {
+          mode,
+          newCards: availableNewCards,
+          learningCards: availableLearningCards,
+          reviewCards: availableReviewCards,
+          currentBatch: [],
+          batchIndex: 0,
+          reviewed: 0,
+          settings,
+        };
+        
+        // Fill first batch with priority: learning > new > review
+        const batchCards: Word[] = [];
+        
+        // Add learning cards first (highest priority)
+        batchCards.push(...session.learningCards.slice(0, settings.batchSize));
+        
+        // Add new cards if there's space
+        const remainingSpace = settings.batchSize - batchCards.length;
+        if (remainingSpace > 0) {
+          batchCards.push(...session.newCards.slice(0, remainingSpace));
+        }
+        
+        // Add review cards if there's still space
+        const finalSpace = settings.batchSize - batchCards.length;
+        if (finalSpace > 0) {
+          batchCards.push(...session.reviewCards.slice(0, finalSpace));
+        }
+        
+        session.currentBatch = batchCards;
+        
+        console.log('Session created:', {
+          mode,
+          totalCards: allWords.length,
+          newCards: session.newCards.length,
+          learningCards: session.learningCards.length,
+          reviewCards: session.reviewCards.length,
+          batchSize: session.currentBatch.length
+        });
+        
+        set({ currentSession: session, reviewMode: mode, isLoading: false });
+      } catch (error) {
+        console.error('Failed to start review session:', error);
+        set({ 
+          error: error instanceof Error ? error.message : "Failed to start review session",
+          isLoading: false 
+        });
+      }
+    },
+    
+    getNextCard: () => {
+      const session = get().currentSession;
+      if (!session || session.currentBatch.length === 0) {
+        return null;
+      }
+      
+      return session.currentBatch[0];
+    },
+    
+    // Remove current card from batch and update session
+    advanceSession: () => {
+      const session = get().currentSession;
+      if (!session) return;
+      
+      // Remove the first card from current batch
+      const updatedSession = {
+        ...session,
+        currentBatch: session.currentBatch.slice(1),
+        reviewed: session.reviewed + 1,
+      };
+      
+      set({ currentSession: updatedSession });
+    },
+    
+    updateReviewSettings: (newSettings: Partial<ReviewSettings>) => {
+      const currentSettings = get().reviewSettings;
+      set({ reviewSettings: { ...currentSettings, ...newSettings } });
+    },
+    
+    setReviewMode: (mode: ReviewMode) => {
+      set({ reviewMode: mode });
     },
   };
 }); 

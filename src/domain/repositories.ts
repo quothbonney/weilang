@@ -12,6 +12,12 @@ export interface WordRepository {
   update(word: Word): Promise<void>;
   delete(id: string): Promise<void>;
   getKnownWords(): Promise<string[]>; // Returns list of known Hanzi
+  
+  // Enhanced methods for Anki-like queues
+  listLearningCards(): Promise<Word[]>;
+  listNewCards(limit?: number): Promise<Word[]>;
+  listReviewCards(limit?: number): Promise<Word[]>;
+  getCardsByPriority(limit?: number): Promise<Word[]>;
 }
 
 export interface ExampleRepository {

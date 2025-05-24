@@ -15,6 +15,10 @@ export interface Word {
   due: number;           // epoch ms when due for review
   status: "new" | "learning" | "review";
   
+  // Learning queue fields
+  learningStep: number;  // current step in learning sequence (0 = not in learning)
+  learningDue?: number;  // epoch ms when due for learning review
+  
   createdAt: number;     // epoch ms
   updatedAt?: number;    // epoch ms
 }
@@ -41,7 +45,6 @@ export interface WordProfile {
   etymology?: string;
   usage?: string;
   createdAt: number;
-  updatedAt?: number;
 }
 
 // Review quality ratings for SM-2
@@ -53,4 +56,27 @@ export const qualityToGrade: Record<ReviewQuality, number> = {
   hard: 1,
   good: 3,
   easy: 5,
-}; 
+};
+
+// Review settings and modes
+export interface ReviewSettings {
+  learningSteps: number[];      // Learning steps in minutes (e.g., [1, 10])
+  graduatingInterval: number;   // Days until card graduates from learning
+  easyInterval: number;         // Days added when marking a new card as "easy"
+  maxNewCardsPerDay: number;    // Daily limit for new cards
+  maxReviewsPerDay: number;     // Daily limit for reviews
+  batchSize: number;            // Cards per batch
+}
+
+export type ReviewMode = "mixed" | "new-only" | "review-only" | "learning-only";
+
+export interface ReviewSession {
+  mode: ReviewMode;
+  newCards: Word[];
+  learningCards: Word[];
+  reviewCards: Word[];
+  currentBatch: Word[];
+  batchIndex: number;
+  reviewed: number;
+  settings: ReviewSettings;
+} 
