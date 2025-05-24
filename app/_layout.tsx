@@ -17,6 +17,15 @@ export default function RootLayout() {
   useEffect(() => {
     // Initialize any global setup here
     console.log("WeiLang App Started!");
+    
+    // Load API key from environment if available
+    import("../env").then(({ TOGETHER_KEY }) => {
+      if (TOGETHER_KEY) {
+        import("../src/ui/hooks/useStore").then(({ useStore }) => {
+          useStore.getState().setApiKey(TOGETHER_KEY);
+        });
+      }
+    });
   }, []);
 
   return (

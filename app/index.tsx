@@ -1,13 +1,17 @@
 import React, { useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useStore } from "../src/ui/hooks/useStore";
 
 export default function DeckScreen() {
-  const { words, isLoading, error, loadWords } = useStore();
+  const { words, isLoading, error, loadWords, seedDatabase } = useStore();
+  const router = useRouter();
 
   useEffect(() => {
-    loadWords();
+    // Seed database with sample words on first load
+    seedDatabase().then(() => {
+      loadWords();
+    });
   }, []);
 
   if (isLoading) {
@@ -26,37 +30,30 @@ export default function DeckScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      {words.length === 0 ? (
+  const handleWordPress = (wordId: string) => {
+    router.push(`/review/${wordId}`);
+  };
+
+    return (    <View style={styles.container}>      <TouchableOpacity         style={styles.settingsButton}        onPress={() => router.push('/settings')}      >        <Text style={styles.settingsButtonText}>⚙️</Text>      </TouchableOpacity>      {words.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No words in your deck yet</Text>
-          <Link href="/add" asChild>
-            <TouchableOpacity style={styles.addButton}>
-              <Text style={styles.buttonText}>Add First Word</Text>
-            </TouchableOpacity>
-          </Link>
+          <Text style={styles.emptyText}>Loading your deck...</Text>
         </View>
       ) : (
         <FlatList
           data={words}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.wordCard}>
+            <TouchableOpacity 
+              style={styles.wordCard}
+              onPress={() => handleWordPress(item.id)}
+            >
               <Text style={styles.hanzi}>{item.hanzi}</Text>
               <Text style={styles.pinyin}>{item.pinyin}</Text>
               <Text style={styles.meaning}>{item.meaning}</Text>
-            </View>
+              <Text style={styles.status}>Status: {item.status}</Text>
+            </TouchableOpacity>
           )}
         />
-      )}
-      
-      {words.length > 0 && (
-        <Link href="/add" asChild>
-          <TouchableOpacity style={styles.fab}>
-            <Text style={styles.fabText}>+</Text>
-          </TouchableOpacity>
-        </Link>
       )}
     </View>
   );
@@ -88,16 +85,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 16,
   },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
   wordCard: {
     backgroundColor: 'white',
     padding: 16,
@@ -123,27 +110,4 @@ const styles = StyleSheet.create({
   meaning: {
     color: '#9ca3af',
   },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    backgroundColor: '#3b82f6',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  fabText: {
-    color: 'white',
-    fontSize: 24,
-  },
-}); 
+    status: {    color: '#6b7280',    fontSize: 12,    marginTop: 4,  },  settingsButton: {    position: 'absolute',    top: 16,    right: 16,    zIndex: 10,    padding: 8,  },  settingsButtonText: {    fontSize: 24,  },}); 
