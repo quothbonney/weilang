@@ -8,11 +8,7 @@ import {
   SelectPortal,
   SelectBackdrop,
   SelectContent,
-  SelectItem,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb
+  SelectItem
 } from "@gluestack-ui/themed";
 import { ChevronDown } from "lucide-react-native";
 import { useStore } from "../src/ui/hooks/useStore";
@@ -184,25 +180,43 @@ export default function SettingsScreen() {
           Choose how examples are generated when you have few or no learned words.
         </Text>
 
-        <Slider
-          minValue={0}
-          maxValue={GENERATION_MODES.length - 1}
-          step={1}
-          value={GENERATION_MODES.findIndex(m => m.key === exampleGenerationMode)}
-          onChange={val => changeGenerationMode(GENERATION_MODES[val].key)}
-        >
-          <SliderTrack>
-            <SliderFilledTrack />
-          </SliderTrack>
-          <SliderThumb />
-        </Slider>
-        <View style={{ marginTop: 12 }}>
-          <Text style={styles.modeLabel}>
-            {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.label}
+        {/* Current selection info */}
+        <View style={styles.currentModeInfo}>
+          <Text style={styles.currentModeLabel}>
+            Current: {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.label}
           </Text>
-          <Text style={styles.modeDescription}>
+          <Text style={styles.currentModeDescription}>
             {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.description}
           </Text>
+        </View>
+
+        {/* Mode selection buttons */}
+        <View style={styles.modeButtons}>
+          {GENERATION_MODES.map((mode) => (
+            <TouchableOpacity
+              key={mode.key}
+              style={[
+                styles.modeButton,
+                exampleGenerationMode === mode.key && styles.modeButtonActive
+              ]}
+              onPress={() => changeGenerationMode(mode.key)}
+            >
+              <View style={styles.modeButtonContent}>
+                <Text style={[
+                  styles.modeButtonText,
+                  exampleGenerationMode === mode.key && styles.modeButtonTextActive
+                ]}>
+                  {mode.label}
+                </Text>
+                <Text style={[
+                  styles.modeButtonDescription,
+                  exampleGenerationMode === mode.key && styles.modeButtonDescriptionActive
+                ]}>
+                  {mode.description}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -294,13 +308,56 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 4,
   },
-  modeLabel: {
+  currentModeInfo: {
+    backgroundColor: '#f3f4f6',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  currentModeLabel: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    color: '#1f2937',
   },
-  modeDescription: {
+  currentModeDescription: {
     fontSize: 14,
     color: '#6b7280',
+    lineHeight: 20,
+  },
+  modeButtons: {
+    gap: 12,
+  },
+  modeButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+  },
+  modeButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  modeButtonContent: {
+    alignItems: 'flex-start',
+  },
+  modeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  modeButtonTextActive: {
+    color: '#ffffff',
+  },
+  modeButtonDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+  },
+  modeButtonDescriptionActive: {
+    color: '#e0e7ff',
   },
 });
