@@ -18,6 +18,9 @@ export interface WordRepository {
   listNewCards(limit?: number): Promise<Word[]>;
   listReviewCards(limit?: number): Promise<Word[]>;
   getCardsByPriority(limit?: number): Promise<Word[]>;
+  
+  // Utility methods
+  clearAllWords?(): Promise<void>; // Optional method for clearing all data
 }
 
 export interface ExampleRepository {

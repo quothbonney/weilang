@@ -25,6 +25,14 @@ export class SqliteWordRepository implements WordRepository {
       console.log('🔧 Initializing SQLite database for words...');
       this.db = await SQLite.openDatabaseAsync('weilang.db');
       
+      // Check if we need to recreate the table due to schema changes
+      try {
+        await this.db.getFirstAsync('SELECT * FROM words LIMIT 1');
+      } catch (tableError) {
+        console.log('📝 Table needs to be created or recreated...');
+        await this.dropAndRecreateTable();
+      }
+      
       // Create the words table if it doesn't exist
       await this.db.execAsync(`
         CREATE TABLE IF NOT EXISTS words (
@@ -57,6 +65,19 @@ export class SqliteWordRepository implements WordRepository {
       console.error('❌ Failed to initialize SQLite WordRepository:', error);
       this.initializationError = error instanceof Error ? error.message : 'Unknown database error';
       throw error;
+    }
+  }
+
+  private async dropAndRecreateTable(): Promise<void> {
+    if (!this.db) return;
+    
+    try {
+      console.log('🗑️ Dropping existing words table...');
+      await this.db.execAsync('DROP TABLE IF EXISTS words;');
+      console.log('✅ Table dropped successfully');
+    } catch (error) {
+      console.error('Failed to drop table:', error);
+      // Continue anyway - table might not exist
     }
   }
 
@@ -118,25 +139,42 @@ export class SqliteWordRepository implements WordRepository {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
+      // Ensure all required fields have valid values
+      const safeWord = {
+        id: word.id,
+        hanzi: word.hanzi,
+        pinyin: word.pinyin,
+        meaning: word.meaning,
+        ease: word.ease ?? 2.5,
+        interval: word.interval ?? 0,
+        repetitions: word.repetitions ?? 0,
+        due: word.due,
+        status: word.status ?? 'new',
+        learningStep: word.learningStep ?? 0,  // Default to 0 if missing
+        learningDue: word.learningDue || null,
+        createdAt: word.createdAt,
+        updatedAt: word.updatedAt || null
+      };
+
       await this.db.runAsync(
         `INSERT INTO words (
           id, hanzi, pinyin, meaning, ease, interval, repetitions, 
           due, status, learningStep, learningDue, createdAt, updatedAt
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          word.id,
-          word.hanzi,
-          word.pinyin,
-          word.meaning,
-          word.ease,
-          word.interval,
-          word.repetitions,
-          word.due,
-          word.status,
-          word.learningStep,
-          word.learningDue || null,
-          word.createdAt,
-          word.updatedAt || null
+          safeWord.id,
+          safeWord.hanzi,
+          safeWord.pinyin,
+          safeWord.meaning,
+          safeWord.ease,
+          safeWord.interval,
+          safeWord.repetitions,
+          safeWord.due,
+          safeWord.status,
+          safeWord.learningStep,
+          safeWord.learningDue,
+          safeWord.createdAt,
+          safeWord.updatedAt
         ]
       );
     } catch (error) {
@@ -150,6 +188,22 @@ export class SqliteWordRepository implements WordRepository {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
+      // Ensure all required fields have valid values
+      const safeWord = {
+        hanzi: word.hanzi,
+        pinyin: word.pinyin,
+        meaning: word.meaning,
+        ease: word.ease ?? 2.5,
+        interval: word.interval ?? 0,
+        repetitions: word.repetitions ?? 0,
+        due: word.due,
+        status: word.status ?? 'new',
+        learningStep: word.learningStep ?? 0,  // Default to 0 if missing
+        learningDue: word.learningDue || null,
+        updatedAt: Date.now(),
+        id: word.id
+      };
+
       await this.db.runAsync(
         `UPDATE words SET 
           hanzi = ?, pinyin = ?, meaning = ?, ease = ?, interval = ?, 
@@ -157,18 +211,18 @@ export class SqliteWordRepository implements WordRepository {
           learningDue = ?, updatedAt = ?
         WHERE id = ?`,
         [
-          word.hanzi,
-          word.pinyin,
-          word.meaning,
-          word.ease,
-          word.interval,
-          word.repetitions,
-          word.due,
-          word.status,
-          word.learningStep,
-          word.learningDue || null,
-          Date.now(),
-          word.id
+          safeWord.hanzi,
+          safeWord.pinyin,
+          safeWord.meaning,
+          safeWord.ease,
+          safeWord.interval,
+          safeWord.repetitions,
+          safeWord.due,
+          safeWord.status,
+          safeWord.learningStep,
+          safeWord.learningDue,
+          safeWord.updatedAt,
+          safeWord.id
         ]
       );
     } catch (error) {
@@ -185,6 +239,20 @@ export class SqliteWordRepository implements WordRepository {
       await this.db.runAsync('DELETE FROM words WHERE id = ?', [id]);
     } catch (error) {
       console.error('Failed to delete word:', error);
+      throw error;
+    }
+  }
+
+  async clearAllWords(): Promise<void> {
+    await this.ensureInitialized();
+    if (!this.db) throw new Error('Database not initialized');
+
+    try {
+      console.log('🗑️ Clearing all words from database...');
+      await this.db.runAsync('DELETE FROM words');
+      console.log('✅ All words cleared successfully');
+    } catch (error) {
+      console.error('Failed to clear all words:', error);
       throw error;
     }
   }
@@ -311,15 +379,15 @@ export class SqliteWordRepository implements WordRepository {
       hanzi: row.hanzi,
       pinyin: row.pinyin,
       meaning: row.meaning,
-      ease: row.ease,
-      interval: row.interval,
-      repetitions: row.repetitions,
+      ease: row.ease ?? 2.5,
+      interval: row.interval ?? 0,
+      repetitions: row.repetitions ?? 0,
       due: row.due,
-      status: row.status,
-      learningStep: row.learningStep,
-      learningDue: row.learningDue,
+      status: row.status ?? 'new',
+      learningStep: row.learningStep ?? 0,  // Default to 0 if null/undefined
+      learningDue: row.learningDue || undefined,  // Keep as undefined if null
       createdAt: row.createdAt,
-      updatedAt: row.updatedAt
+      updatedAt: row.updatedAt || undefined  // Keep as undefined if null
     };
   }
 } 

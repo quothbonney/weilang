@@ -127,4 +127,15 @@ export class DexieWordRepository implements WordRepository {
     
     return allCards.slice(0, limit);
   }
+
+  async clearAllWords(): Promise<void> {
+    try {
+      console.log('🗑️ Clearing all words from Dexie database...');
+      await this.db.words.clear();
+      console.log('✅ All words cleared successfully');
+    } catch (error) {
+      console.error('Failed to clear all words:', error);
+      throw error;
+    }
+  }
 } 

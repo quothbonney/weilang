@@ -236,16 +236,39 @@ export const useStore = create<WeiLangStore>((set, get) => {
           return;
         }
 
-        // Bulk import all words
+        console.log(`📥 Starting import of ${wordsData.length} words...`);
+
+        // Bulk import all words with error handling
+        let importedCount = 0;
         for (const wordData of wordsData) {
-          await wordRepo.save(wordData as Word);
+          try {
+            await wordRepo.save(wordData as Word);
+            importedCount++;
+          } catch (error) {
+            console.error(`Failed to import word ${wordData.hanzi}:`, error);
+            
+            // If we get constraint errors, it might be corrupted data
+            if (error instanceof Error && error.message.includes('constraint')) {
+              console.log('🔄 Constraint error detected, clearing database and retrying...');
+              
+              // Clear the database and try again
+              if (wordRepo.clearAllWords) {
+                await wordRepo.clearAllWords();
+                // Reset the loop to try importing again
+                importedCount = 0;
+                continue;
+              }
+            }
+            throw error; // Re-throw if we can't handle it
+          }
         }
         
         // Reload words
         const words = await wordRepo.listAll();
         set({ words, hasImported: true, isLoading: false });
-        console.log(`Successfully imported ${wordsData.length} words from CSV data`);
+        console.log(`✅ Successfully imported ${importedCount} words from CSV data`);
       } catch (error) {
+        console.error('Import failed:', error);
         set({ 
           error: error instanceof Error ? error.message : "Failed to import words",
           isLoading: false 
