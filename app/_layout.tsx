@@ -2,6 +2,7 @@ import React from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { Platform } from "react-native";
 import "../global.css";
 
 // Import nativewind
@@ -16,7 +17,7 @@ if (typeof window !== 'undefined') {
 export default function RootLayout() {
   useEffect(() => {
     // Initialize any global setup here
-    console.log("WeiLang App Started!");
+    console.log(`WeiLang App Started on ${Platform.OS}!`);
     
     // Initialize settings from storage and .env
     import("../src/ui/hooks/useStore").then(({ useStore }) => {
@@ -36,6 +37,8 @@ export default function RootLayout() {
           headerTitleStyle: {
             fontWeight: "600",
           },
+          // Ensure proper touch handling on mobile
+          gestureEnabled: true,
         }}
       >
         <Stack.Screen 

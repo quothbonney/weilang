@@ -100,10 +100,9 @@ const DEFAULT_FLASHCARD_SETTINGS: FlashcardSettings = {
 };
 
 export const useStore = create<WeiLangStore>((set, get) => {
-  const wordRepo = getWordRepository();
-  const addWordUseCase = new AddWordUseCase(wordRepo);
-  const reviewWordUseCase = new ReviewWordUseCase(wordRepo);
-
+  // Helper function to get repository (lazy initialization)
+  const getWordRepo = () => getWordRepository();
+  
   return {
     // Initial state
     words: [],
@@ -131,6 +130,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     loadWords: async () => {
       set({ isLoading: true, error: null });
       try {
+        const wordRepo = getWordRepo();
         const words = await wordRepo.listAll();
         set({ words, isLoading: false });
       } catch (error) {
@@ -144,6 +144,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     // Load due words
     loadDueWords: async () => {
       try {
+        const wordRepo = getWordRepo();
         const dueWords = await wordRepo.getCardsByPriority(50);
         set({ dueWords });
       } catch (error) {
@@ -155,6 +156,8 @@ export const useStore = create<WeiLangStore>((set, get) => {
     addWord: async (params) => {
       set({ isLoading: true, error: null });
       try {
+        const wordRepo = getWordRepo();
+        const addWordUseCase = new AddWordUseCase(wordRepo);
         const word = await addWordUseCase.execute(params);
         const words = [...get().words, word];
         set({ words, isLoading: false });
@@ -170,6 +173,8 @@ export const useStore = create<WeiLangStore>((set, get) => {
     reviewWord: async (wordId, quality) => {
       set({ isLoading: true, error: null });
       try {
+        const wordRepo = getWordRepo();
+        const reviewWordUseCase = new ReviewWordUseCase(wordRepo);
         const updatedWord = await reviewWordUseCase.execute({ wordId, quality });
         
         // Update words in state
@@ -192,6 +197,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     deleteWord: async (wordId) => {
       set({ isLoading: true, error: null });
       try {
+        const wordRepo = getWordRepo();
         await wordRepo.delete(wordId);
         const words = get().words.filter(w => w.id !== wordId);
         const dueWords = get().dueWords.filter(w => w.id !== wordId);
@@ -222,6 +228,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
       
       set({ isLoading: true, error: null });
       try {
+        const wordRepo = getWordRepo();
         // Check if we already have words in the database
         const existingWords = await wordRepo.listAll();
         if (existingWords.length > 0) {
@@ -256,6 +263,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
       set({ isLoading: true, error: null });
       try {
+        const wordRepo = getWordRepo();
         const selectedModel = get().selectedModel;
         const togetherAdapter = new TogetherAdapter(apiKey, selectedModel);
         const generateExampleUseCase = new GenerateExampleUseCase(
@@ -287,6 +295,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
       set({ isLoading: true, error: null });
       try {
+        const wordRepo = getWordRepo();
         const selectedModel = get().selectedModel;
         const togetherAdapter = new TogetherAdapter(apiKey, selectedModel);
         const useCase = new GenerateWordProfileUseCase(
@@ -307,7 +316,72 @@ export const useStore = create<WeiLangStore>((set, get) => {
       }
     },
 
-    // Generate enhanced profile    generateEnhancedProfile: async (wordId: string) => {      const { wordProfileService } = get();      if (!wordProfileService) {        set({ error: "Profile service not initialized. Please check your API keys." });        return null;      }      set({ isLoading: true, error: null });      try {        const word = await wordRepo.get(wordId);        if (!word) {          throw new Error("Word not found");        }        const profile = await wordProfileService.generateProfile(word);        set({ lastEnhancedProfile: profile, isLoading: false });        return profile;      } catch (error) {        set({           error: error instanceof Error ? error.message : "Failed to generate enhanced profile",          isLoading: false         });        return null;      }    },    // Generate enhanced profile progressively (API data first, LLM later)    generateEnhancedProfileProgressive: async (      wordId: string,       onUpdate?: (profile: WordProfileDTO) => void    ) => {      const { wordProfileService } = get();      if (!wordProfileService) {        set({ error: "Profile service not initialized. Please check your API keys." });        return null;      }      set({ isLoading: true, error: null });      try {        const word = await wordRepo.get(wordId);        if (!word) {          throw new Error("Word not found");        }        // Get partial profile immediately (API data only)        const partialProfile = await wordProfileService.generateProfileProgressive(          word,           (enhancedProfile) => {            // Update when LLM data is ready            set({ lastEnhancedProfile: enhancedProfile });            onUpdate?.(enhancedProfile);          }        );                set({ lastEnhancedProfile: partialProfile, isLoading: false });        return partialProfile;      } catch (error) {        set({           error: error instanceof Error ? error.message : "Failed to generate enhanced profile",          isLoading: false         });        return null;      }    },
+    // Generate enhanced profile    
+    generateEnhancedProfile: async (wordId: string) => {      
+      const { wordProfileService } = get();      
+      if (!wordProfileService) {        
+        set({ error: "Profile service not initialized. Please check your API keys." });        
+        return null;      
+      }      
+      
+      set({ isLoading: true, error: null });      
+      try {
+        const wordRepo = getWordRepo();        
+        const word = await wordRepo.get(wordId);        
+        if (!word) {          
+          throw new Error("Word not found");        
+        }        
+        const profile = await wordProfileService.generateProfile(word);        
+        set({ lastEnhancedProfile: profile, isLoading: false });        
+        return profile;      
+      } catch (error) {        
+        set({           
+          error: error instanceof Error ? error.message : "Failed to generate enhanced profile",          
+          isLoading: false         
+        });        
+        return null;      
+      }    
+    },    
+    
+    // Generate enhanced profile progressively (API data first, LLM later)    
+    generateEnhancedProfileProgressive: async (      
+      wordId: string,       
+      onUpdate?: (profile: WordProfileDTO) => void    
+    ) => {      
+      const { wordProfileService } = get();      
+      if (!wordProfileService) {        
+        set({ error: "Profile service not initialized. Please check your API keys." });        
+        return null;      
+      }      
+      
+      set({ isLoading: true, error: null });      
+      try {
+        const wordRepo = getWordRepo();        
+        const word = await wordRepo.get(wordId);        
+        if (!word) {          
+          throw new Error("Word not found");        
+        }        
+        
+        // Get partial profile immediately (API data only)        
+        const partialProfile = await wordProfileService.generateProfileProgressive(          
+          word,           
+          (enhancedProfile) => {            
+            // Update when LLM data is ready            
+            set({ lastEnhancedProfile: enhancedProfile });            
+            onUpdate?.(enhancedProfile);          
+          }        
+        );                
+        
+        set({ lastEnhancedProfile: partialProfile, isLoading: false });        
+        return partialProfile;      
+      } catch (error) {        
+        set({           
+          error: error instanceof Error ? error.message : "Failed to generate enhanced profile",          
+          isLoading: false         
+        });        
+        return null;      
+      }    
+    },
 
     // Initialize profile service
     initializeProfileService: () => {
@@ -405,6 +479,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
       set({ isLoading: true, error: null });
       
       try {
+        const wordRepo = getWordRepo();
         const words = await wordRepo.listAll();
         const now = Date.now();
         

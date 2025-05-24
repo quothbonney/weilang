@@ -88,7 +88,14 @@ export default function DashboardScreen() {
   );
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      bounces={true}
+      alwaysBounceVertical={false}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.header}>
         <Text style={styles.title}>WeiLang Dashboard</Text>
         <Text style={styles.subtitle}>Welcome back! Ready to learn some Chinese?</Text>
@@ -180,6 +187,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   header: {
     padding: 20,

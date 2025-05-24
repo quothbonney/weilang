@@ -32,7 +32,7 @@ export default function DeckScreen() {
   }
 
   const handleWordPress = (wordId: string) => {
-    router.push(`/profile/${wordId}`);
+    router.push(`/profile/${wordId}` as any);
   };
 
   return (
@@ -62,6 +62,10 @@ export default function DeckScreen() {
           <FlatList
             data={words}
             keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 20 }}
             renderItem={({ item }) => (
               <TouchableOpacity 
                 style={styles.wordCard}
@@ -84,7 +88,6 @@ export default function DeckScreen() {
                 </View>
               </TouchableOpacity>
             )}
-            showsVerticalScrollIndicator={false}
           />
         </>
       )}

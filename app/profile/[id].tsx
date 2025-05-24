@@ -191,7 +191,13 @@ export default function WordProfileScreen() {
   const characterBreakdown = word.hanzi.length > 1 ? analyzeCharacters(word.hanzi, profile || undefined) : null;
 
   return (
-    <ScrollView className="flex-1 bg-gradient-to-br from-gray-50 to-white">
+    <ScrollView 
+      className="flex-1 bg-gradient-to-br from-gray-50 to-white"
+      showsVerticalScrollIndicator={false}
+      bounces={true}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: 20 }}
+    >
       {/* Elegant Hero Section */}
       <View className="bg-white px-8 py-12 border-b border-gray-100 shadow-sm">
         <View className="flex-row items-start justify-between mb-8">

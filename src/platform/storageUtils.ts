@@ -3,15 +3,19 @@
  */
 
 import { Platform } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const storage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {
       return localStorage.getItem(key);
     } else {
-      // For native, we'd use AsyncStorage but for now return null
-      // This would be implemented when we add SQLite support
-      return null;
+      try {
+        return await AsyncStorage.getItem(key);
+      } catch (error) {
+        console.error('Failed to get item from AsyncStorage:', error);
+        return null;
+      }
     }
   },
 
@@ -19,8 +23,12 @@ export const storage = {
     if (Platform.OS === 'web') {
       localStorage.setItem(key, value);
     } else {
-      // For native, we'd use AsyncStorage
-      // This would be implemented when we add SQLite support
+      try {
+        await AsyncStorage.setItem(key, value);
+      } catch (error) {
+        console.error('Failed to set item in AsyncStorage:', error);
+        throw error;
+      }
     }
   },
 
@@ -28,8 +36,12 @@ export const storage = {
     if (Platform.OS === 'web') {
       localStorage.removeItem(key);
     } else {
-      // For native, we'd use AsyncStorage
-      // This would be implemented when we add SQLite support
+      try {
+        await AsyncStorage.removeItem(key);
+      } catch (error) {
+        console.error('Failed to remove item from AsyncStorage:', error);
+        throw error;
+      }
     }
   },
 }; 
