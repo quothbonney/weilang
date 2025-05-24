@@ -125,7 +125,7 @@ Return as JSON only.`;
     }
   }
 
-  async generateSentence(knownWords: string[], mode: ExampleGenerationMode = 'strict'): Promise<GeneratedSentence> {
+  async generateSentence(target: Word, knownWords: string[], mode: ExampleGenerationMode = 'strict'): Promise<GeneratedSentence> {
     let systemPrompt: string;
     let userPrompt: string;
 
@@ -138,14 +138,14 @@ Return as JSON only.`;
           throw new Error("Need at least 3 known words to generate meaningful sentences");
         }
         
-        const wordList = knownWords.join("，");
+        const wordList = [target.hanzi, ...knownWords].join("，");
         systemPrompt = `You are a concise Chinese tutor.
 Return ONLY valid JSON in this exact format:
 {"hanzi":"...", "pinyin":"...", "gloss":"..."}
 Do NOT include any other text, markdown, or explanation.`;
-        
+
         userPrompt = `Create ONE natural Chinese sentence using ONLY these words: [${wordList}].
-The sentence should be less than 30 characters.
+The sentence must include the target word “${target.hanzi}” meaning "${target.meaning}" and be less than 30 characters.
 Return the result as JSON with hanzi (Chinese characters), pinyin (with tone marks), and gloss (English translation).`;
         break;
 
@@ -154,9 +154,9 @@ Return the result as JSON with hanzi (Chinese characters), pinyin (with tone mar
         systemPrompt = `You are a Chinese tutor.
 Return ONLY valid JSON in this exact format:
 {"hanzi":"...", "pinyin":"...", "gloss":"..."}`;
-        
-        userPrompt = `Create a simple Chinese sentence. You may use these known words: [${someWordList}].
-You can add 1-2 additional common Chinese words if needed for natural flow.
+
+        userPrompt = `Create a simple Chinese sentence using the word “${target.hanzi}” ("${target.meaning}").
+You may also use these known words: [${someWordList}] and add 1-2 additional common Chinese words if needed.
 Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
         break;
 
@@ -165,9 +165,9 @@ Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
         systemPrompt = `You are a Chinese tutor.
 Return ONLY valid JSON in this exact format:
 {"hanzi":"...", "pinyin":"...", "gloss":"..."}`;
-        
-        userPrompt = `Create a natural Chinese sentence. You may reference these words: [${manyWordList}].
-Feel free to use additional common Chinese words to create a meaningful sentence.
+
+        userPrompt = `Create a natural Chinese sentence that uses the word “${target.hanzi}” ("${target.meaning}").
+You may reference these words: [${manyWordList}] and feel free to use additional common words to create a meaningful sentence.
 Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
         break;
 
@@ -175,9 +175,9 @@ Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
         systemPrompt = `You are a Chinese tutor creating beginner-friendly content.
 Return ONLY valid JSON in this exact format:
 {"hanzi":"...", "pinyin":"...", "gloss":"..."}`;
-        
-        userPrompt = `Create a simple, beginner-friendly Chinese sentence using common everyday words.
-Keep it under 20 characters and suitable for beginners.
+
+        userPrompt = `Create a simple, beginner-friendly Chinese sentence that includes the word “${target.hanzi}” ("${target.meaning}").
+Feel free to use any other common words. Keep it under 20 characters.
 Return as JSON with hanzi (Chinese characters), pinyin (with tone marks), and gloss (English translation).`;
         break;
 

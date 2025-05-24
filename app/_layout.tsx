@@ -2,6 +2,7 @@ import React from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { GluestackUIProvider, config } from "@gluestack-ui/themed";
 import "../global.css";
 
 // Import nativewind
@@ -25,7 +26,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <GluestackUIProvider config={config}>
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
@@ -87,13 +88,13 @@ export default function RootLayout() {
             presentation: "modal" 
           }} 
         />
-        <Stack.Screen 
-          name="settings" 
-          options={{ 
-            title: "Settings" 
-          }} 
+        <Stack.Screen
+          name="settings"
+          options={{
+            title: "Settings"
+          }}
         />
       </Stack>
-    </>
+    </GluestackUIProvider>
   );
-} 
+}
