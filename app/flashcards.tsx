@@ -48,62 +48,60 @@ export default function FlashcardsScreen() {
     return <LoadingState />;
   }
 
-  // Session complete state
-  if (isSessionComplete) {
-    return (
-      <CompletionState
-        onStartNewSession={() => setShowModeSelector(true)}
-        onBackToDashboard={() => router.back()}
-      />
-    );
-  }
-
-  // Main flashcard interface
   return (
     <View style={styles.container}>
-      {/* Header with session info and controls */}
-      <FlashcardHeader
-        reviewMode={reviewMode}
-        currentSession={currentSession!}
-        flashcardSettings={flashcardSettings}
-        onOpenModeSelector={() => setShowModeSelector(true)}
-        onOpenSettings={() => setShowSettings(true)}
-      />
-
-      {/* Progress and card type indicator */}
-      <ProgressSection
-        currentCard={currentCard!}
-        currentSession={currentSession!}
-      />
-
-      {/* Main Card */}
-      <View style={styles.cardContainer}>
-        <FlashcardContent
-          currentCard={currentCard!}
-          flashcardSettings={flashcardSettings}
-          showAnswer={showAnswer}
-          userInput={userInput}
-          inputFeedback={inputFeedback}
-          onInputChange={setUserInput}
-          onInputSubmit={handleInputSubmit}
+      {isSessionComplete ? (
+        <CompletionState
+          onStartNewSession={() => setShowModeSelector(true)}
+          onBackToDashboard={() => router.back()}
         />
-        
-        {!showAnswer ? (
-          <TouchableOpacity 
-            style={styles.showButton}
-            onPress={handleShowAnswer}
-          >
-            <Text style={styles.showButtonText}>
-              {flashcardSettings.deckFlipped ? 'Check Answer' : 'Show Answer'}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <ReviewButtons
-            onReview={handleReview}
-            isReviewing={isReviewing}
+      ) : (
+        <>
+          {/* Header with session info and controls */}
+          <FlashcardHeader
+            reviewMode={reviewMode}
+            currentSession={currentSession!}
+            flashcardSettings={flashcardSettings}
+            onOpenModeSelector={() => setShowModeSelector(true)}
+            onOpenSettings={() => setShowSettings(true)}
           />
-        )}
-      </View>
+
+          {/* Progress and card type indicator */}
+          <ProgressSection
+            currentCard={currentCard!}
+            currentSession={currentSession!}
+          />
+
+          {/* Main Card */}
+          <View style={styles.cardContainer}>
+            <FlashcardContent
+              currentCard={currentCard!}
+              flashcardSettings={flashcardSettings}
+              showAnswer={showAnswer}
+              userInput={userInput}
+              inputFeedback={inputFeedback}
+              onInputChange={setUserInput}
+              onInputSubmit={handleInputSubmit}
+            />
+
+            {!showAnswer ? (
+              <TouchableOpacity
+                style={styles.showButton}
+                onPress={handleShowAnswer}
+              >
+                <Text style={styles.showButtonText}>
+                  {flashcardSettings.deckFlipped ? 'Check Answer' : 'Show Answer'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <ReviewButtons
+                onReview={handleReview}
+                isReviewing={isReviewing}
+              />
+            )}
+          </View>
+        </>
+      )}
 
       {/* Modals */}
       <ReviewModeSelector
