@@ -3,6 +3,8 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "../global.css";
+import { GluestackUIProvider } from "@gluestack-ui/themed";
+import { config } from "@gluestack-ui/config";
 
 // Import nativewind
 import "react-native-gesture-handler";
@@ -25,7 +27,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <GluestackUIProvider config={config}>
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
@@ -94,6 +96,6 @@ export default function RootLayout() {
           }} 
         />
       </Stack>
-    </>
+    </GluestackUIProvider>
   );
-} 
+}
