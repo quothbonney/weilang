@@ -11,19 +11,8 @@ import { GenerateExampleUseCase } from "../../domain/usecases/generateExample";
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
 import { storage } from "../../platform/storageUtils";
 
-// Sample words for initial seeding
-const SAMPLE_WORDS = [
-  { hanzi: "你好", pinyin: "nǐ hǎo", meaning: "hello" },
-  { hanzi: "谢谢", pinyin: "xiè xie", meaning: "thank you" },
-  { hanzi: "再见", pinyin: "zài jiàn", meaning: "goodbye" },
-  { hanzi: "水", pinyin: "shuǐ", meaning: "water" },
-  { hanzi: "吃", pinyin: "chī", meaning: "to eat" },
-  { hanzi: "喝", pinyin: "hē", meaning: "to drink" },
-  { hanzi: "大", pinyin: "dà", meaning: "big" },
-  { hanzi: "小", pinyin: "xiǎo", meaning: "small" },
-  { hanzi: "好", pinyin: "hǎo", meaning: "good" },
-  { hanzi: "不", pinyin: "bù", meaning: "not" },
-];
+// Import 300 words from CSV data
+import wordsData from '../../data/words_import.json';
 
 export type ExampleGenerationMode = 'strict' | 'some-ood' | 'many-ood' | 'independent';
 
@@ -36,7 +25,7 @@ interface WeiLangStore {
   isLoading: boolean;
   error: string | null;
   apiKey: string | null;
-  hasSeeded: boolean;
+  hasImported: boolean;
   lastGeneratedExample: Example | null;
   exampleGenerationMode: ExampleGenerationMode;
   selectedModel: ModelOption;
@@ -49,7 +38,7 @@ interface WeiLangStore {
   deleteWord: (wordId: string) => Promise<void>;
   setApiKey: (key: string | null) => void;
   clearError: () => void;
-  seedDatabase: () => Promise<void>;
+  importWords: () => Promise<void>;
   generateExample: (wordId: string) => Promise<Example | null>;
   setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
   setSelectedModel: (model: ModelOption) => void;
@@ -72,7 +61,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     isLoading: false,
     error: null,
     apiKey: null,
-    hasSeeded: false,
+    hasImported: false,
     lastGeneratedExample: null,
     exampleGenerationMode: 'independent', // Default to independent for new users
     selectedModel: 'deepseek-ai/DeepSeek-V3',
@@ -203,23 +192,31 @@ export const useStore = create<WeiLangStore>((set, get) => {
       set({ error: null });
     },
 
-    // Seed database
-    seedDatabase: async () => {
-      if (get().hasSeeded) return;
+    // Import words from CSV data
+    importWords: async () => {
+      if (get().hasImported) return;
       
       set({ isLoading: true, error: null });
       try {
-        // Add each sample word
-        for (const word of SAMPLE_WORDS) {
-          await addWordUseCase.execute(word);
+        // Check if we already have words in the database
+        const existingWords = await wordRepo.listAll();
+        if (existingWords.length > 0) {
+          set({ hasImported: true, isLoading: false });
+          return;
+        }
+
+        // Bulk import all words
+        for (const wordData of wordsData) {
+          await wordRepo.save(wordData as Word);
         }
         
         // Reload words
         const words = await wordRepo.listAll();
-        set({ words, hasSeeded: true, isLoading: false });
+        set({ words, hasImported: true, isLoading: false });
+        console.log(`Successfully imported ${wordsData.length} words from CSV data`);
       } catch (error) {
         set({ 
-          error: error instanceof Error ? error.message : "Failed to seed database",
+          error: error instanceof Error ? error.message : "Failed to import words",
           isLoading: false 
         });
       }

@@ -5,12 +5,12 @@ import { useStore } from "../src/ui/hooks/useStore";
 import { Settings } from "lucide-react-native";
 
 export default function DeckScreen() {
-  const { words, isLoading, error, loadWords, seedDatabase } = useStore();
+  const { words, isLoading, error, loadWords, importWords } = useStore();
   const router = useRouter();
 
   useEffect(() => {
-    // Seed database with sample words on first load
-    seedDatabase().then(() => {
+    // Import words from CSV data on first load
+    importWords().then(() => {
       loadWords();
     });
   }, []);

@@ -1,0 +1,194 @@
+#,Character,Pinyin,Meaning
+0,你,nǐ,you
+1,他,tā,he/him
+2,她,tā,she/her
+3,们,men,plural marker
+4,的,de,possessive particle
+5,谁,shéi,who
+6,什么,shénme,what
+7,哪,nǎ,which
+8,哪儿,nǎr,where (northern)
+9,哪里,nǎlǐ,where (southern)
+10,怎么,zěnme,how
+11,为什么,wèishénme,why
+12,可以,kěyǐ,"can, may"
+13,要,yào,"to want, need"
+14,不要,bú yào,don’t want
+15,喜欢,xǐhuan,to like
+16,爱,ài,to love
+17,觉得,juéde,"to think, to feel"
+18,认识,rènshi,to know (a person)
+19,朋友,péngyou,friend
+20,地铁,dìtiě,subway
+21,车,chē,"vehicle, car"
+22,刷卡,shuākǎ,to swipe card
+23,站,zhàn,station
+24,路,lù,"road, route"
+25,走,zǒu,to walk
+26,到,dào,to arrive
+27,这里,zhèlǐ,here
+28,那里,nàlǐ,there
+29,上车,shàng chē,to get on vehicle
+30,下车,xià chē,to get off vehicle
+31,钱,qián,money
+32,贵,guì,expensive
+33,便宜,piányi,cheap
+34,买,mǎi,to buy
+35,卖,mài,to sell
+36,菜单,càidān,menu
+37,好吃,hǎochī,tasty (food)
+38,服务员,fúwùyuán,waiter/waitress
+39,结账,jiézhàng,to pay the bill
+40,外卖,wàimài,takeout
+41,打包,dǎbāo,"to-go, to pack up food"
+42,工作,gōngzuò,"job, work"
+43,公司,gōngsī,company
+44,医院,yīyuàn,hospital
+45,医生,yīshēng,doctor
+46,实验,shíyàn,experiment
+47,数据,shùjù,data
+48,报告,bàogào,report
+49,学习,xuéxí,to study
+50,学生,xuésheng,student
+51,老师,lǎoshī,teacher
+52,会议,huìyì,meeting
+53,翻译,fānyì,translation
+54,电脑,diànnǎo,computer
+55,手机,shǒujī,phone
+56,在,zài,"at, in, on"
+57,有,yǒu,"to have, there is/are"
+58,没有,méiyǒu,to not have
+59,是的,shìde,yes (confirming)
+60,不是,búshì,no (negating)
+61,了,le,completed action particle
+62,过,guò,past experience particle
+63,要...了,yào...le,about to (future)
+64,还,hái,"still, also"
+65,再,zài,"again, further"
+66,就,jiù,"then, exactly"
+67,也,yě,also
+68,很,hěn,very
+69,不,bù,not
+70,都,dōu,"all, both"
+71,每,měi,every
+72,已经,yǐjīng,already
+73,今天,jīntiān,today
+74,明天,míngtiān,tomorrow
+75,昨天,zuótiān,yesterday
+76,现在,xiànzài,now
+77,时候,shíhou,"time, moment"
+78,点,diǎn,o'clock
+79,分钟,fēnzhōng,minute
+80,小时,xiǎoshí,hour
+81,早上,zǎoshang,morning
+82,晚上,wǎnshang,evening
+83,中午,zhōngwǔ,noon
+84,开心,kāixīn,happy
+85,累,lèi,tired
+86,饿,è,hungry
+87,渴,kě,thirsty
+88,生病,shēngbìng,sick
+89,没事,méishì,no problem
+90,没关系,méiguānxi,it doesn't matter
+91,没办法,méibànfǎ,"no way, nothing to be done"
+92,家庭,jiātíng,family
+93,男朋友,nánpéngyou,boyfriend
+94,女朋友,nǚpéngyou,girlfriend
+95,喜欢你,xǐhuan nǐ,like you
+96,对不起,duìbuqǐ,sorry
+97,没事的,méishì de,it's okay
+98,等等,děngděng,wait a moment
+99,走吧,zǒuba,let’s go
+100,再见,zàijiàn,goodbye
+101,科研,kēyán,scientific research
+102,报告,bàogào,report
+103,讨论,tǎolùn,discussion
+104,问题,wèntí,"question, problem"
+105,回答,huídá,to answer
+106,解释,jiěshì,to explain
+107,设备,shèbèi,equipment
+108,材料,cáiliào,material
+109,实验室,shíyànshì,laboratory
+110,论文,lùnwén,"paper, thesis"
+111,发表,fābiǎo,to publish
+112,项目,xiàngmù,project
+113,任务,rènwu,task
+114,计划,jìhuà,plan
+115,分析,fēnxī,analysis
+116,数据分析,shùjù fēnxī,data analysis
+117,总结,zǒngjié,summary
+118,银行,yínháng,bank
+119,超市,chāoshì,supermarket
+120,邮局,yóujú,post office
+121,公园,gōngyuán,park
+122,街道,jiēdào,street
+123,大楼,dàlóu,building
+124,楼上,lóushàng,upstairs
+125,楼下,lóuxià,downstairs
+126,旁边,pángbiān,beside
+127,前面,qiánmiàn,in front
+128,后面,hòumiàn,behind
+129,左边,zuǒbiān,left side
+130,右边,yòubiān,right side
+131,中间,zhōngjiān,middle
+132,生气,shēngqì,angry
+133,紧张,jǐnzhāng,nervous
+134,担心,dānxīn,worried
+135,放心,fàngxīn,relieved
+136,感动,gǎndòng,"moved, touched"
+137,奇怪,qíguài,strange
+138,无聊,wúliáo,boring
+139,有意思,yǒuyìsi,interesting
+140,虽然,suīrán,although
+141,但是,dànshì,but
+142,因为,yīnwèi,because
+143,所以,suǒyǐ,therefore
+144,如果,rúguǒ,if
+145,还是,háishì,or (question)
+146,或者,huòzhě,or (statement)
+147,米饭,mǐfàn,rice
+148,面条,miàntiáo,noodles
+149,饺子,jiǎozi,dumpling
+150,汤,tāng,soup
+151,水,shuǐ,water
+152,茶,chá,tea
+153,咖啡,kāfēi,coffee
+154,牛奶,niúnǎi,milk
+155,啤酒,píjiǔ,beer
+156,杯子,bēizi,"cup, glass"
+157,盘子,pánzi,plate
+158,帮忙,bāngmáng,to help
+159,试试,shìshi,to try
+160,看看,kànkan,to take a look
+161,听说,tīngshuō,heard (it said that)
+162,准备,zhǔnbèi,to prepare
+163,开始,kāishǐ,to start
+164,结束,jiéshù,to end
+165,改变,gǎibiàn,to change
+166,告诉,gàosu,to tell
+167,说话,shuōhuà,to talk
+168,聊天,liáotiān,to chat
+169,见面,jiànmiàn,to meet
+170,打电话,dǎ diànhuà,to make a call
+171,发邮件,fā yóujiàn,to send an email
+172,写信,xiě xìn,to write a letter
+173,门,mén,door
+174,窗户,chuānghu,window
+175,灯,dēng,light
+176,电梯,diàntī,elevator
+177,楼梯,lóutī,stairs
+178,空调,kōngtiáo,air conditioner
+179,厕所,cèsuǒ,toilet
+180,洗手间,xǐshǒujiān,restroom
+181,以后,yǐhòu,after
+182,以前,yǐqián,before
+183,最近,zuìjìn,recently
+184,刚才,gāngcái,just now
+185,马上,mǎshàng,immediately
+186,一直,yīzhí,continuously
+187,一共,yīgòng,in total
+188,应该,yīnggāi,should
+189,必须,bìxū,must
+190,可能,kěnéng,maybe
+191,一定,yīdìng,surely
+192,差不多,chàbuduō,"almost, about"
