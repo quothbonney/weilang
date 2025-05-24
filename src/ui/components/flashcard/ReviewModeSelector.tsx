@@ -10,10 +10,11 @@ interface ReviewModeSelectorProps {
     showPinyin: boolean;
     deckFlipped: boolean;
     typingMode: boolean;
+    autoPlayTTS: boolean;
   };
   onClose: () => void;
   onSelectMode: (mode: ReviewMode) => void;
-  onUpdateFlashcardSettings: (settings: Partial<{ showPinyin: boolean; deckFlipped: boolean; typingMode: boolean; }>) => void;
+  onUpdateFlashcardSettings: (settings: Partial<{ showPinyin: boolean; deckFlipped: boolean; typingMode: boolean; autoPlayTTS: boolean; }>) => void;
 }
 
 interface ModeConfig {
@@ -138,6 +139,15 @@ export const ReviewModeSelector: React.FC<ReviewModeSelectorProps> = ({
               flashcardSettings.typingMode,
               () => onUpdateFlashcardSettings({ typingMode: !flashcardSettings.typingMode })
             )}
+            
+            {renderSettingRow(
+              "Auto-play TTS",
+              flashcardSettings.autoPlayTTS
+                ? "Speak Chinese after revealing answer"
+                : "Manual audio playback only",
+              flashcardSettings.autoPlayTTS,
+              () => onUpdateFlashcardSettings({ autoPlayTTS: !flashcardSettings.autoPlayTTS })
+            )}
           </View>
           
           <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
@@ -159,30 +169,30 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
     maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 20,
+    marginBottom: 16,
     textAlign: 'center',
   },
   settingsSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   modeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 8,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#e5e7eb',
@@ -212,7 +222,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
@@ -221,13 +231,13 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   settingLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     color: '#1f2937',
     marginBottom: 2,
   },
   settingDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6b7280',
   },
   toggle: {
@@ -256,7 +266,7 @@ const styles = StyleSheet.create({
     marginLeft: 18,
   },
   cancelButton: {
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   cancelButtonText: {

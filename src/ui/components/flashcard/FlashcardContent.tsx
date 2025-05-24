@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Shuffle, Eye, EyeOff } from 'lucide-react-native';
+import * as Speech from "expo-speech";
+import { speakWithAzure } from '../../../infra/tts/azureTts';
 import { Word } from '../../../domain/entities';
 
 interface FlashcardContentProps {
@@ -9,6 +11,7 @@ interface FlashcardContentProps {
     showPinyin: boolean;
     deckFlipped: boolean;
     typingMode: boolean;
+    autoPlayTTS: boolean;
   };
   showAnswer: boolean;
   userInput: string;
@@ -26,6 +29,38 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
   onInputChange,
   onInputSubmit,
 }) => {
+
+  const previousShowAnswer = useRef(false);
+  const currentCardId = useRef(currentCard.id);
+
+  // Auto-play TTS when answer is revealed in en-to-zh mode
+  useEffect(() => {
+    // Reset tracking when card changes
+    if (currentCardId.current !== currentCard.id) {
+      currentCardId.current = currentCard.id;
+      previousShowAnswer.current = false;
+    }
+
+    // Only play TTS when transitioning from hidden to shown answer
+    const shouldAutoPlay = flashcardSettings.autoPlayTTS && 
+                          flashcardSettings.deckFlipped && 
+                          showAnswer && 
+                          !previousShowAnswer.current;
+    
+    if (shouldAutoPlay) {
+      playTTS(currentCard.hanzi);
+    }
+
+    previousShowAnswer.current = showAnswer;
+  }, [showAnswer, flashcardSettings.autoPlayTTS, flashcardSettings.deckFlipped, currentCard.id, currentCard.hanzi]);
+
+  const playTTS = async (text: string) => {
+    const success = await speakWithAzure(text);
+    if (!success) {
+      Speech.speak(text, { language: 'zh-CN' });
+    }
+  };
+
   const renderFlippedTypingMode = () => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>

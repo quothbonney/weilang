@@ -121,6 +121,10 @@ export default function SettingsScreen() {
     setFlashcardSettings({ deckFlipped: !flashcardSettings.deckFlipped });
   };
 
+  const toggleAutoPlayTTS = () => {
+    setFlashcardSettings({ autoPlayTTS: !flashcardSettings.autoPlayTTS });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.section}>
@@ -225,6 +229,25 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Auto-play TTS Toggle */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Text style={styles.settingLabel}>Auto-play TTS</Text>
+            <Text style={styles.settingDescription}>
+              {flashcardSettings.autoPlayTTS 
+                ? "Automatically speak Chinese when answer is revealed" 
+                : "Manual audio playback only"
+              }
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={[styles.toggle, flashcardSettings.autoPlayTTS && styles.toggleActive]}
+            onPress={toggleAutoPlayTTS}
+          >
+            <View style={[styles.toggleThumb, flashcardSettings.autoPlayTTS && styles.toggleThumbActive]} />
+          </TouchableOpacity>
+        </View>
+
         {/* Current Settings Display */}
         <View style={styles.currentSettings}>
           <Text style={styles.currentSettingsTitle}>Current Configuration:</Text>
@@ -233,6 +256,9 @@ export default function SettingsScreen() {
           </Text>
           <Text style={styles.currentSettingsText}>
             • Direction: {flashcardSettings.deckFlipped ? 'English → Chinese' : 'Chinese → English'}
+          </Text>
+          <Text style={styles.currentSettingsText}>
+            • Auto-play TTS: {flashcardSettings.autoPlayTTS ? 'Enabled' : 'Disabled'}
           </Text>
         </View>
       </View>
@@ -302,8 +328,8 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -375,7 +401,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
@@ -421,9 +447,9 @@ const styles = StyleSheet.create({
   },
   currentSettings: {
     backgroundColor: '#f9fafb',
-    padding: 16,
+    padding: 12,
     borderRadius: 8,
-    marginTop: 16,
+    marginTop: 12,
   },
   currentSettingsTitle: {
     fontSize: 14,
