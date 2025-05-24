@@ -59,7 +59,7 @@ interface WeiLangStore {
   loadWords: () => Promise<void>;
   loadDueWords: () => Promise<void>;
   addWord: (params: { hanzi: string; pinyin: string; meaning: string }) => Promise<void>;
-  reviewWord: (wordId: string, quality: ReviewQuality) => Promise<void>;
+  reviewWord: (wordId: string, quality: ReviewQuality) => Promise<Word>;
   deleteWord: (wordId: string) => Promise<void>;
   setApiKey: (key: string | null) => void;
   clearError: () => void;
@@ -219,11 +219,13 @@ export const useStore = create<WeiLangStore>((set, get) => {
         const words = get().words.map(w => w.id === wordId ? updatedWord : w);
         const dueWords = get().dueWords.filter(w => w.id !== wordId);
         set({ words, dueWords, isLoading: false });
+        return updatedWord;
       } catch (error) {
-        set({ 
+        set({
           error: error instanceof Error ? error.message : "Failed to review word",
-          isLoading: false 
+          isLoading: false
         });
+        throw error;
       }
     },
 

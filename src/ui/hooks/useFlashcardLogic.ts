@@ -57,14 +57,22 @@ export const useFlashcardLogic = () => {
 
     setIsReviewing(true);
     try {
-      await reviewWord(currentCard.id, quality);
-      
+      const updatedCard = await reviewWord(currentCard.id, quality);
+
       if (quality === 'again') {
         // For wrong answers, requeue the card and don't advance
         requeueCard(currentCard);
       } else {
         // For correct answers, advance normally
         advanceSession();
+      }
+
+      if (quality === 'again' || updatedCard.status === 'learning') {
+        requeueCard(updatedCard);
+      }
+
+      if (quality === 'again' || updatedCard.status === 'learning') {
+        requeueCard(updatedCard);
       }
 
       const nextCard = getNextCard();
