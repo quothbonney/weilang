@@ -41,7 +41,21 @@ export default function RootLayout() {
         <Stack.Screen 
           name="index" 
           options={{ 
-            title: "My Deck",
+            title: "Dashboard",
+            headerShown: true 
+          }} 
+        />
+        <Stack.Screen 
+          name="deck" 
+          options={{ 
+            title: "My Words",
+            headerShown: true 
+          }} 
+        />
+        <Stack.Screen 
+          name="flashcards" 
+          options={{ 
+            title: "Flashcards",
             headerShown: true 
           }} 
         />

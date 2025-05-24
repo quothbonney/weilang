@@ -12,7 +12,7 @@ export interface Word {
   ease: number;          // SM-2 factor (default 2.5)
   interval: number;      // days until next review
   repetitions: number;   // number of successful reviews
-  nextReview: number;    // epoch ms when due for review
+  due: number;           // epoch ms when due for review
   status: "new" | "learning" | "review";
   
   createdAt: number;     // epoch ms
