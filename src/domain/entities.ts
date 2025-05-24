@@ -47,6 +47,118 @@ export interface WordProfile {
   createdAt: number;
 }
 
+// Enhanced word profile with comprehensive data
+export interface WordProfileDTO {
+  hanzi: string;
+  pinyin: string;
+  primaryMeaning: string;
+  meanings: string[];
+  partOfSpeech: string;
+  radical: { 
+    number: number; 
+    char: string; 
+    meaning: string;
+    strokes: number;
+  };
+  totalStrokes: number;
+  strokeSvgUrl: string;
+  dictionary: {
+    definitions: string[];
+    synonyms: string[];
+    antonyms: string[];
+    source: "Lingvanex" | "CEDICT" | "LLM";
+  };
+  examples: Array<{
+    hanzi: string;
+    pinyin: string;
+    gloss: string;
+    audioUrl?: string;
+    source: "LLM";
+  }>;
+  frequency?: string;
+  difficulty?: string;
+  etymology?: string;
+  usage?: string;
+  culturalNotes?: string;
+  memoryAids?: string;
+  relatedWords: string[];
+  characterComponents?: Array<{
+    char: string;
+    meaning: string;
+    type: "radical" | "phonetic" | "semantic";
+    strokes: number;
+    pinyin: string;
+  }>;
+  generatedAt: string; // ISO8601
+}
+
+// Unihan database schema
+export interface UnihanEntry {
+  codepoint: string;     // U+8BF4
+  character: string;     // 说
+  radical: number;       // 149
+  totalStrokes: number;  // 9
+  pinyin: string;        // shuō
+  definition: string;    // speak, say, talk; scold, upbraid
+}
+
+// CEDICT database schema  
+export interface CedictEntry {
+  traditional: string;   // 說
+  simplified: string;    // 说
+  pinyin: string;        // shuo1
+  definitions: string[]; // ["to speak", "to say", "to talk"]
+}
+
+// Character breakdown data
+export interface CharacterAnalysis {
+  character: string;
+  meaning: string;
+  radical: string;
+  strokes: number;
+  pinyin: string;
+  relatedWords: Word[];
+  position: number;
+  frequency?: string;
+  etymology?: string;
+}
+
+// Stroke order data structure
+export interface StrokeData {
+  character: string;
+  strokes: Array<{
+    path: string;      // SVG path data
+    order: number;     // stroke order number
+  }>;
+  medians: number[][][]; // stroke medians for animation
+}
+
+// Dictionary API response structures
+export interface LingvanexResponse {
+  result: string;
+  translation: {
+    sourceLanguage: string;
+    targetLanguage: string;
+    detectedLanguage: string;
+    translation: Array<{
+      sourceText: string;
+      targetText: string;
+      partOfSpeech: string;
+      definitions: string[];
+      synonyms: string[];
+      antonyms: string[];
+    }>;
+  };
+}
+
+// Cache entry for profiles
+export interface ProfileCacheEntry {
+  hanzi: string;
+  profile: WordProfileDTO;
+  cachedAt: number;     // epoch ms
+  expiresAt: number;    // epoch ms (90 days TTL)
+}
+
 // Review quality ratings for SM-2
 export type ReviewQuality = "again" | "hard" | "good" | "easy";
 

@@ -38,4 +38,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     tsconfigPaths: true,
     typedRoutes: true,
   },
+  extra: {
+    // Pass environment variables to the app
+    TOGETHER_API_KEY: process.env.TOGETHER_API_KEY,
+    LINGVANEX_API_KEY: process.env.LINGVANEX_API_KEY, 
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    AZURE_TTS_KEY: process.env.AZURE_TTS_KEY,
+    AZURE_TTS_REGION: process.env.AZURE_TTS_REGION || "eastus",
+  },
 });

@@ -7,6 +7,9 @@ node_modules/
 .expo/
 dist/
 web-build/
+data/unihan/
+temp/
+data/*
 expo-env.d.ts
 
 # Native

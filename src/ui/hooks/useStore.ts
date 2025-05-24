@@ -1,17 +1,15 @@
-/**
- * Global state management with Zustand
- */
-
-import { create } from "zustand";
-import { Word, Example, WordProfile, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode } from "../../domain/entities";
+/** * Global state management with Zustand */import React from 'react';import { create } from "zustand";
+import { Word, Example, WordProfile, WordProfileDTO, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode } from "../../domain/entities";
 import { getWordRepository } from "../../platform/storageProvider";
 import { AddWordUseCase } from "../../domain/usecases/addWord";
 import { ReviewWordUseCase } from "../../domain/usecases/reviewWord";
 import { GenerateExampleUseCase } from "../../domain/usecases/generateExample";
 import { GenerateWordProfileUseCase } from "../../domain/usecases/generateWordProfile";
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
+import { WordProfileService, WordProfileConfig } from "../../infra/services/wordProfileService";
 import { storage } from "../../platform/storageUtils";
 import { DEFAULT_REVIEW_SETTINGS } from "../../domain/srs";
+import { TOGETHER_KEY, LINGVANEX_KEY, OPENAI_KEY, UNIHAN_DB_PATH, STROKE_ORDER_BASE_URL } from '../../../env';
 
 // Import 300 words from CSV data
 import wordsData from '../../data/words_import.json';
@@ -46,6 +44,7 @@ interface WeiLangStore {
   hasImported: boolean;
   lastGeneratedExample: Example | null;
   lastGeneratedProfile: WordProfile | null;
+  lastEnhancedProfile: WordProfileDTO | null;
   exampleGenerationMode: ExampleGenerationMode;
   selectedModel: ModelOption;
   flashcardSettings: FlashcardSettings;
@@ -54,6 +53,9 @@ interface WeiLangStore {
   reviewSettings: ReviewSettings;
   currentSession: ReviewSession | null;
   reviewMode: ReviewMode;
+
+  // New word profile service
+  wordProfileService: WordProfileService | null;
 
   // Actions
   loadWords: () => Promise<void>;
@@ -66,10 +68,12 @@ interface WeiLangStore {
   importWords: () => Promise<void>;
   generateExample: (wordId: string) => Promise<Example | null>;
   generateWordProfile: (wordId: string) => Promise<WordProfile | null>;
+  generateEnhancedProfile: (wordId: string) => Promise<WordProfileDTO | null>;
   setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
   setSelectedModel: (model: ModelOption) => void;
   setFlashcardSettings: (settings: Partial<FlashcardSettings>) => void;
   initializeSettings: () => Promise<void>;
+  initializeProfileService: () => void;
   
   // Review system actions
   startReviewSession: (mode: ReviewMode) => Promise<void>;
@@ -78,6 +82,11 @@ interface WeiLangStore {
   requeueCard: (card: Word) => void;
   updateReviewSettings: (settings: Partial<ReviewSettings>) => void;
   setReviewMode: (mode: ReviewMode) => void;
+
+  // New profile service actions
+  clearProfileCache: () => Promise<void>;
+  getProfileCacheStats: () => Promise<{ count: number; memoryCount: number; totalSize: number }>;
+  testProfileConnections: () => Promise<{ unihan: boolean; lingvanex: boolean; llm: boolean }>;
 }
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
@@ -107,6 +116,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     hasImported: false,
     lastGeneratedExample: null,
     lastGeneratedProfile: null,
+    lastEnhancedProfile: null,
     exampleGenerationMode: 'independent', // Default to independent for new users
     selectedModel: 'deepseek-ai/DeepSeek-V3',
     flashcardSettings: DEFAULT_FLASHCARD_SETTINGS,
@@ -116,59 +126,10 @@ export const useStore = create<WeiLangStore>((set, get) => {
     currentSession: null,
     reviewMode: 'mixed',
 
-    // Initialize settings from storage and .env
-    initializeSettings: async () => {
-      try {
-        // Load API key from storage first, then .env as fallback
-        let apiKey = await storage.getItem(API_KEY_STORAGE_KEY);
-        if (!apiKey) {
-          // Try to load from .env
-          try {
-            const envModule = await import("../../../env");
-            if (envModule.TOGETHER_KEY) {
-              apiKey = envModule.TOGETHER_KEY;
-              // Save to storage for persistence
-              if (apiKey) {
-                await storage.setItem(API_KEY_STORAGE_KEY, apiKey);
-              }
-            }
-          } catch (e) {
-            console.log("No .env file found or TOGETHER_KEY not set");
-          }
-        }
-        
-        if (apiKey) {
-          set({ apiKey });
-        }
+    // Word profile service
+    wordProfileService: null,
 
-        // Load generation mode
-        const storedMode = await storage.getItem(GENERATION_MODE_STORAGE_KEY);
-        if (storedMode) {
-          set({ exampleGenerationMode: storedMode as ExampleGenerationMode });
-        }
-
-        // Load selected model
-        const storedModel = await storage.getItem(SELECTED_MODEL_STORAGE_KEY);
-        if (storedModel) {
-          set({ selectedModel: storedModel as ModelOption });
-        }
-
-        // Load flashcard settings
-        const storedFlashcardSettings = await storage.getItem(FLASHCARD_SETTINGS_STORAGE_KEY);
-        if (storedFlashcardSettings) {
-          try {
-            const flashcardSettings = JSON.parse(storedFlashcardSettings);
-            set({ flashcardSettings: { ...DEFAULT_FLASHCARD_SETTINGS, ...flashcardSettings } });
-          } catch (e) {
-            console.error('Failed to parse flashcard settings:', e);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to initialize settings:', error);
-      }
-    },
-
-    // Load all words
+    // Load words from repository
     loadWords: async () => {
       set({ isLoading: true, error: null });
       try {
@@ -184,15 +145,11 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
     // Load due words
     loadDueWords: async () => {
-      set({ isLoading: true, error: null });
       try {
-        const dueWords = await wordRepo.listDue();
-        set({ dueWords, isLoading: false });
+        const dueWords = await wordRepo.getCardsByPriority(50);
+        set({ dueWords });
       } catch (error) {
-        set({ 
-          error: error instanceof Error ? error.message : "Failed to load due words",
-          isLoading: false 
-        });
+        console.error("Failed to load due words:", error);
       }
     },
 
@@ -200,8 +157,8 @@ export const useStore = create<WeiLangStore>((set, get) => {
     addWord: async (params) => {
       set({ isLoading: true, error: null });
       try {
-        const newWord = await addWordUseCase.execute(params);
-        const words = [...get().words, newWord];
+        const word = await addWordUseCase.execute(params);
+        const words = [...get().words, word];
         set({ words, isLoading: false });
       } catch (error) {
         set({ 
@@ -216,14 +173,18 @@ export const useStore = create<WeiLangStore>((set, get) => {
       set({ isLoading: true, error: null });
       try {
         const updatedWord = await reviewWordUseCase.execute({ wordId, quality });
-        const words = get().words.map(w => w.id === wordId ? updatedWord : w);
-        const dueWords = get().dueWords.filter(w => w.id !== wordId);
-        set({ words, dueWords, isLoading: false });
+        
+        // Update words in state
+        const words = get().words.map(w => 
+          w.id === wordId ? updatedWord : w
+        );
+        set({ words, isLoading: false });
+        
         return updatedWord;
       } catch (error) {
-        set({
+        set({ 
           error: error instanceof Error ? error.message : "Failed to review word",
-          isLoading: false
+          isLoading: false 
         });
         throw error;
       }
@@ -245,9 +206,11 @@ export const useStore = create<WeiLangStore>((set, get) => {
       }
     },
 
-    // Set API key
+    // Set API key and reinitialize services
     setApiKey: (key) => {
       set({ apiKey: key });
+      // Reinitialize profile service with new API key
+      get().initializeProfileService();
     },
 
     // Clear error
@@ -346,6 +309,73 @@ export const useStore = create<WeiLangStore>((set, get) => {
       }
     },
 
+    // Generate enhanced profile
+    generateEnhancedProfile: async (wordId: string) => {
+      const { wordProfileService } = get();
+      if (!wordProfileService) {
+        set({ error: "Profile service not initialized. Please check your API keys." });
+        return null;
+      }
+
+      set({ isLoading: true, error: null });
+      try {
+        const word = await wordRepo.get(wordId);
+        if (!word) {
+          throw new Error("Word not found");
+        }
+
+        const profile = await wordProfileService.generateProfile(word);
+        set({ lastEnhancedProfile: profile, isLoading: false });
+        return profile;
+      } catch (error) {
+        set({ 
+          error: error instanceof Error ? error.message : "Failed to generate enhanced profile",
+          isLoading: false 
+        });
+        return null;
+      }
+    },
+
+    // Initialize profile service
+    initializeProfileService: () => {
+      const { apiKey } = get();
+      
+      const config: WordProfileConfig = {
+        togetherApiKey: apiKey || TOGETHER_KEY,
+        lingvanexApiKey: LINGVANEX_KEY,
+        unihanDbPath: UNIHAN_DB_PATH,
+        enableCache: true,
+        strokeOrderBaseUrl: STROKE_ORDER_BASE_URL
+      };
+
+      const service = new WordProfileService(config);
+      set({ wordProfileService: service });
+    },
+
+    // Profile service utility methods
+    clearProfileCache: async () => {
+      const { wordProfileService } = get();
+      if (wordProfileService) {
+        await wordProfileService.clearCache();
+      }
+    },
+
+    getProfileCacheStats: async () => {
+      const { wordProfileService } = get();
+      if (wordProfileService) {
+        return await wordProfileService.getCacheStats();
+      }
+      return { count: 0, memoryCount: 0, totalSize: 0 };
+    },
+
+    testProfileConnections: async () => {
+      const { wordProfileService } = get();
+      if (wordProfileService) {
+        return await wordProfileService.testConnections();
+      }
+      return { unihan: false, lingvanex: false, llm: false };
+    },
+
     // Set example generation mode
     setExampleGenerationMode: (mode: ExampleGenerationMode) => {
       set({ exampleGenerationMode: mode });
@@ -355,160 +385,177 @@ export const useStore = create<WeiLangStore>((set, get) => {
     setSelectedModel: (model: ModelOption) => {
       set({ selectedModel: model });
     },
-    
-    // Review system actions
+
+    // Set flashcard settings
+    setFlashcardSettings: (settings: Partial<FlashcardSettings>) => {
+      const current = get().flashcardSettings;
+      const updated = { ...current, ...settings };
+      set({ flashcardSettings: updated });
+    },
+
+    // Initialize settings
+    initializeSettings: async () => {
+      try {
+        // Load API key
+        const apiKey = await storage.getItem(API_KEY_STORAGE_KEY);
+        if (apiKey) {
+          set({ apiKey });
+        }
+
+        // Load generation mode
+        const mode = await storage.getItem(GENERATION_MODE_STORAGE_KEY);
+        if (mode) {
+          set({ exampleGenerationMode: mode as ExampleGenerationMode });
+        }
+
+        // Load selected model
+        const model = await storage.getItem(SELECTED_MODEL_STORAGE_KEY);
+        if (model) {
+          set({ selectedModel: model as ModelOption });
+        }
+
+        // Load flashcard settings
+        const flashcardSettings = await storage.getItem(FLASHCARD_SETTINGS_STORAGE_KEY);
+        if (flashcardSettings) {
+          set({ flashcardSettings: JSON.parse(flashcardSettings) });
+        }
+
+        // Initialize profile service
+        get().initializeProfileService();
+      } catch (error) {
+        console.error('Failed to initialize settings:', error);
+      }
+    },
+
+    // Review system methods
     startReviewSession: async (mode: ReviewMode) => {
       set({ isLoading: true, error: null });
+      
       try {
-        const settings = get().reviewSettings;
+        const words = await wordRepo.listAll();
+        const now = Date.now();
         
-        // Get all available cards (not just due ones for now)
-        const allWords = await wordRepo.listAll();
-        
-        // Filter cards based on availability and mode
-        let availableNewCards: Word[] = [];
-        let availableLearningCards: Word[] = [];
-        let availableReviewCards: Word[] = [];
-        
-        if (mode !== 'review-only') {
-          // New cards - status is 'new'
-          availableNewCards = allWords
-            .filter(w => w.status === 'new')
-            .slice(0, settings.maxNewCardsPerDay);
-        }
-        
-        if (mode !== 'new-only') {
-          // Learning cards - have learningStep > 0 and are due
-          const now = Date.now();
-          availableLearningCards = allWords.filter(w => 
-            w.learningStep > 0 && 
-            w.learningDue !== undefined && 
-            w.learningDue <= now
-          );
-          
-          // Review cards - status is 'review' and are due
-          availableReviewCards = allWords.filter(w => 
-            w.status === 'review' && 
-            w.due <= now
-          );
-        }
-        
-        // For learning-only mode, only show learning cards
-        if (mode === 'learning-only') {
-          availableNewCards = [];
-          availableReviewCards = [];
-        }
-        
+        // Filter cards by type and due status
+        const newCards = words.filter(w => w.status === 'new').slice(0, 20);
+        const learningCards = words.filter(w => 
+          w.learningStep > 0 && 
+          (w.learningDue || 0) <= now
+        );
+        const reviewCards = words.filter(w => 
+          w.status === 'review' && 
+          w.due <= now
+        ).slice(0, 100);
+
         // Create session based on mode
+        let sessionCards: Word[] = [];
+        switch (mode) {
+          case 'new-only':
+            sessionCards = newCards;
+            break;
+          case 'review-only':
+            sessionCards = reviewCards;
+            break;
+          case 'learning-only':
+            sessionCards = learningCards;
+            break;
+          case 'mixed':
+          default:
+            sessionCards = [...learningCards, ...newCards, ...reviewCards];
+            break;
+        }
+
+        // Shuffle and batch
+        const shuffledCards = shuffleArray(sessionCards);
+        const settings = get().reviewSettings;
+        const batchSize = settings.batchSize;
+        
         const session: ReviewSession = {
           mode,
-          newCards: availableNewCards,
-          learningCards: availableLearningCards,
-          reviewCards: availableReviewCards,
-          currentBatch: [],
+          newCards,
+          learningCards,
+          reviewCards,
+          currentBatch: shuffledCards.slice(0, batchSize),
           batchIndex: 0,
           reviewed: 0,
-          settings,
+          settings
         };
-        
-        // Fill first batch with priority: learning > new > review
-        const batchCards: Word[] = [];
-        
-        // Add learning cards first (highest priority)
-        batchCards.push(...session.learningCards.slice(0, settings.batchSize));
-        
-        // Add new cards if there's space
-        const remainingSpace = settings.batchSize - batchCards.length;
-        if (remainingSpace > 0) {
-          batchCards.push(...session.newCards.slice(0, remainingSpace));
-        }
-        
-        // Add review cards if there's still space
-        const finalSpace = settings.batchSize - batchCards.length;
-        if (finalSpace > 0) {
-          batchCards.push(...session.reviewCards.slice(0, finalSpace));
-        }
-        
-        session.currentBatch = shuffleArray(batchCards);
-        
-        console.log('Session created:', {
-          mode,
-          totalCards: allWords.length,
-          newCards: session.newCards.length,
-          learningCards: session.learningCards.length,
-          reviewCards: session.reviewCards.length,
-          batchSize: session.currentBatch.length
-        });
-        
+
         set({ currentSession: session, reviewMode: mode, isLoading: false });
       } catch (error) {
-        console.error('Failed to start review session:', error);
         set({ 
           error: error instanceof Error ? error.message : "Failed to start review session",
           isLoading: false 
         });
       }
     },
-    
+
     getNextCard: () => {
       const session = get().currentSession;
       if (!session || session.currentBatch.length === 0) {
         return null;
       }
-      
       return session.currentBatch[0];
     },
-    
-    // Remove current card from batch and update session
+
     advanceSession: () => {
       const session = get().currentSession;
       if (!session) return;
-      
-      // Remove the first card from current batch
-      const updatedSession = {
-        ...session,
-        currentBatch: session.currentBatch.slice(1),
-        reviewed: session.reviewed + 1,
-      };
-      
-      set({ currentSession: updatedSession });
+
+      const updatedBatch = session.currentBatch.slice(1);
+      const reviewed = session.reviewed + 1;
+
+      set({
+        currentSession: {
+          ...session,
+          currentBatch: updatedBatch,
+          reviewed
+        }
+      });
     },
 
     requeueCard: (card: Word) => {
       const session = get().currentSession;
       if (!session) return;
 
-      const insertIndex = Math.min(
-        session.currentBatch.length,
-        Math.floor(Math.random() * 3) + 1
-      );
-      const newBatch = [...session.currentBatch];
-      newBatch.splice(insertIndex, 0, card);
+      // Add card back to the end of current batch
+      const updatedBatch = [...session.currentBatch.slice(1), card];
 
-      set({ currentSession: { ...session, currentBatch: newBatch } });
+      set({
+        currentSession: {
+          ...session,
+          currentBatch: updatedBatch
+        }
+      });
     },
-    
-    updateReviewSettings: (newSettings: Partial<ReviewSettings>) => {
-      const currentSettings = get().reviewSettings;
-      set({ reviewSettings: { ...currentSettings, ...newSettings } });
+
+    updateReviewSettings: (settings: Partial<ReviewSettings>) => {
+      const current = get().reviewSettings;
+      const updated = { ...current, ...settings };
+      set({ reviewSettings: updated });
     },
-    
+
     setReviewMode: (mode: ReviewMode) => {
       set({ reviewMode: mode });
     },
-
-    // Set flashcard settings
-    setFlashcardSettings: async (newSettings: Partial<FlashcardSettings>) => {
-      const currentSettings = get().flashcardSettings;
-      const updatedSettings = { ...currentSettings, ...newSettings };
-      
-      set({ flashcardSettings: updatedSettings });
-      
-      try {
-        await storage.setItem(FLASHCARD_SETTINGS_STORAGE_KEY, JSON.stringify(updatedSettings));
-      } catch (error) {
-        console.error('Failed to save flashcard settings:', error);
-      }
-    },
   };
-}); 
+});
+
+// Helper hook for accessing the enhanced profile
+export const useEnhancedProfile = (wordId: string) => {
+  const { generateEnhancedProfile, lastEnhancedProfile, isLoading, error } = useStore();
+  
+  const [profile, setProfile] = React.useState<WordProfileDTO | null>(null);
+  
+  React.useEffect(() => {
+    if (wordId) {
+      generateEnhancedProfile(wordId).then(setProfile);
+    }
+  }, [wordId, generateEnhancedProfile]);
+
+  return {
+    profile: profile || lastEnhancedProfile,
+    isLoading,
+    error,
+    refresh: () => generateEnhancedProfile(wordId).then(setProfile)
+  };
+}; 
