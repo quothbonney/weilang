@@ -104,8 +104,8 @@ export const useStore = create<WeiLangStore>((set, get) => {
                 await storage.setItem(API_KEY_STORAGE_KEY, apiKey);
               }
             }
-          } catch (e) {
-            console.log("No .env file found or TOGETHER_KEY not set");
+          } catch {
+            // no env file
           }
         }
         
@@ -235,7 +235,6 @@ export const useStore = create<WeiLangStore>((set, get) => {
         // Reload words
         const words = await wordRepo.listAll();
         set({ words, hasImported: true, isLoading: false });
-        console.log(`Successfully imported ${wordsData.length} words from CSV data`);
       } catch (error) {
         set({ 
           error: error instanceof Error ? error.message : "Failed to import words",
@@ -369,15 +368,6 @@ export const useStore = create<WeiLangStore>((set, get) => {
         };
 
         session.currentBatch = fillBatch();
-        
-        console.log('Session created:', {
-          mode,
-          totalCards: session.newCards.length + session.learningCards.length + session.reviewCards.length,
-          newCards: session.newCards.length,
-          learningCards: session.learningCards.length,
-          reviewCards: session.reviewCards.length,
-          batchSize: session.currentBatch.length
-        });
         
         set({ currentSession: session, reviewMode: mode, isLoading: false });
       } catch (error) {
