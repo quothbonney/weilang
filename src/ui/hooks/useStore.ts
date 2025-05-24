@@ -3,11 +3,12 @@
  */
 
 import { create } from "zustand";
-import { Word, Example, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode } from "../../domain/entities";
+import { Word, Example, WordProfile, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode } from "../../domain/entities";
 import { getWordRepository } from "../../platform/storageProvider";
 import { AddWordUseCase } from "../../domain/usecases/addWord";
 import { ReviewWordUseCase } from "../../domain/usecases/reviewWord";
 import { GenerateExampleUseCase } from "../../domain/usecases/generateExample";
+import { GenerateWordProfileUseCase } from "../../domain/usecases/generateWordProfile";
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
 import { storage } from "../../platform/storageUtils";
 import { DEFAULT_REVIEW_SETTINGS } from "../../domain/srs";
@@ -28,6 +29,7 @@ interface WeiLangStore {
   apiKey: string | null;
   hasImported: boolean;
   lastGeneratedExample: Example | null;
+  lastGeneratedProfile: WordProfile | null;
   exampleGenerationMode: ExampleGenerationMode;
   selectedModel: ModelOption;
   
@@ -46,6 +48,7 @@ interface WeiLangStore {
   clearError: () => void;
   importWords: () => Promise<void>;
   generateExample: (wordId: string) => Promise<Example | null>;
+  generateWordProfile: (wordId: string) => Promise<WordProfile | null>;
   setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
   setSelectedModel: (model: ModelOption) => void;
   initializeSettings: () => Promise<void>;
@@ -76,6 +79,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     apiKey: null,
     hasImported: false,
     lastGeneratedExample: null,
+    lastGeneratedProfile: null,
     exampleGenerationMode: 'independent', // Default to independent for new users
     selectedModel: 'deepseek-ai/DeepSeek-V3',
     
@@ -266,6 +270,36 @@ export const useStore = create<WeiLangStore>((set, get) => {
         set({ 
           error: error instanceof Error ? error.message : "Failed to generate example",
           isLoading: false 
+        });
+        return null;
+      }
+    },
+
+    // Generate comprehensive word profile
+    generateWordProfile: async (wordId: string) => {
+      const apiKey = get().apiKey;
+      if (!apiKey) {
+        set({ error: "API key not set. Please set it in settings." });
+        return null;
+      }
+
+      set({ isLoading: true, error: null });
+      try {
+        const selectedModel = get().selectedModel;
+        const adapter = new TogetherAdapter(apiKey, selectedModel);
+        const useCase = new GenerateWordProfileUseCase(
+          wordRepo,
+          null as any, // no repository implementation yet
+          adapter
+        );
+
+        const profile = await useCase.execute(wordId);
+        set({ lastGeneratedProfile: profile, isLoading: false });
+        return profile;
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : "Failed to generate profile",
+          isLoading: false,
         });
         return null;
       }
