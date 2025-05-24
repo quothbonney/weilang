@@ -12,6 +12,7 @@ export const useFlashcardLogic = () => {
     getNextCard,
     reviewWord,
     advanceSession,
+    requeueCard,
     updateReviewSettings,
     setReviewMode,
     isLoading,
@@ -58,6 +59,10 @@ export const useFlashcardLogic = () => {
     try {
       await reviewWord(currentCard.id, quality);
       advanceSession();
+
+      if (quality === 'again') {
+        requeueCard(currentCard);
+      }
 
       const nextCard = getNextCard();
       setCurrentCard(nextCard);
