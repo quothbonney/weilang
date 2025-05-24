@@ -39,6 +39,15 @@ export class TogetherAdapter {
     this.model = model;
   }
 
+  private static parseJson(text: string): any {
+    try {
+      return JSON.parse(text);
+    } catch {
+      const match = text.match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    }
+  }
+
   async generateWordProfile(word: Word): Promise<GeneratedWordProfile> {
     const systemPrompt = `You are an expert Chinese language tutor and linguist.
 Return ONLY valid JSON in this exact format:
@@ -78,24 +87,10 @@ Return as JSON only.`;
       });
 
       const content = response.choices[0]?.message?.content;
-      
-      if (!content) {
-        throw new Error("No response from Together API");
-      }
+      if (!content) throw new Error("No response from Together API");
 
-      // Parse the JSON response
-      let parsed: any;
-      try {
-        parsed = JSON.parse(content);
-      } catch (parseError) {
-        // If JSON parsing fails, try to extract JSON from the response
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsed = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("Invalid JSON response from Together API");
-        }
-      }
+      const parsed = TogetherAdapter.parseJson(content);
+      if (!parsed) throw new Error("Invalid JSON response from Together API");
 
       // Validate the response structure
       if (!parsed.partOfSpeech || !parsed.detailedMeaning || !parsed.exampleSentences) {
@@ -196,28 +191,11 @@ Return as JSON with hanzi (Chinese characters), pinyin (with tone marks), and gl
         max_tokens: 100,
       });
 
-      console.log(response)
-      console.log(response.choices[0]?.message?.content)
-
       const content = response.choices[0]?.message?.content;
-      
-      if (!content) {
-        throw new Error("No response from Together API");
-      }
+      if (!content) throw new Error("No response from Together API");
 
-      // Parse the JSON response
-      let parsed: any;
-      try {
-        parsed = JSON.parse(content);
-      } catch (parseError) {
-        // If JSON parsing fails, try to extract JSON from the response
-        const jsonMatch = content.match(/\{[^}]+\}/);
-        if (jsonMatch) {
-          parsed = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("Invalid JSON response from Together API");
-        }
-      }
+      const parsed = TogetherAdapter.parseJson(content);
+      if (!parsed) throw new Error("Invalid JSON response from Together API");
 
       // Validate the response structure
       if (!parsed.hanzi || !parsed.pinyin || !parsed.gloss) {
