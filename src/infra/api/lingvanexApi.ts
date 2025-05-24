@@ -15,7 +15,7 @@ export interface DictionaryResult {
 export class LingvanexApi {
   private apiKey: string;
   private baseUrl = 'https://api-b2b.backenster.com/b1/api/v3';
-  private timeout = 10000; // 10 second timeout
+  private timeout = 5000; // 5 second timeout (aggressive)
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -23,39 +23,48 @@ export class LingvanexApi {
 
   async lookupWord(word: string): Promise<DictionaryResult | null> {
     if (!this.apiKey) {
-      console.warn('Lingvanex API key not provided');
+      console.warn('🔍 Lingvanex API key not provided');
       return null;
     }
 
+    console.log(`🔍 Lingvanex: Looking up word "${word}"`);
+
     try {
       const response = await this.makeRequest('/translate', {
-        q: word,
-        source: 'zh_CN',
-        target: 'en_US',
-        platform: 'api'
+        platform: 'api',
+        from: 'zh-Hans',
+        to: 'en',
+        data: word,
+        translateMode: 'html',
+        enableTransliteration: false
       });
 
+      console.log('🔍 Lingvanex response:', JSON.stringify(response, null, 2));
+
       if (!response.result) {
+        console.log('🔍 Lingvanex: No result in response');
         return null;
       }
 
-      // Extract translation data
-      const translations = response.translation?.translation || [];
-      if (translations.length === 0) {
+      // Extract and trim the translated text
+      const translatedText = response.result.trim();
+      if (!translatedText) {
+        console.log('🔍 Lingvanex: No translated text found');
         return null;
       }
 
-      const primaryTranslation = translations[0];
-      
-      return {
-        definitions: primaryTranslation.definitions || [primaryTranslation.targetText],
-        synonyms: primaryTranslation.synonyms || [],
-        antonyms: primaryTranslation.antonyms || [],
-        partOfSpeech: primaryTranslation.partOfSpeech || 'unknown'
+      const result = {
+        definitions: [translatedText],
+        synonyms: [],
+        antonyms: [],
+        partOfSpeech: 'unknown'
       };
 
+      console.log('🔍 Lingvanex: Returning result:', result);
+      return result;
+
     } catch (error) {
-      console.error('Lingvanex API error:', error);
+      console.error('🔍 Lingvanex API error:', error);
       return null;
     }
   }
@@ -66,44 +75,23 @@ export class LingvanexApi {
       return null;
     }
 
-    try {
-      const response = await this.makeRequest('/dictionary', {
-        q: word,
-        source: 'zh_CN',
-        target: 'en_US',
-        platform: 'api'
-      });
+    console.log(`🔍 Lingvanex: Getting dictionary definition for "${word}"`);
 
-      if (!response.result) {
-        return null;
-      }
-
-      const entries = response.result?.entries || [];
-      if (entries.length === 0) {
-        // Fallback to translation API
-        return this.lookupWord(word);
-      }
-
-      const entry = entries[0];
-      
-      return {
-        definitions: entry.definitions || [entry.translation],
-        synonyms: entry.synonyms || [],
-        antonyms: entry.antonyms || [],
-        partOfSpeech: entry.partOfSpeech || 'unknown'
-      };
-
-    } catch (error) {
-      console.error('Lingvanex dictionary API error:', error);
-      return null;
-    }
+    // Lingvanex doesn't have a separate dictionary endpoint, use translation instead
+    return this.lookupWord(word);
   }
 
   private async makeRequest(endpoint: string, data: any): Promise<any> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const timeoutId = setTimeout(() => {
+      console.log(`🔍 Lingvanex: Request timeout after ${this.timeout}ms`);
+      controller.abort();
+    }, this.timeout);
+
+    console.log(`🔍 Lingvanex: Starting request to ${this.baseUrl}${endpoint}`, data);
 
     try {
+      console.log(`🔍 Lingvanex: Calling fetch...`);
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'POST',
         headers: {
@@ -115,14 +103,21 @@ export class LingvanexApi {
       });
 
       clearTimeout(timeoutId);
+      console.log(`🔍 Lingvanex: Fetch completed with status: ${response.status}`);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`🔍 Lingvanex: HTTP error response:`, errorText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      console.log(`🔍 Lingvanex: Parsing JSON response...`);
+      const result = await response.json();
+      console.log(`🔍 Lingvanex: Request completed successfully`);
+      return result;
     } catch (error) {
       clearTimeout(timeoutId);
+      console.error(`🔍 Lingvanex: Request failed:`, error);
       
       if (error instanceof Error) {
         if (error.name === 'AbortError') {

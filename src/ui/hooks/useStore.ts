@@ -67,9 +67,7 @@ interface WeiLangStore {
   clearError: () => void;
   importWords: () => Promise<void>;
   generateExample: (wordId: string) => Promise<Example | null>;
-  generateWordProfile: (wordId: string) => Promise<WordProfile | null>;
-  generateEnhancedProfile: (wordId: string) => Promise<WordProfileDTO | null>;
-  setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
+    generateWordProfile: (wordId: string) => Promise<WordProfile | null>;  generateEnhancedProfile: (wordId: string) => Promise<WordProfileDTO | null>;  generateEnhancedProfileProgressive: (wordId: string, onUpdate?: (profile: WordProfileDTO) => void) => Promise<WordProfileDTO | null>;  setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
   setSelectedModel: (model: ModelOption) => void;
   setFlashcardSettings: (settings: Partial<FlashcardSettings>) => void;
   initializeSettings: () => Promise<void>;
@@ -309,32 +307,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
       }
     },
 
-    // Generate enhanced profile
-    generateEnhancedProfile: async (wordId: string) => {
-      const { wordProfileService } = get();
-      if (!wordProfileService) {
-        set({ error: "Profile service not initialized. Please check your API keys." });
-        return null;
-      }
-
-      set({ isLoading: true, error: null });
-      try {
-        const word = await wordRepo.get(wordId);
-        if (!word) {
-          throw new Error("Word not found");
-        }
-
-        const profile = await wordProfileService.generateProfile(word);
-        set({ lastEnhancedProfile: profile, isLoading: false });
-        return profile;
-      } catch (error) {
-        set({ 
-          error: error instanceof Error ? error.message : "Failed to generate enhanced profile",
-          isLoading: false 
-        });
-        return null;
-      }
-    },
+    // Generate enhanced profile    generateEnhancedProfile: async (wordId: string) => {      const { wordProfileService } = get();      if (!wordProfileService) {        set({ error: "Profile service not initialized. Please check your API keys." });        return null;      }      set({ isLoading: true, error: null });      try {        const word = await wordRepo.get(wordId);        if (!word) {          throw new Error("Word not found");        }        const profile = await wordProfileService.generateProfile(word);        set({ lastEnhancedProfile: profile, isLoading: false });        return profile;      } catch (error) {        set({           error: error instanceof Error ? error.message : "Failed to generate enhanced profile",          isLoading: false         });        return null;      }    },    // Generate enhanced profile progressively (API data first, LLM later)    generateEnhancedProfileProgressive: async (      wordId: string,       onUpdate?: (profile: WordProfileDTO) => void    ) => {      const { wordProfileService } = get();      if (!wordProfileService) {        set({ error: "Profile service not initialized. Please check your API keys." });        return null;      }      set({ isLoading: true, error: null });      try {        const word = await wordRepo.get(wordId);        if (!word) {          throw new Error("Word not found");        }        // Get partial profile immediately (API data only)        const partialProfile = await wordProfileService.generateProfileProgressive(          word,           (enhancedProfile) => {            // Update when LLM data is ready            set({ lastEnhancedProfile: enhancedProfile });            onUpdate?.(enhancedProfile);          }        );                set({ lastEnhancedProfile: partialProfile, isLoading: false });        return partialProfile;      } catch (error) {        set({           error: error instanceof Error ? error.message : "Failed to generate enhanced profile",          isLoading: false         });        return null;      }    },
 
     // Initialize profile service
     initializeProfileService: () => {

@@ -7,5 +7,5 @@ const config = getDefaultConfig(__dirname);
 config.resolver.alias = {
   "@": "./src",
 };
-
+const { getDefaultConfig } = require("expo/metro-config");
 module.exports = withNativeWind(config, { input: "./global.css" }); 

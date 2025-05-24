@@ -52,7 +52,7 @@ const { width } = Dimensions.get('window');
 export default function WordProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { words, generateEnhancedProfile, lastEnhancedProfile, error, clearError, apiKey } = useStore();
+  const { words, generateEnhancedProfile, lastEnhancedProfile, error, clearError, apiKey, wordProfileService } = useStore();
   const [profile, setProfile] = useState<WordProfileDTO | null>(null);
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -71,14 +71,44 @@ export default function WordProfileScreen() {
     };
   }, []);
 
+  const clearCacheAndRefresh = async () => {
+    if (wordProfileService) {
+      console.log('🔍 Clearing profile cache...');
+      await wordProfileService.clearCache();
+      console.log('✅ Cache cleared! Refreshing profile...');
+      if (word) {
+        await fetchProfile();
+      }
+    }
+  };
+
   const fetchProfile = async () => {
-    if (!word) return;
+    if (!word || !wordProfileService) return;
+    
     setGenerating(true);
+    console.log(`🔍 Starting progressive profile generation for "${word.hanzi}"...`);
+    
     try {
-      const p = await generateEnhancedProfile(word.id);
-      setProfile(p);
+      // Use progressive loading - get API data immediately, LLM data later
+      const partialProfile = await wordProfileService.generateProfileProgressive(
+        word,
+        (enhancedProfile) => {
+          console.log(`🔍 LLM enhancement complete for "${word.hanzi}"`);
+          setProfile(enhancedProfile);
+        }
+      );
+      
+      console.log(`🔍 Partial profile ready for "${word.hanzi}"`);
+      setProfile(partialProfile);
     } catch (err) {
       console.error('Failed to generate profile:', err);
+      // Fallback to old method if progressive fails
+      try {
+        const p = await generateEnhancedProfile(word.id);
+        setProfile(p);
+      } catch (fallbackErr) {
+        console.error('Fallback profile generation also failed:', fallbackErr);
+      }
     } finally {
       setGenerating(false);
     }
@@ -93,10 +123,10 @@ export default function WordProfileScreen() {
       
       const characterData = {
         character: char,
-        meaning: charComponent?.meaning || 'meaning',
-        radical: `${char} (${charComponent?.type || 'unknown'})`,
+        meaning: charComponent?.meaning || 'Loading...',
+        radical: `${char} (${charComponent?.type || 'component'})`,
         strokes: charComponent?.strokes || 8,
-        pinyin: charComponent?.pinyin || 'unknown'
+        pinyin: charComponent?.pinyin || 'Loading...'
       };
 
       // Find other words in dataset that contain this character
@@ -501,19 +531,29 @@ export default function WordProfileScreen() {
         </View>
 
         {/* Premium Action Buttons */}
-        <View className="flex-row space-x-4 pt-6 pb-12">
-          <TouchableOpacity 
-            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 py-5 rounded-2xl items-center shadow-lg"
-            onPress={() => router.push(`/review/${word.id}`)}
-          >
-            <Text className="text-white font-bold text-xl">Review Card</Text>
-          </TouchableOpacity>
+        <View className="space-y-4 pt-6 pb-12">
+          <View className="flex-row space-x-4">
+            <TouchableOpacity 
+              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 py-5 rounded-2xl items-center shadow-lg"
+              onPress={() => router.push(`/review/${word.id}`)}
+            >
+              <Text className="text-white font-bold text-xl">Review Card</Text>
+            </TouchableOpacity>
 
+            <TouchableOpacity 
+              className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 py-5 rounded-2xl items-center shadow-lg"
+              onPress={fetchProfile}
+            >
+              <Text className="text-white font-bold text-xl">Refresh Profile</Text>
+            </TouchableOpacity>
+          </View>
+          
           <TouchableOpacity 
-            className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 py-5 rounded-2xl items-center shadow-lg"
-            onPress={fetchProfile}
+            className="bg-gradient-to-r from-red-500 to-red-600 py-4 rounded-2xl items-center shadow-lg"
+            onPress={clearCacheAndRefresh}
+            disabled={generating}
           >
-            <Text className="text-white font-bold text-xl">Refresh Profile</Text>
+            <Text className="text-white font-bold text-lg">🗑️ Clear Cache & Regenerate</Text>
           </TouchableOpacity>
         </View>
       </View>

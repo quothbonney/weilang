@@ -31,6 +31,13 @@ export class WordProfileService {
       ...config
     };
 
+    console.log('🔍 WordProfileService: Initializing with config:', {
+      hasLingvanexKey: !!this.config.lingvanexApiKey,
+      lingvanexKeyLength: this.config.lingvanexApiKey?.length || 0,
+      hasTogetherKey: !!this.config.togetherApiKey,
+      unihanDbPath: this.config.unihanDbPath
+    });
+
     this.unihanRepo = new UnihanRepository(this.config.unihanDbPath);
     this.lingvanexApi = this.config.lingvanexApiKey 
       ? new LingvanexApi(this.config.lingvanexApiKey) 
@@ -39,6 +46,11 @@ export class WordProfileService {
     this.llmAdapter = this.config.togetherApiKey 
       ? new TogetherAdapter(this.config.togetherApiKey) 
       : null;
+
+    console.log('🔍 WordProfileService: Services initialized:', {
+      hasLingvanexApi: !!this.lingvanexApi,
+      hasLlmAdapter: !!this.llmAdapter
+    });
   }
 
   async generateProfile(word: Word): Promise<WordProfileDTO> {
@@ -55,12 +67,44 @@ export class WordProfileService {
     // Build profile from multiple sources
     const profile = await this.buildProfile(word);
 
-    // Cache the result
-    if (this.config.enableCache) {
+    // Only cache if the profile is complete and valid
+    if (this.config.enableCache && this.isProfileComplete(profile)) {
+      console.log(`🔍 Caching complete profile for "${hanzi}"`);
       await this.profileCache.set(hanzi, profile);
+    } else if (this.config.enableCache) {
+      console.log(`🔍 NOT caching incomplete profile for "${hanzi}" - will retry next time`);
     }
 
     return profile;
+  }
+
+  /**
+   * Generate profile progressively - returns partial data immediately, 
+   * then calls onUpdate when LLM data is ready
+   */
+  async generateProfileProgressive(
+    word: Word, 
+    onUpdate?: (profile: WordProfileDTO) => void
+  ): Promise<WordProfileDTO> {
+    const hanzi = word.hanzi;
+
+    // Check cache first
+    if (this.config.enableCache) {
+      const cached = await this.profileCache.get(hanzi);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Build partial profile without LLM data for immediate display
+    const partialProfile = await this.buildPartialProfile(word);
+    
+    // Start LLM generation in background (don't await)
+    if (this.llmAdapter && onUpdate) {
+      this.enhanceWithLLMData(word, partialProfile, onUpdate);
+    }
+
+    return partialProfile;
   }
 
   private async buildProfile(word: Word): Promise<WordProfileDTO> {
@@ -124,6 +168,108 @@ export class WordProfileService {
     return profile;
   }
 
+  /**
+   * Build partial profile with API data only (no LLM) for immediate display
+   */
+  private async buildPartialProfile(word: Word): Promise<WordProfileDTO> {
+    const hanzi = word.hanzi;
+    
+    console.log(`🔍 Building partial profile for "${hanzi}" (API data only)...`);
+    
+    // Get fast API data only (skip LLM)
+    const [
+      unihanData,
+      dictionaryData
+    ] = await Promise.allSettled([
+      this.getUnihanData(hanzi),
+      this.getDictionaryData(hanzi)
+    ]);
+
+    // Extract character data
+    const characterData = unihanData.status === 'fulfilled' ? unihanData.value : null;
+    const primaryChar = hanzi[0];
+    
+    // Get radical info
+    let radicalInfo: RadicalInfo | null = null;
+    if (characterData?.radical) {
+      try {
+        radicalInfo = await this.unihanRepo.getRadicalInfo(characterData.radical);
+      } catch (error) {
+        console.error('Failed to get radical info:', error);
+        radicalInfo = null;
+      }
+    }
+
+    // Extract dictionary data
+    const dictData = dictionaryData.status === 'fulfilled' ? dictionaryData.value : null;
+
+    // Build partial profile (no LLM data yet)
+    const profile: WordProfileDTO = {
+      hanzi,
+      pinyin: word.pinyin,
+      primaryMeaning: word.meaning,
+      meanings: this.extractMeanings(word, characterData, dictData),
+      partOfSpeech: this.extractPartOfSpeech(dictData, null), // No LLM data yet
+      radical: this.buildRadicalInfo(characterData, radicalInfo),
+      totalStrokes: characterData?.totalStrokes || this.estimateStrokes(hanzi),
+      strokeSvgUrl: this.buildStrokeSvgUrl(primaryChar),
+      dictionary: this.buildDictionaryInfo(dictData),
+      examples: [], // Will be filled by LLM later
+      frequency: this.estimateFrequency(word),
+      difficulty: this.estimateDifficulty(word),
+      etymology: undefined, // Will be filled by LLM later
+      usage: undefined, // Will be filled by LLM later
+      culturalNotes: this.generateCulturalNotes(hanzi),
+      memoryAids: this.generateMemoryAids(hanzi, word.meaning),
+      relatedWords: this.extractRelatedWords(hanzi),
+      characterComponents: await this.analyzeCharacterComponents(hanzi),
+      generatedAt: new Date().toISOString()
+    };
+
+    console.log(`🔍 Partial profile ready for "${hanzi}"`);
+    return profile;
+  }
+
+  /**
+   * Enhance partial profile with LLM data in background
+   */
+  private async enhanceWithLLMData(
+    word: Word, 
+    baseProfile: WordProfileDTO, 
+    onUpdate: (profile: WordProfileDTO) => void
+  ): Promise<void> {
+    try {
+      console.log(`🔍 Enhancing profile for "${word.hanzi}" with LLM data...`);
+      
+      const llmData = await this.getLLMData(word);
+      
+      // Merge LLM data into the base profile
+      const enhancedProfile: WordProfileDTO = {
+        ...baseProfile,
+        partOfSpeech: this.extractPartOfSpeech(null, llmData), // Use LLM data for part of speech
+        examples: this.buildExamples(llmData),
+        etymology: llmData?.etymology,
+        usage: llmData?.usage,
+        generatedAt: new Date().toISOString() // Update timestamp
+      };
+
+      console.log(`🔍 LLM enhancement complete for "${word.hanzi}"`);
+      
+      // Cache the complete profile
+      if (this.config.enableCache && this.isProfileComplete(enhancedProfile)) {
+        console.log(`🔍 Caching enhanced profile for "${word.hanzi}"`);
+        await this.profileCache.set(word.hanzi, enhancedProfile);
+      }
+      
+      // Notify UI with enhanced profile
+      onUpdate(enhancedProfile);
+      
+    } catch (error) {
+      console.error(`🔍 Failed to enhance profile for "${word.hanzi}" with LLM:`, error);
+      // Don't call onUpdate on error - UI keeps partial profile
+    }
+  }
+
   private async getUnihanData(hanzi: string) {
     try {
       const primaryChar = hanzi[0];
@@ -136,13 +282,18 @@ export class WordProfileService {
 
   private async getDictionaryData(hanzi: string): Promise<DictionaryResult | null> {
     if (!this.lingvanexApi) {
+      console.log('🔍 WordProfileService: No Lingvanex API configured');
       return null;
     }
 
+    console.log(`🔍 WordProfileService: Getting dictionary data for "${hanzi}"`);
+
     try {
-      return await this.lingvanexApi.getDictionaryDefinition(hanzi);
+      const result = await this.lingvanexApi.getDictionaryDefinition(hanzi);
+      console.log(`🔍 WordProfileService: Dictionary result for "${hanzi}":`, result);
+      return result;
     } catch (error) {
-      console.error('Failed to get dictionary data:', error);
+      console.error('🔍 WordProfileService: Failed to get dictionary data:', error);
       return null;
     }
   }
@@ -281,24 +432,111 @@ export class WordProfileService {
   }
 
   private async analyzeCharacterComponents(hanzi: string) {
-    const components = [];
+    console.log(`🔍 Analyzing character components for "${hanzi}"...`);
     
-    for (let i = 0; i < hanzi.length; i++) {
-      const char = hanzi[i];
-      const charData = await this.unihanRepo.getCharacterData(char);
-      
-      if (charData) {
-        components.push({
+    // Skip Unihan entirely and use Lingvanex directly for speed
+    if (!this.lingvanexApi) {
+      console.log('🔍 No Lingvanex API available for character analysis');
+      return [];
+    }
+
+    try {
+      // Add aggressive timeout for the entire character analysis operation
+      const analysisPromise = this.performCharacterAnalysis(hanzi);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          console.error(`🔍 Character analysis timeout after 15 seconds for "${hanzi}"`);
+          reject(new Error('Character analysis timeout'));
+        }, 15000); // 15 second total timeout
+      });
+
+      const components = await Promise.race([analysisPromise, timeoutPromise]);
+      console.log(`🔍 Character analysis complete for "${hanzi}"`);
+      return components as any;
+    } catch (error) {
+      console.error(`🔍 Character analysis failed for "${hanzi}":`, error);
+      // Return basic fallback data
+      return hanzi.split('').map((char, index) => ({
+        char,
+        meaning: 'analysis failed',
+        type: index === 0 ? 'radical' as const : 'semantic' as const,
+        strokes: 8,
+        pinyin: 'unknown'
+      }));
+    }
+  }
+
+  private async performCharacterAnalysis(hanzi: string) {
+    // Process all characters in parallel for better performance
+    const characterPromises = hanzi.split('').map(async (char, index) => {
+      try {
+        console.log(`🔍 Getting meaning for "${char}" from Lingvanex...`);
+        const dictResult = await this.lingvanexApi!.getDictionaryDefinition(char);
+        
+        const meaning = dictResult?.definitions[0] || 'unknown meaning';
+        console.log(`🔍 Got meaning for "${char}": "${meaning}"`);
+        
+        return {
           char,
-          meaning: charData.definition || '',
-          type: i === 0 ? 'radical' as const : 'semantic' as const,
-          strokes: charData.totalStrokes || 8,
-          pinyin: charData.pinyin || ''
-        });
+          meaning,
+          type: index === 0 ? 'radical' as const : 'semantic' as const,
+          strokes: 8, // Default estimate
+          pinyin: 'unknown' // Could enhance this later
+        };
+      } catch (error) {
+        console.error(`🔍 Failed to get meaning for "${char}":`, error);
+        return {
+          char,
+          meaning: 'request failed',
+          type: index === 0 ? 'radical' as const : 'semantic' as const,
+          strokes: 8,
+          pinyin: 'unknown'
+        };
+      }
+    });
+
+    // Wait for all character lookups to complete in parallel
+    return await Promise.all(characterPromises);
+  }
+
+  /**
+   * Check if a profile is complete and valid (no placeholder/error data)
+   * Only complete profiles should be cached
+   */
+  private isProfileComplete(profile: WordProfileDTO): boolean {
+    // Check if character components have valid meanings
+    if (profile.characterComponents) {
+      const hasIncompleteComponents = profile.characterComponents.some(component => {
+        const meaning = component.meaning?.toLowerCase() || '';
+        return meaning === 'loading...' || 
+               meaning === 'unknown meaning' || 
+               meaning === 'analysis failed' || 
+               meaning === 'request failed' ||
+               meaning === 'unknown' ||
+               meaning === 'meaning' ||
+               meaning === '';
+      });
+
+      if (hasIncompleteComponents) {
+        console.log('🔍 Profile incomplete: character components have placeholder meanings');
+        return false;
       }
     }
 
-    return components;
+    // Check if dictionary has real data
+    if (profile.dictionary && profile.dictionary.definitions.length === 0) {
+      console.log('🔍 Profile incomplete: no dictionary definitions');
+      return false;
+    }
+
+    // Check if basic meanings are present
+    if (profile.meanings.length === 0) {
+      console.log('🔍 Profile incomplete: no meanings');
+      return false;
+    }
+
+    console.log('🔍 Profile validation passed - ready for caching');
+    return true;
   }
 
   // Utility methods
@@ -311,16 +549,14 @@ export class WordProfileService {
   }
 
   async testConnections(): Promise<{ unihan: boolean; lingvanex: boolean; llm: boolean }> {
-    const results = await Promise.allSettled([
-      this.unihanRepo.getCharacterData('你'),
-      this.lingvanexApi?.testConnection() || Promise.resolve(false),
-      this.llmAdapter ? Promise.resolve(true) : Promise.resolve(false)
-    ]);
-
-    return {
-      unihan: results[0].status === 'fulfilled' && results[0].value !== null,
-      lingvanex: results[1].status === 'fulfilled' ? results[1].value : false,
-      llm: results[2].status === 'fulfilled' ? results[2].value : false
-    };
+    try {
+      const unihanTest = await this.unihanRepo.getCharacterData('人').then(() => true).catch(() => false);
+      const lingvanexTest = this.lingvanexApi ? await this.lingvanexApi.getDictionaryDefinition('测试').then(() => true).catch(() => false) : false;
+      const llmTest = this.llmAdapter ? true : false;
+      
+      return { unihan: unihanTest, lingvanex: lingvanexTest, llm: llmTest };
+    } catch (error) {
+      return { unihan: false, lingvanex: false, llm: false };
+    }
   }
-} 
+}

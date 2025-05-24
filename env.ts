@@ -15,9 +15,7 @@ export const AZURE_TTS_KEY =
 export const AZURE_TTS_REGION =
   (Constants.expoConfig?.extra as any)?.AZURE_TTS_REGION ?? "eastus";
 
-// Database paths
-export const UNIHAN_DB_PATH = 'unihan.db';
-export const CEDICT_DB_PATH = 'cedict.db';
+// Database paths (now using assets)export const UNIHAN_DB_PATH = 'unihan.db';export const CEDICT_DB_PATH = 'cedict.db';
 
 // CDN/asset URLs
 export const STROKE_ORDER_BASE_URL = 'https://your-cdn.com/strokes'; // Update with your CDN URL
