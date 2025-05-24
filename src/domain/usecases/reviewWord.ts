@@ -29,6 +29,10 @@ export class ReviewWordUseCase {
       interval: reviewResult.interval,
       due: reviewResult.due,
       status: reviewResult.status,
+      learningStep: reviewResult.learningStep,
+      learningDue: reviewResult.learningDue,
+      repetitions: word.repetitions + 1,
+      updatedAt: Date.now(),
     };
 
     // Save updated word

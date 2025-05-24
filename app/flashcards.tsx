@@ -32,13 +32,18 @@ export default function FlashcardsScreen() {
 
   const handleReview = async (quality: ReviewQuality) => {
     if (!currentCard || isReviewing) return;
-    
+
     setIsReviewing(true);
     await reviewWord(currentCard.id, quality);
-    
-    // Simple approach: just reload the session to get the next card
-    startReviewSession(reviewMode);
-    
+    advanceSession();
+
+    const nextCard = getNextCard();
+    if (nextCard) {
+      setCurrentCard(nextCard);
+    } else {
+      setCurrentCard(null);
+    }
+
     setIsReviewing(false);
     setShowAnswer(false);
   };

@@ -287,35 +287,18 @@ export const useStore = create<WeiLangStore>((set, get) => {
       try {
         const settings = get().reviewSettings;
         
-        // Get all available cards (not just due ones for now)
-        const allWords = await wordRepo.listAll();
-        
-        // Filter cards based on availability and mode
+        // Load cards from repository according to mode
         let availableNewCards: Word[] = [];
         let availableLearningCards: Word[] = [];
         let availableReviewCards: Word[] = [];
-        
+
         if (mode !== 'review-only') {
-          // New cards - status is 'new'
-          availableNewCards = allWords
-            .filter(w => w.status === 'new')
-            .slice(0, settings.maxNewCardsPerDay);
+          availableNewCards = await wordRepo.listNewCards(settings.maxNewCardsPerDay);
         }
-        
+
         if (mode !== 'new-only') {
-          // Learning cards - have learningStep > 0 and are due
-          const now = Date.now();
-          availableLearningCards = allWords.filter(w => 
-            w.learningStep > 0 && 
-            w.learningDue !== undefined && 
-            w.learningDue <= now
-          );
-          
-          // Review cards - status is 'review' and are due
-          availableReviewCards = allWords.filter(w => 
-            w.status === 'review' && 
-            w.due <= now
-          );
+          availableLearningCards = await wordRepo.listLearningCards();
+          availableReviewCards = await wordRepo.listReviewCards(settings.maxReviewsPerDay);
         }
         
         // For learning-only mode, only show learning cards
@@ -336,29 +319,26 @@ export const useStore = create<WeiLangStore>((set, get) => {
           settings,
         };
         
-        // Fill first batch with priority: learning > new > review
-        const batchCards: Word[] = [];
-        
-        // Add learning cards first (highest priority)
-        batchCards.push(...session.learningCards.slice(0, settings.batchSize));
-        
-        // Add new cards if there's space
-        const remainingSpace = settings.batchSize - batchCards.length;
-        if (remainingSpace > 0) {
-          batchCards.push(...session.newCards.slice(0, remainingSpace));
-        }
-        
-        // Add review cards if there's still space
-        const finalSpace = settings.batchSize - batchCards.length;
-        if (finalSpace > 0) {
-          batchCards.push(...session.reviewCards.slice(0, finalSpace));
-        }
-        
-        session.currentBatch = batchCards;
+        // Helper to fill a batch in priority order
+        const fillBatch = () => {
+          const batch: Word[] = [];
+          while (batch.length < settings.batchSize && session.learningCards.length > 0) {
+            batch.push(session.learningCards.shift()!);
+          }
+          while (batch.length < settings.batchSize && session.newCards.length > 0) {
+            batch.push(session.newCards.shift()!);
+          }
+          while (batch.length < settings.batchSize && session.reviewCards.length > 0) {
+            batch.push(session.reviewCards.shift()!);
+          }
+          return batch;
+        };
+
+        session.currentBatch = fillBatch();
         
         console.log('Session created:', {
           mode,
-          totalCards: allWords.length,
+          totalCards: session.newCards.length + session.learningCards.length + session.reviewCards.length,
           newCards: session.newCards.length,
           learningCards: session.learningCards.length,
           reviewCards: session.reviewCards.length,
@@ -384,18 +364,48 @@ export const useStore = create<WeiLangStore>((set, get) => {
       return session.currentBatch[0];
     },
     
-    // Remove current card from batch and update session
+    // Remove current card from batch and load next when needed
     advanceSession: () => {
       const session = get().currentSession;
       if (!session) return;
-      
-      // Remove the first card from current batch
-      const updatedSession = {
+
+      let { newCards, learningCards, reviewCards, currentBatch, settings, batchIndex } = session;
+
+      const current = currentBatch.shift();
+      if (current) {
+        newCards = newCards.filter(w => w.id !== current.id);
+        learningCards = learningCards.filter(w => w.id !== current.id);
+        reviewCards = reviewCards.filter(w => w.id !== current.id);
+      }
+
+      if (currentBatch.length === 0) {
+        batchIndex += 1;
+
+        const fillBatch = () => {
+          while (currentBatch.length < settings.batchSize && learningCards.length > 0) {
+            currentBatch.push(learningCards.shift()!);
+          }
+          while (currentBatch.length < settings.batchSize && newCards.length > 0) {
+            currentBatch.push(newCards.shift()!);
+          }
+          while (currentBatch.length < settings.batchSize && reviewCards.length > 0) {
+            currentBatch.push(reviewCards.shift()!);
+          }
+        };
+
+        fillBatch();
+      }
+
+      const updatedSession: ReviewSession = {
         ...session,
-        currentBatch: session.currentBatch.slice(1),
+        newCards,
+        learningCards,
+        reviewCards,
+        currentBatch,
+        batchIndex,
         reviewed: session.reviewed + 1,
       };
-      
+
       set({ currentSession: updatedSession });
     },
     
