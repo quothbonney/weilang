@@ -15,15 +15,16 @@ interface GeneratedSentence {
 }
 
 interface GeneratedWordProfile {
-  partOfSpeech: string;
+  partOfSpeech?: string;
   detailedMeaning: string;
-  exampleSentences: {
+  exampleSentences?: Array<{
     hanzi: string;
     pinyin: string;
     gloss: string;
-  }[];
+  }>;
   etymology?: string;
   usage?: string;
+  memoryAids?: string;
 }
 
 export class TogetherAdapter {
@@ -111,6 +112,7 @@ Return as JSON only.`;
         exampleSentences: parsed.exampleSentences,
         etymology: parsed.etymology || undefined,
         usage: parsed.usage || undefined,
+        memoryAids: parsed.memoryAids || undefined,
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -140,7 +142,7 @@ Return ONLY valid JSON in this exact format:
 Do NOT include any other text, markdown, or explanation.`;
 
         userPrompt = `Create ONE natural Chinese sentence using ONLY these words: [${wordList}].
-The sentence must include the target word “${target.hanzi}” meaning "${target.meaning}" and be less than 30 characters.
+The sentence must include the target word " ${target.hanzi} " meaning "${target.meaning}" and be less than 30 characters.
 Return the result as JSON with hanzi (Chinese characters), pinyin (with tone marks), and gloss (English translation).`;
         break;
 
@@ -150,7 +152,7 @@ Return the result as JSON with hanzi (Chinese characters), pinyin (with tone mar
 Return ONLY valid JSON in this exact format:
 {"hanzi":"...", "pinyin":"...", "gloss":"..."}`;
 
-        userPrompt = `Create a simple Chinese sentence using the word “${target.hanzi}” ("${target.meaning}").
+        userPrompt = `Create a simple Chinese sentence using the word " ${target.hanzi} " ("${target.meaning}").
 You may also use these known words: [${someWordList}] and add 1-2 additional common Chinese words if needed.
 Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
         break;
@@ -161,7 +163,7 @@ Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
 Return ONLY valid JSON in this exact format:
 {"hanzi":"...", "pinyin":"...", "gloss":"..."}`;
 
-        userPrompt = `Create a natural Chinese sentence that uses the word “${target.hanzi}” ("${target.meaning}").
+        userPrompt = `Create a natural Chinese sentence that uses the word " ${target.hanzi} " ("${target.meaning}").
 You may reference these words: [${manyWordList}] and feel free to use additional common words to create a meaningful sentence.
 Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
         break;
@@ -171,7 +173,7 @@ Keep it under 30 characters. Return as JSON with hanzi, pinyin, and gloss.`;
 Return ONLY valid JSON in this exact format:
 {"hanzi":"...", "pinyin":"...", "gloss":"..."}`;
 
-        userPrompt = `Create a simple, beginner-friendly Chinese sentence that includes the word “${target.hanzi}” ("${target.meaning}").
+        userPrompt = `Create a simple, beginner-friendly Chinese sentence that includes the word " ${target.hanzi} " ("${target.meaning}").
 Feel free to use any other common words. Keep it under 20 characters.
 Return as JSON with hanzi (Chinese characters), pinyin (with tone marks), and gloss (English translation).`;
         break;

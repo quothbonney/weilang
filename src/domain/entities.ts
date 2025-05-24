@@ -54,42 +54,75 @@ export interface WordProfileDTO {
   primaryMeaning: string;
   meanings: string[];
   partOfSpeech: string;
-  radical: { 
-    number: number; 
-    char: string; 
+  radical: {
+    number: number;
+    char: string;
     meaning: string;
     strokes: number;
-  };
+  } | null;
   totalStrokes: number;
   strokeSvgUrl: string;
   dictionary: {
     definitions: string[];
     synonyms: string[];
     antonyms: string[];
-    source: "Lingvanex" | "CEDICT" | "LLM";
+    source: 'Lingvanex' | 'LLM';
   };
   examples: Array<{
     hanzi: string;
     pinyin: string;
     gloss: string;
-    audioUrl?: string;
-    source: "LLM";
+    source: 'User' | 'LLM';
   }>;
-  frequency?: string;
-  difficulty?: string;
+  frequency: string; // e.g., "Common", "HSK1"
+  difficulty: string; // e.g., "Beginner", "Advanced"
   etymology?: string;
-  usage?: string;
+  usage?: string; // Contextual usage notes
   culturalNotes?: string;
   memoryAids?: string;
-  relatedWords: string[];
+  relatedWords?: string[]; // Words that share characters
   characterComponents?: Array<{
     char: string;
     meaning: string;
-    type: "radical" | "phonetic" | "semantic";
+    type: 'radical' | 'phonetic' | 'semantic' | 'variant' | 'character'; // Added 'character'
     strokes: number;
-    pinyin: string;
+    pinyin?: string;
+    position?: number; // For display order/layout
   }>;
-  generatedAt: string; // ISO8601
+  // Add the new field for comprehensive radical breakdown from RadicalAnalyzer
+  radicalBreakdown?: {
+    characters: Array<{
+      character: string;
+      radical: {
+        number: number;
+        character: string;
+        strokes: number;
+        meaning: string;
+        pinyin: string;
+      } | null;
+      additionalStrokes: number;
+      totalStrokes: number;
+      radicalPosition: 'left' | 'right' | 'top' | 'bottom' | 'enclosing' | 'unknown';
+      composition: Array<{
+        component: string;
+        type: 'radical' | 'phonetic' | 'semantic' | 'variant';
+        meaning?: string;
+        pinyin?: string;
+        strokes?: number;
+        position?: string;
+      }>;
+    }>;
+    commonRadicals: Array<{
+      number: number;
+      character: string;
+      strokes: number;
+      meaning: string;
+      pinyin: string;
+    }>;
+    totalComplexity: number;
+    learningTips: string[];
+  };
+  generatedAt: string; // ISO date string
 }
 
 // Unihan database schema

@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import { Target, Clock, BookOpen, CheckCircle } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';
+import { Target, Clock, BookOpen, CheckCircle, X } from 'lucide-react-native';
 import { ReviewMode } from '../../../domain/entities';
 
 interface ReviewModeSelectorProps {
@@ -103,56 +103,69 @@ export const ReviewModeSelector: React.FC<ReviewModeSelectorProps> = ({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Review Settings</Text>
-          
-          {/* Review Mode Selection */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.sectionTitle}>Review Mode</Text>
-            {modes.map(renderModeButton)}
+          {/* Header with close button */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Review Settings</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <X size={24} color="#6b7280" />
+            </TouchableOpacity>
           </View>
           
-          {/* Flashcard Settings */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.sectionTitle}>Flashcard Options</Text>
+          {/* Scrollable content */}
+          <ScrollView 
+            style={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Review Mode Selection */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.sectionTitle}>Review Mode</Text>
+              {modes.map(renderModeButton)}
+            </View>
             
-            {renderSettingRow(
-              "Show Pinyin",
-              "Display pinyin pronunciation guide",
-              flashcardSettings.showPinyin,
-              () => onUpdateFlashcardSettings({ showPinyin: !flashcardSettings.showPinyin })
-            )}
+            {/* Flashcard Settings */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.sectionTitle}>Flashcard Options</Text>
+              
+              {renderSettingRow(
+                "Show Pinyin",
+                "Display pinyin pronunciation guide",
+                flashcardSettings.showPinyin,
+                () => onUpdateFlashcardSettings({ showPinyin: !flashcardSettings.showPinyin })
+              )}
+              
+              {renderSettingRow(
+                "Flip Deck Direction",
+                flashcardSettings.deckFlipped
+                  ? "English → Chinese characters"
+                  : "Chinese → English meaning",
+                flashcardSettings.deckFlipped,
+                () => onUpdateFlashcardSettings({ deckFlipped: !flashcardSettings.deckFlipped })
+              )}
+              
+              {renderSettingRow(
+                "Typing Mode",
+                flashcardSettings.typingMode
+                  ? "Type characters for extra mastery points"
+                  : "Just reveal the answer (default)",
+                flashcardSettings.typingMode,
+                () => onUpdateFlashcardSettings({ typingMode: !flashcardSettings.typingMode })
+              )}
+              
+              {renderSettingRow(
+                "Auto-play TTS",
+                flashcardSettings.autoPlayTTS
+                  ? "Speak Chinese after revealing answer"
+                  : "Manual audio playback only",
+                flashcardSettings.autoPlayTTS,
+                () => onUpdateFlashcardSettings({ autoPlayTTS: !flashcardSettings.autoPlayTTS })
+              )}
+            </View>
             
-            {renderSettingRow(
-              "Flip Deck Direction",
-              flashcardSettings.deckFlipped
-                ? "English → Chinese characters"
-                : "Chinese → English meaning",
-              flashcardSettings.deckFlipped,
-              () => onUpdateFlashcardSettings({ deckFlipped: !flashcardSettings.deckFlipped })
-            )}
-            
-            {renderSettingRow(
-              "Typing Mode",
-              flashcardSettings.typingMode
-                ? "Type characters for extra mastery points"
-                : "Just reveal the answer (default)",
-              flashcardSettings.typingMode,
-              () => onUpdateFlashcardSettings({ typingMode: !flashcardSettings.typingMode })
-            )}
-            
-            {renderSettingRow(
-              "Auto-play TTS",
-              flashcardSettings.autoPlayTTS
-                ? "Speak Chinese after revealing answer"
-                : "Manual audio playback only",
-              flashcardSettings.autoPlayTTS,
-              () => onUpdateFlashcardSettings({ autoPlayTTS: !flashcardSettings.autoPlayTTS })
-            )}
-          </View>
-          
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelButtonText}>Close</Text>
-          </TouchableOpacity>
+            {/* Extra padding at bottom for scrolling */}
+            <View style={styles.bottomPadding} />
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -171,13 +184,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     maxHeight: '80%',
+    minHeight: 300,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 16,
-    textAlign: 'center',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   settingsSection: {
     marginBottom: 20,
@@ -222,7 +246,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
@@ -265,12 +289,7 @@ const styles = StyleSheet.create({
   toggleThumbActive: {
     marginLeft: 18,
   },
-  cancelButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#6b7280',
-    fontWeight: '500',
+  bottomPadding: {
+    height: 20,
   },
 }); 

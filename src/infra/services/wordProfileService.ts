@@ -8,6 +8,7 @@ import { UnihanRepository, RadicalInfo } from '../storage/unihanRepo';
 import { LingvanexApi, DictionaryResult } from '../api/lingvanexApi';
 import { ProfileCache } from '../storage/profileCache';
 import { TogetherAdapter } from '../llm/togetherAdapter';
+import { RadicalAnalyzer, RadicalBreakdown } from './radicalAnalyzer';
 
 export interface WordProfileConfig {
   lingvanexApiKey?: string;
@@ -19,6 +20,7 @@ export interface WordProfileConfig {
 
 export class WordProfileService {
   private unihanRepo: UnihanRepository;
+  private radicalAnalyzer: RadicalAnalyzer;
   private lingvanexApi: LingvanexApi | null;
   private profileCache: ProfileCache;
   private llmAdapter: TogetherAdapter | null;
@@ -39,6 +41,7 @@ export class WordProfileService {
     });
 
     this.unihanRepo = new UnihanRepository(this.config.unihanDbPath);
+    this.radicalAnalyzer = new RadicalAnalyzer(this.unihanRepo);
     this.lingvanexApi = this.config.lingvanexApiKey 
       ? new LingvanexApi(this.config.lingvanexApiKey) 
       : null;
@@ -49,7 +52,8 @@ export class WordProfileService {
 
     console.log('🔍 WordProfileService: Services initialized:', {
       hasLingvanexApi: !!this.lingvanexApi,
-      hasLlmAdapter: !!this.llmAdapter
+      hasLlmAdapter: !!this.llmAdapter,
+      hasRadicalAnalyzer: !!this.radicalAnalyzer
     });
   }
 
@@ -92,6 +96,11 @@ export class WordProfileService {
     if (this.config.enableCache) {
       const cached = await this.profileCache.get(hanzi);
       if (cached) {
+        // If cached, still call LLM enhancement if onUpdate is provided, 
+        // in case LLM data was missing or needs refresh.
+        if (this.llmAdapter && onUpdate) {
+          this.enhanceWithLLMData(word, cached, onUpdate, true); // Pass a flag to indicate it's from cache
+        }
         return cached;
       }
     }
@@ -101,7 +110,7 @@ export class WordProfileService {
     
     // Start LLM generation in background (don't await)
     if (this.llmAdapter && onUpdate) {
-      this.enhanceWithLLMData(word, partialProfile, onUpdate);
+      this.enhanceWithLLMData(word, partialProfile, onUpdate, false);
     }
 
     return partialProfile;
@@ -112,56 +121,50 @@ export class WordProfileService {
     
     // Start all data fetching in parallel for performance
     const [
-      unihanData,
+      radicalBreakdown,
       dictionaryData,
       llmData
     ] = await Promise.allSettled([
-      this.getUnihanData(hanzi),
+      this.radicalAnalyzer.getWordBreakdown(hanzi),
       this.getDictionaryData(hanzi),
       this.getLLMData(word)
     ]);
 
     // Extract character data
-    const characterData = unihanData.status === 'fulfilled' ? unihanData.value : null;
-    const primaryChar = hanzi[0]; // First character for radical/stroke data
-    
-    // Get radical info
-    let radicalInfo: RadicalInfo | null = null;
-    if (characterData?.radical) {
-      try {
-        radicalInfo = await this.unihanRepo.getRadicalInfo(characterData.radical);
-      } catch (error) {
-        console.error('Failed to get radical info:', error);
-        radicalInfo = null;
-      }
-    }
-
-    // Extract dictionary data
+    const rBreakdown = radicalBreakdown.status === 'fulfilled' ? radicalBreakdown.value : null;
     const dictData = dictionaryData.status === 'fulfilled' ? dictionaryData.value : null;
-
-    // Extract LLM data
     const llmResult = llmData.status === 'fulfilled' ? llmData.value : null;
+
+    // Extract primary character data
+    const primaryCharData = rBreakdown?.characters?.[0];
+    const primaryRadicalInfo = primaryCharData?.radical;
 
     // Build comprehensive profile
     const profile: WordProfileDTO = {
       hanzi,
       pinyin: word.pinyin,
       primaryMeaning: word.meaning,
-      meanings: this.extractMeanings(word, characterData, dictData),
+      meanings: this.extractMeanings(word, rBreakdown, dictData),
       partOfSpeech: this.extractPartOfSpeech(dictData, llmResult),
-      radical: this.buildRadicalInfo(characterData, radicalInfo),
-      totalStrokes: characterData?.totalStrokes || this.estimateStrokes(hanzi),
-      strokeSvgUrl: this.buildStrokeSvgUrl(primaryChar),
+      radical: primaryRadicalInfo ? {
+        number: primaryRadicalInfo.number,
+        char: primaryRadicalInfo.character,
+        meaning: primaryRadicalInfo.meaning,
+        strokes: primaryRadicalInfo.strokes
+      } : null,
+      totalStrokes: rBreakdown?.totalComplexity || this.estimateStrokes(hanzi),
+      strokeSvgUrl: this.buildStrokeSvgUrl(hanzi[0]),
       dictionary: this.buildDictionaryInfo(dictData),
       examples: this.buildExamples(llmResult),
-      frequency: this.estimateFrequency(word),
-      difficulty: this.estimateDifficulty(word),
-      etymology: llmResult?.etymology,
+      frequency: this.estimateFrequency(word, rBreakdown),
+      difficulty: this.estimateDifficulty(word, rBreakdown),
+      etymology: llmResult?.etymology || this.generateEtymologyFromBreakdown(rBreakdown),
       usage: llmResult?.usage,
-      culturalNotes: this.generateCulturalNotes(hanzi),
-      memoryAids: this.generateMemoryAids(hanzi, word.meaning),
-      relatedWords: this.extractRelatedWords(hanzi),
-      characterComponents: await this.analyzeCharacterComponents(hanzi),
+      culturalNotes: this.generateCulturalNotesFromBreakdown(rBreakdown),
+      memoryAids: llmResult?.memoryAids || this.generateMemoryAidsFromBreakdown(rBreakdown),
+      relatedWords: this.extractRelatedWords(hanzi, rBreakdown),
+      characterComponents: this.buildCharacterComponentsFromBreakdown(rBreakdown),
+      radicalBreakdown: rBreakdown || undefined,
       generatedAt: new Date().toISOString()
     };
 
@@ -178,51 +181,47 @@ export class WordProfileService {
     
     // Get fast API data only (skip LLM)
     const [
-      unihanData,
+      radicalBreakdown,
       dictionaryData
     ] = await Promise.allSettled([
-      this.getUnihanData(hanzi),
+      this.radicalAnalyzer.getWordBreakdown(hanzi),
       this.getDictionaryData(hanzi)
     ]);
 
     // Extract character data
-    const characterData = unihanData.status === 'fulfilled' ? unihanData.value : null;
-    const primaryChar = hanzi[0];
-    
-    // Get radical info
-    let radicalInfo: RadicalInfo | null = null;
-    if (characterData?.radical) {
-      try {
-        radicalInfo = await this.unihanRepo.getRadicalInfo(characterData.radical);
-      } catch (error) {
-        console.error('Failed to get radical info:', error);
-        radicalInfo = null;
-      }
-    }
-
-    // Extract dictionary data
+    const rBreakdown = radicalBreakdown.status === 'fulfilled' ? radicalBreakdown.value : null;
     const dictData = dictionaryData.status === 'fulfilled' ? dictionaryData.value : null;
+
+    // Extract primary character data
+    const primaryCharData = rBreakdown?.characters?.[0];
+    const primaryRadicalInfo = primaryCharData?.radical;
 
     // Build partial profile (no LLM data yet)
     const profile: WordProfileDTO = {
       hanzi,
       pinyin: word.pinyin,
       primaryMeaning: word.meaning,
-      meanings: this.extractMeanings(word, characterData, dictData),
+      meanings: this.extractMeanings(word, rBreakdown, dictData),
       partOfSpeech: this.extractPartOfSpeech(dictData, null), // No LLM data yet
-      radical: this.buildRadicalInfo(characterData, radicalInfo),
-      totalStrokes: characterData?.totalStrokes || this.estimateStrokes(hanzi),
-      strokeSvgUrl: this.buildStrokeSvgUrl(primaryChar),
+      radical: primaryRadicalInfo ? {
+        number: primaryRadicalInfo.number,
+        char: primaryRadicalInfo.character,
+        meaning: primaryRadicalInfo.meaning,
+        strokes: primaryRadicalInfo.strokes
+      } : null,
+      totalStrokes: rBreakdown?.totalComplexity || this.estimateStrokes(hanzi),
+      strokeSvgUrl: this.buildStrokeSvgUrl(hanzi[0]),
       dictionary: this.buildDictionaryInfo(dictData),
       examples: [], // Will be filled by LLM later
-      frequency: this.estimateFrequency(word),
-      difficulty: this.estimateDifficulty(word),
-      etymology: undefined, // Will be filled by LLM later
+      frequency: this.estimateFrequency(word, rBreakdown),
+      difficulty: this.estimateDifficulty(word, rBreakdown),
+      etymology: this.generateEtymologyFromBreakdown(rBreakdown),
       usage: undefined, // Will be filled by LLM later
-      culturalNotes: this.generateCulturalNotes(hanzi),
-      memoryAids: this.generateMemoryAids(hanzi, word.meaning),
-      relatedWords: this.extractRelatedWords(hanzi),
-      characterComponents: await this.analyzeCharacterComponents(hanzi),
+      culturalNotes: this.generateCulturalNotesFromBreakdown(rBreakdown),
+      memoryAids: this.generateMemoryAidsFromBreakdown(rBreakdown),
+      relatedWords: this.extractRelatedWords(hanzi, rBreakdown),
+      characterComponents: this.buildCharacterComponentsFromBreakdown(rBreakdown),
+      radicalBreakdown: rBreakdown || undefined,
       generatedAt: new Date().toISOString()
     };
 
@@ -236,47 +235,54 @@ export class WordProfileService {
   private async enhanceWithLLMData(
     word: Word, 
     baseProfile: WordProfileDTO, 
-    onUpdate: (profile: WordProfileDTO) => void
+    onUpdate: (profile: WordProfileDTO) => void,
+    isFromCache: boolean
   ): Promise<void> {
     try {
       console.log(`🔍 Enhancing profile for "${word.hanzi}" with LLM data...`);
       
+      // If it's from cache and already has LLM data, maybe only update if LLM data is stale or missing critical fields
+      if (isFromCache && baseProfile.etymology && baseProfile.examples && baseProfile.examples.length > 0) {
+        const generatedDate = new Date(baseProfile.generatedAt);
+        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        if (generatedDate > oneWeekAgo) {
+            console.log(`🔍 LLM data for "${word.hanzi}" is recent (from cache), skipping LLM enhancement.`);
+            // Optionally call onUpdate if you want to signal completion anyway
+            // onUpdate(baseProfile);
+            return;
+        }
+      }
+
       const llmData = await this.getLLMData(word);
+      if (!llmData) {
+        console.log(`🔍 No LLM data received for "${word.hanzi}", using existing or generated.`);
+        // If onUpdate is provided, call it with the base profile to signal completion of this step.
+        onUpdate(baseProfile);
+        return;
+      }
       
-      // Merge LLM data into the base profile
       const enhancedProfile: WordProfileDTO = {
         ...baseProfile,
-        partOfSpeech: this.extractPartOfSpeech(null, llmData), // Use LLM data for part of speech
-        examples: this.buildExamples(llmData),
-        etymology: llmData?.etymology,
-        usage: llmData?.usage,
-        generatedAt: new Date().toISOString() // Update timestamp
+        partOfSpeech: llmData.partOfSpeech || baseProfile.partOfSpeech,
+        examples: llmData.exampleSentences?.map((ex: any) => ({ ...ex, source: 'LLM' })) || baseProfile.examples,
+        etymology: llmData.etymology || baseProfile.etymology,
+        usage: llmData.usage || baseProfile.usage,
+        memoryAids: llmData.memoryAids || baseProfile.memoryAids,
+        generatedAt: new Date().toISOString()
       };
 
       console.log(`🔍 LLM enhancement complete for "${word.hanzi}"`);
       
-      // Cache the complete profile
       if (this.config.enableCache && this.isProfileComplete(enhancedProfile)) {
         console.log(`🔍 Caching enhanced profile for "${word.hanzi}"`);
         await this.profileCache.set(word.hanzi, enhancedProfile);
       }
       
-      // Notify UI with enhanced profile
       onUpdate(enhancedProfile);
       
     } catch (error) {
       console.error(`🔍 Failed to enhance profile for "${word.hanzi}" with LLM:`, error);
-      // Don't call onUpdate on error - UI keeps partial profile
-    }
-  }
-
-  private async getUnihanData(hanzi: string) {
-    try {
-      const primaryChar = hanzi[0];
-      return await this.unihanRepo.getCharacterData(primaryChar);
-    } catch (error) {
-      console.error('Failed to get Unihan data:', error);
-      return null;
+      onUpdate(baseProfile); // Fallback to base profile on error
     }
   }
 
@@ -311,13 +317,15 @@ export class WordProfileService {
     }
   }
 
-  private extractMeanings(word: Word, unihanData: any, dictData: DictionaryResult | null): string[] {
+  private extractMeanings(word: Word, rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null, dictData: DictionaryResult | null): string[] {
     const meanings = new Set<string>();
     
     meanings.add(word.meaning);
     
-    if (unihanData?.definition) {
-      meanings.add(unihanData.definition);
+    if (rBreakdown?.characters?.some(char => char.radical?.meaning)) {
+      rBreakdown?.characters?.forEach(char => {
+        if (char.radical?.meaning) meanings.add(char.radical.meaning);
+      });
     }
     
     if (dictData?.definitions) {
@@ -337,24 +345,6 @@ export class WordProfileService {
     }
 
     return 'word';
-  }
-
-  private buildRadicalInfo(characterData: any, radicalInfo: RadicalInfo | null) {
-    if (!characterData?.radical || !radicalInfo) {
-      return {
-        number: 0,
-        char: '',
-        meaning: '',
-        strokes: 0
-      };
-    }
-
-    return {
-      number: characterData.radical,
-      char: radicalInfo.character,
-      meaning: radicalInfo.meaning,
-      strokes: radicalInfo.strokes
-    };
   }
 
   private buildStrokeSvgUrl(character: string): string {
@@ -393,110 +383,108 @@ export class WordProfileService {
     }));
   }
 
-  private estimateFrequency(word: Word): string {
-    // Simple frequency estimation based on word properties
+  private estimateFrequency(word: Word, rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): string {
     if (word.repetitions > 20) return 'Very Common';
     if (word.repetitions > 10) return 'Common';
     if (word.repetitions > 5) return 'Moderate';
+    if (rBreakdown?.characters?.some(c => c.totalStrokes > 12)) return 'Less Common';
     return 'Uncommon';
   }
 
-  private estimateDifficulty(word: Word): string {
-    // Simple difficulty estimation
-    const strokeCount = word.hanzi.length * 8; // Rough estimate
+  private estimateDifficulty(word: Word, rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): string {
+    const avgStrokes = rBreakdown ? (rBreakdown.totalComplexity / (rBreakdown.characters.length || 1)) : (word.hanzi.length * 8);
     const easeScore = word.ease;
 
-    if (strokeCount < 10 && easeScore > 2.5) return 'Beginner';
-    if (strokeCount < 20 && easeScore > 2.0) return 'Intermediate';
+    if (avgStrokes <= 6 && easeScore > 2.5) return 'Beginner';
+    if (avgStrokes <= 10 && easeScore > 2.0) return 'Intermediate';
+    if (avgStrokes <= 14) return 'Upper Intermediate';
     return 'Advanced';
   }
 
   private estimateStrokes(hanzi: string): number {
-    // Rough estimation: 8 strokes per character on average
     return hanzi.length * 8;
   }
 
-  private generateCulturalNotes(hanzi: string): string {
-    // Placeholder for cultural notes - would be enhanced with real data
-    return `The character${hanzi.length > 1 ? 's' : ''} ${hanzi} ${hanzi.length > 1 ? 'are' : 'is'} commonly used in modern Chinese.`;
-  }
-
-  private generateMemoryAids(hanzi: string, meaning: string): string {
-    // Simple memory aid generation
-    return `Remember "${hanzi}" by associating it with "${meaning}".`;
-  }
-
-  private extractRelatedWords(hanzi: string): string[] {
-    // Placeholder - would query database for words containing the same characters
-    return [];
-  }
-
-  private async analyzeCharacterComponents(hanzi: string) {
-    console.log(`🔍 Analyzing character components for "${hanzi}"...`);
+  private generateEtymologyFromBreakdown(rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): string {
+    if (!rBreakdown || rBreakdown.characters.length === 0) return 'Etymology information unavailable.';
     
-    // Skip Unihan entirely and use Lingvanex directly for speed
-    if (!this.lingvanexApi) {
-      console.log('🔍 No Lingvanex API available for character analysis');
-      return [];
-    }
+    const mainTips = rBreakdown.learningTips?.filter(tip => tip.toLowerCase().includes('radical')) || [];
+    if (mainTips.length > 0) return mainTips.join(' '); 
 
-    try {
-      // Add aggressive timeout for the entire character analysis operation
-      const analysisPromise = this.performCharacterAnalysis(hanzi);
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          console.error(`🔍 Character analysis timeout after 15 seconds for "${hanzi}"`);
-          reject(new Error('Character analysis timeout'));
-        }, 15000); // 15 second total timeout
+    const firstCharBreakdown = rBreakdown.characters[0];
+    if (firstCharBreakdown.radical) {
+      return `The character "${firstCharBreakdown.character}" features the "${firstCharBreakdown.radical.character}" (${firstCharBreakdown.radical.meaning}) radical, hinting at its semantic roots.`;
+    }
+    return 'Basic structural analysis suggests a combination of phonetic and semantic components.';
+  }
+  
+  private generateCulturalNotesFromBreakdown(rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): string {
+    if (!rBreakdown || rBreakdown.characters.length === 0) return 'No specific cultural notes based on structure.';
+    const commonThemes = rBreakdown.commonRadicals.map(r => r.meaning).join(', ');
+    if (commonThemes) {
+      return `This word incorporates elements related to ${commonThemes}, often found in various cultural contexts.`;
+    }
+    return 'The component radicals often carry cultural significance in Chinese language.';
+  }
+
+  private generateMemoryAidsFromBreakdown(rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): string {
+    if (!rBreakdown || rBreakdown.characters.length === 0) return 'Visualize the character shapes and their meanings.';
+    const tip = rBreakdown.learningTips?.find(t => !t.toLowerCase().includes('radical'));
+    if (tip) return tip;
+    if (rBreakdown.commonRadicals.length > 0) {
+      return `Associate this word with the meaning of its main radical: "${rBreakdown.commonRadicals[0].character}" (${rBreakdown.commonRadicals[0].meaning}).`;
+    }
+    return 'Break the word into individual characters and learn their radicals to aid memory.';
+  }
+
+  private extractRelatedWords(hanzi: string, rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): string[] {
+    // Placeholder - could be enhanced by searching for other words with commonRadicals
+    return []; 
+  }
+
+  private buildCharacterComponentsFromBreakdown(rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): WordProfileDTO['characterComponents'] {
+    if (!rBreakdown) return [];
+
+    const components: WordProfileDTO['characterComponents'] = [];
+    rBreakdown.characters.forEach((charAnalysis, charIndex) => {
+      // Add the character itself
+      components.push({
+        char: charAnalysis.character,
+        meaning: '', // Placeholder, could fetch full char definition if needed
+        type: 'character',
+        strokes: charAnalysis.totalStrokes,
+        pinyin: '', // Placeholder
+        position: charIndex 
       });
 
-      const components = await Promise.race([analysisPromise, timeoutPromise]);
-      console.log(`🔍 Character analysis complete for "${hanzi}"`);
-      return components as any;
-    } catch (error) {
-      console.error(`🔍 Character analysis failed for "${hanzi}":`, error);
-      // Return basic fallback data
-      return hanzi.split('').map((char, index) => ({
-        char,
-        meaning: 'analysis failed',
-        type: index === 0 ? 'radical' as const : 'semantic' as const,
-        strokes: 8,
-        pinyin: 'unknown'
-      }));
-    }
-  }
-
-  private async performCharacterAnalysis(hanzi: string) {
-    // Process all characters in parallel for better performance
-    const characterPromises = hanzi.split('').map(async (char, index) => {
-      try {
-        console.log(`🔍 Getting meaning for "${char}" from Lingvanex...`);
-        const dictResult = await this.lingvanexApi!.getDictionaryDefinition(char);
-        
-        const meaning = dictResult?.definitions[0] || 'unknown meaning';
-        console.log(`🔍 Got meaning for "${char}": "${meaning}"`);
-        
-        return {
-          char,
-          meaning,
-          type: index === 0 ? 'radical' as const : 'semantic' as const,
-          strokes: 8, // Default estimate
-          pinyin: 'unknown' // Could enhance this later
-        };
-      } catch (error) {
-        console.error(`🔍 Failed to get meaning for "${char}":`, error);
-        return {
-          char,
-          meaning: 'request failed',
-          type: index === 0 ? 'radical' as const : 'semantic' as const,
-          strokes: 8,
-          pinyin: 'unknown'
-        };
+      // Add its main radical
+      if (charAnalysis.radical) {
+        components.push({
+          char: charAnalysis.radical.character,
+          meaning: charAnalysis.radical.meaning,
+          type: 'radical',
+          strokes: charAnalysis.radical.strokes,
+          pinyin: charAnalysis.radical.pinyin,
+          // Position relative to this character could be inferred, or a general one.
+          // For simplicity, let's assign a sub-position or link to the parent char.
+          position: charIndex * 10 + 1 // Example positioning scheme
+        });
       }
+      // Add other components from its composition array
+      charAnalysis.composition.forEach((comp, compIndex) => {
+        if (comp.type !== 'radical') { // Avoid duplicating the main radical listed above
+          components.push({
+            char: comp.component,
+            meaning: comp.meaning || '',
+            type: comp.type,
+            strokes: comp.strokes || 0,
+            pinyin: comp.pinyin || '',
+            position: charIndex * 10 + 2 + compIndex // Example positioning scheme
+          });
+        }
+      });
     });
-
-    // Wait for all character lookups to complete in parallel
-    return await Promise.all(characterPromises);
+    return components;
   }
 
   /**
@@ -504,7 +492,10 @@ export class WordProfileService {
    * Only complete profiles should be cached
    */
   private isProfileComplete(profile: WordProfileDTO): boolean {
-    // Check if character components have valid meanings
+    if (!profile.radicalBreakdown || profile.radicalBreakdown.characters.length === 0) {
+        console.log('🔍 Profile incomplete: missing radical breakdown data.');
+        return false;
+    }
     if (profile.characterComponents) {
       const hasIncompleteComponents = profile.characterComponents.some(component => {
         const meaning = component.meaning?.toLowerCase() || '';
@@ -513,25 +504,19 @@ export class WordProfileService {
                meaning === 'analysis failed' || 
                meaning === 'request failed' ||
                meaning === 'unknown' ||
-               meaning === 'meaning' ||
-               meaning === '';
+               meaning === ''; // Allow empty string for component character if not primary meaning source
       });
 
-      if (hasIncompleteComponents) {
-        console.log('🔍 Profile incomplete: character components have placeholder meanings');
-        return false;
-      }
+      // Loosen this check: Character components can have empty meanings if they are just structural parts
+      // The primary meaning comes from the word itself or dictionary.
+      // if (hasIncompleteComponents) {
+      //   console.log('🔍 Profile incomplete: character components have placeholder meanings');
+      //   return false;
+      // }
     }
 
-    // Check if dictionary has real data
-    if (profile.dictionary && profile.dictionary.definitions.length === 0) {
-      console.log('🔍 Profile incomplete: no dictionary definitions');
-      return false;
-    }
-
-    // Check if basic meanings are present
-    if (profile.meanings.length === 0) {
-      console.log('🔍 Profile incomplete: no meanings');
+    if (profile.dictionary && profile.dictionary.definitions.length === 0 && profile.meanings.length === 0) {
+      console.log('🔍 Profile incomplete: no dictionary definitions or primary meanings');
       return false;
     }
 
@@ -550,12 +535,14 @@ export class WordProfileService {
 
   async testConnections(): Promise<{ unihan: boolean; lingvanex: boolean; llm: boolean }> {
     try {
-      const unihanTest = await this.unihanRepo.getCharacterData('人').then(() => true).catch(() => false);
-      const lingvanexTest = this.lingvanexApi ? await this.lingvanexApi.getDictionaryDefinition('测试').then(() => true).catch(() => false) : false;
-      const llmTest = this.llmAdapter ? true : false;
+      // Test RadicalAnalyzer via getWordBreakdown as it uses UnihanRepo
+      const unihanTest = await this.radicalAnalyzer.getWordBreakdown('人').then(rb => !!rb).catch(() => false);
+      const lingvanexTest = this.lingvanexApi ? await this.lingvanexApi.getDictionaryDefinition('测试').then(res => !!res).catch(() => false) : false;
+      const llmTest = this.llmAdapter ? true : false; // Assume adapter initializes if key is present
       
       return { unihan: unihanTest, lingvanex: lingvanexTest, llm: llmTest };
     } catch (error) {
+      console.error('Connection test failed:', error);
       return { unihan: false, lingvanex: false, llm: false };
     }
   }

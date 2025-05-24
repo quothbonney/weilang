@@ -5,6 +5,7 @@
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 import { UnihanEntry } from '../../domain/entities';
+import { DatabaseInitializer } from './databaseInitializer';
 
 export interface RadicalInfo {
   number: number;
@@ -25,31 +26,87 @@ export class UnihanRepository {
     this.isWebPlatform = Platform.OS === 'web';
   }
 
+  private async ensureTablesExist(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    try {
+      // Check if unihan table exists
+      const tableExists = await this.db.getFirstAsync(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='unihan'"
+      );
+
+      if (!tableExists) {
+        console.warn('⚠️  Unihan table not found. Database may be empty or corrupted.');
+        console.warn('📍 Database path:', this.dbPath);
+        console.warn('🔧 This usually means the app created an empty database instead of using the populated one.');
+        console.warn('💡 Solutions:');
+        console.warn('   1. Move database to assets/ and copy to documents directory');
+        console.warn('   2. Use absolute path to existing database');
+        console.warn('   3. Run ETL script to populate the current database');
+        
+        throw new Error(`Unihan table not found in database at ${this.dbPath}. The app may be creating an empty database instead of using the populated one.`);
+      }
+
+      // Check table has data
+      const rowCount = await this.db.getFirstAsync<{count: number}>('SELECT COUNT(*) as count FROM unihan');
+      if (!rowCount || rowCount.count === 0) {
+        throw new Error('Unihan table exists but is empty. Run ETL script to populate database.');
+      }
+
+      console.log(`✅ Unihan database verified: ${rowCount.count} characters loaded`);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('no such table')) {
+        throw new Error(`Database table 'unihan' not found. This usually means Expo SQLite created an empty database instead of using your populated database file. Check database path: ${this.dbPath}`);
+      }
+      throw error;
+    }
+  }
+
   async initialize(): Promise<void> {
     try {
       console.log(`Initializing Unihan database: ${this.dbPath} on ${this.isWebPlatform ? 'web' : 'native'} platform`);
       
-      this.db = await SQLite.openDatabaseAsync(this.dbPath);
-      await this.createIndexes();
-      this.initializationError = null;
+      // For mobile platforms, use DatabaseInitializer to get the correct path
+      let actualDbPath = this.dbPath;
+      if (!this.isWebPlatform) {
+        try {
+          actualDbPath = await DatabaseInitializer.initializeDatabase();
+          console.log(`📱 Using mobile database path: ${actualDbPath}`);
+        } catch (error) {
+          console.warn('⚠️  Failed to initialize mobile database, falling back to default path:', error);
+          // Fall back to original path
+        }
+      }
       
+      this.db = await SQLite.openDatabaseAsync(actualDbPath);
+      
+      // IMPORTANT: Check tables exist before creating indexes
+      await this.ensureTablesExist();
+      await this.createIndexes();
+      
+      this.initializationError = null;
       console.log('Unihan database initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Unihan database:', error);
       this.initializationError = error instanceof Error ? error.message : 'Unknown database error';
-      throw error; // Let the error bubble up since we have real data
+      throw error;
     }
   }
 
   private async createIndexes(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    // Ensure indexes exist for performance
-    await this.db.execAsync(`
-      CREATE INDEX IF NOT EXISTS idx_character ON unihan(character);
-      CREATE INDEX IF NOT EXISTS idx_radical ON unihan(radical);
-      CREATE INDEX IF NOT EXISTS idx_strokes ON unihan(total_strokes);
-    `);
+    try {
+      // Ensure indexes exist for performance
+      await this.db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_character ON unihan(character);
+        CREATE INDEX IF NOT EXISTS idx_radical ON unihan(radical);
+        CREATE INDEX IF NOT EXISTS idx_strokes ON unihan(total_strokes);
+      `);
+    } catch (error) {
+      console.error('Failed to create indexes:', error);
+      // Don't throw here - indexes are nice to have but not essential
+    }
   }
 
   async getCharacterData(character: string): Promise<UnihanEntry | null> {

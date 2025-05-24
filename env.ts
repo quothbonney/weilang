@@ -19,3 +19,7 @@ export const AZURE_TTS_REGION =
 
 // CDN/asset URLs
 export const STROKE_ORDER_BASE_URL = 'https://your-cdn.com/strokes'; // Update with your CDN URL
+
+// Mobile database configuration
+export const MOBILE_UNIHAN_DB = true; // Use asset-based database initialization
+export const UNIHAN_ASSET_PATH = 'assets/databases/unihan.db';
