@@ -220,8 +220,12 @@ export interface ReviewSession {
   newCards: Word[];
   learningCards: Word[];
   reviewCards: Word[];
+  /**
+   * Queue of cards remaining for this session in priority order
+   */
+  queue: Word[];
   currentBatch: Word[];
   batchIndex: number;
   reviewed: number;
   settings: ReviewSettings;
-} 
+}
