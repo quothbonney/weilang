@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions } from "react-native";
+import * as Speech from "expo-speech"; // fallback
+import { speakWithAzure } from "../../src/infra/tts/azureTts";
 import { 
   Card, 
   Badge,
@@ -119,6 +121,22 @@ export default function WordProfileScreen() {
     }
   };
 
+  const speakWord = async () => {
+    if (word) {
+      const success = await speakWithAzure(word.hanzi);
+      if (!success) {
+        Speech.speak(word.hanzi, { language: 'zh-CN' });
+      }
+    }
+  };
+
+  const speakExample = async (text: string) => {
+    const success = await speakWithAzure(text);
+    if (!success) {
+      Speech.speak(text, { language: 'zh-CN' });
+    }
+  };
+
   if (!word) {
     return (
       <View className="flex-1 justify-center items-center p-4 bg-gray-50">
@@ -190,7 +208,10 @@ export default function WordProfileScreen() {
           <TouchableOpacity className="flex-1 bg-blue-600 py-3 rounded-lg items-center">
             <Text className="text-white font-semibold">Practice</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="flex-1 bg-gray-200 py-3 rounded-lg items-center">
+          <TouchableOpacity
+            className="flex-1 bg-gray-200 py-3 rounded-lg items-center"
+            onPress={speakWord}
+          >
             <Text className="text-gray-700 font-semibold">Listen</Text>
           </TouchableOpacity>
           <TouchableOpacity className="bg-gray-200 p-3 rounded-lg">
@@ -306,11 +327,15 @@ export default function WordProfileScreen() {
               
               <View className="space-y-4">
                 {profile.exampleSentences.map((example, index) => (
-                  <View key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <TouchableOpacity
+                    key={index}
+                    className="bg-gray-50 p-4 rounded-lg border border-gray-100"
+                    onPress={() => speakExample(example.hanzi)}
+                  >
                     <Text className="text-lg font-semibold text-gray-900 mb-1">{example.hanzi}</Text>
                     <Text className="text-blue-600 mb-2">{example.pinyin}</Text>
                     <Text className="text-gray-700 italic">{example.gloss}</Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
