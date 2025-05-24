@@ -1,0 +1,76 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+// WeiLang (Expo + React-Native-Web)  .cursorrules
+// These guidelines steer AI code-generation inside Cursor.
+
+// ─────────────────────────────────────────────────────────────
+// 1  Project conventions & best-practices
+// ─────────────────────────────────────────────────────────────
+
+const weilangBestPractices = [
+  "Use **functional components** with React hooks.",
+  "Keep UI layer dumb; all state in **Zustand** store under src/ui/hooks.",
+  "Follow a **Clean/Hexagonal architecture**: UI → Application → Domain → Infra.",
+  "TypeScript everywhere — `strict` mode enabled.",
+  "Styling via **Tailwind class names** (`nativewind`); avoid StyleSheet unless perf-critical.",
+  "Use **Expo SDK 51** APIs; prefer `expo install` for dependencies.",
+  "Run identical domain code on web (Dexie) & native (expo-sqlite).",
+  "LLM access goes through `TogetherAdapter` only; never call fetch directly from UI.",
+  "Write pure functions & unit-test in `tests/` with Vitest.",
+  "No Material-UI; use `shadcn/ui` on web and `gluestack-ui` on native.",
+];
+
+// ─────────────────────────────────────────────────────────────
+// 2  Canonical folder structure
+// ─────────────────────────────────────────────────────────────
+
+const folderStructure = `
+assets/
+.env
+app.config.ts
+tailwind.config.js
+src/
+  domain/
+    entities.ts
+    srs.ts
+    usecases/
+  application/           // (if needed for orchestration logic)
+  infra/
+    storage/
+      wordRepo.dexie.ts
+      wordRepo.sqlite.ts
+    llm/
+      togetherAdapter.ts
+  platform/
+    storageProvider.ts
+    env.ts
+  ui/
+    components/
+    screens/
+    hooks/
+  tests/
+App.tsx
+`;
+
+// ─────────────────────────────────────────────────────────────
+// 3  Additional generation instructions
+// ─────────────────────────────────────────────────────────────
+
+const additionalInstructions = `
+1. **Never** embed secret keys in code; read from \`env.ts\`.
+2. When adding a new screen, register it in React Navigation *and* export it from src/ui/screens/index.ts.
+3. Use **async/await**; no .then chains.
+4. Keep DB schema migrations idempotent; expose \`initDB()\` in storageProvider.
+5. Write adapters (OCR, STT, etc.) behind clearly typed interfaces; UI must not import platform code directly.
+6. Prefer **FlatList** over ScrollView for long lists on native.
+7. All LLM prompts live in togetherAdapter, typed with a `SystemPrompt` enum for reuse.
+8. For new components, supply storybook stories under src/ui/components/\*\*/\*.stories.tsx (Storybook configured in a later sprint).
+9. Keep imports absolute using tsconfig `paths` (e.g., `import { Word } from "@/domain/entities"`).
+10. Ensure web build (`expo build:web`) stays <5 MB gzipped — tree-shake unused icons.
+`;
+
+export { weilangBestPractices, folderStructure, additionalInstructions };
+
