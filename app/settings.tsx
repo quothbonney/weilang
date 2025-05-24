@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  Select,
+  SelectTrigger,
+  SelectInput,
+  SelectIcon,
+  SelectPortal,
+  SelectBackdrop,
+  SelectContent,
+  SelectItem,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb
+} from "@gluestack-ui/themed";
+import { ChevronDown } from "lucide-react-native";
 import { useStore } from "../src/ui/hooks/useStore";
 import { storage } from "../src/platform/storageUtils";
 import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
@@ -147,36 +162,20 @@ export default function SettingsScreen() {
           Choose which AI model to use for generating examples and profiles.
         </Text>
 
-        {MODEL_OPTIONS.map((model, index) => (
-          <TouchableOpacity
-            key={model.key}
-            style={[
-              styles.modeOption,
-              selectedModel === model.key && styles.selectedMode,
-              index < MODEL_OPTIONS.length - 1 && styles.modeOptionMargin
-            ]}
-            onPress={() => changeModel(model.key)}
-          >
-            <View style={styles.modeContent}>
-              <Text style={[
-                styles.modeLabel,
-                selectedModel === model.key && styles.selectedModeText
-              ]}>
-                {model.label}
-              </Text>
-              <Text style={[
-                styles.modeDescription,
-                selectedModel === model.key && styles.selectedModeDescription
-              ]}>
-                {model.description}
-              </Text>
-            </View>
-            <View style={[
-              styles.radioCircle,
-              selectedModel === model.key && styles.selectedRadio
-            ]} />
-          </TouchableOpacity>
-        ))}
+        <Select selectedValue={selectedModel} onValueChange={value => changeModel(value as ModelOption)}>
+          <SelectTrigger>
+            <SelectInput placeholder="Select model" />
+            <SelectIcon><ChevronDown size={16} /></SelectIcon>
+          </SelectTrigger>
+          <SelectPortal>
+            <SelectBackdrop />
+            <SelectContent>
+              {MODEL_OPTIONS.map(option => (
+                <SelectItem key={option.key} label={option.label} value={option.key} />
+              ))}
+            </SelectContent>
+          </SelectPortal>
+        </Select>
       </View>
 
       <View style={styles.section}>
@@ -185,36 +184,26 @@ export default function SettingsScreen() {
           Choose how examples are generated when you have few or no learned words.
         </Text>
 
-        {GENERATION_MODES.map((mode, index) => (
-          <TouchableOpacity
-            key={mode.key}
-            style={[
-              styles.modeOption,
-              exampleGenerationMode === mode.key && styles.selectedMode,
-              index < GENERATION_MODES.length - 1 && styles.modeOptionMargin
-            ]}
-            onPress={() => changeGenerationMode(mode.key)}
-          >
-            <View style={styles.modeContent}>
-              <Text style={[
-                styles.modeLabel,
-                exampleGenerationMode === mode.key && styles.selectedModeText
-              ]}>
-                {mode.label}
-              </Text>
-              <Text style={[
-                styles.modeDescription,
-                exampleGenerationMode === mode.key && styles.selectedModeDescription
-              ]}>
-                {mode.description}
-              </Text>
-            </View>
-            <View style={[
-              styles.radioCircle,
-              exampleGenerationMode === mode.key && styles.selectedRadio
-            ]} />
-          </TouchableOpacity>
-        ))}
+        <Slider
+          minValue={0}
+          maxValue={GENERATION_MODES.length - 1}
+          step={1}
+          value={GENERATION_MODES.findIndex(m => m.key === exampleGenerationMode)}
+          onChange={val => changeGenerationMode(GENERATION_MODES[val].key)}
+        >
+          <SliderTrack>
+            <SliderFilledTrack />
+          </SliderTrack>
+          <SliderThumb />
+        </Slider>
+        <View style={{ marginTop: 12 }}>
+          <Text style={styles.modeLabel}>
+            {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.label}
+          </Text>
+          <Text style={styles.modeDescription}>
+            {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.description}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -305,24 +294,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 4,
   },
-  modeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-  },
-  modeOptionMargin: {
-    marginBottom: 8,
-  },
-  selectedMode: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
-  },
-  modeContent: {
-    flex: 1,
-  },
   modeLabel: {
     fontSize: 16,
     fontWeight: '600',
@@ -332,22 +303,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  selectedModeText: {
-    color: '#3b82f6',
-  },
-  selectedModeDescription: {
-    color: '#2563eb',
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    marginLeft: 12,
-  },
-  selectedRadio: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-}); 
+});
