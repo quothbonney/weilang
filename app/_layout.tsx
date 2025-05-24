@@ -18,13 +18,9 @@ export default function RootLayout() {
     // Initialize any global setup here
     console.log("WeiLang App Started!");
     
-    // Load API key from environment if available
-    import("../env").then(({ TOGETHER_KEY }) => {
-      if (TOGETHER_KEY) {
-        import("../src/ui/hooks/useStore").then(({ useStore }) => {
-          useStore.getState().setApiKey(TOGETHER_KEY);
-        });
-      }
+    // Initialize settings from storage and .env
+    import("../src/ui/hooks/useStore").then(({ useStore }) => {
+      useStore.getState().initializeSettings();
     });
   }, []);
 
@@ -60,6 +56,13 @@ export default function RootLayout() {
           name="review/[id]" 
           options={{ 
             title: "Review",
+            headerShown: true 
+          }} 
+        />
+        <Stack.Screen 
+          name="profile/[id]" 
+          options={{ 
+            title: "Word Profile",
             headerShown: true 
           }} 
         />

@@ -31,7 +31,7 @@ export default function DeckScreen() {
   }
 
   const handleWordPress = (wordId: string) => {
-    router.push(`/review/${wordId}`);
+    router.push(`/profile/${wordId}`);
   };
 
     return (    <View style={styles.container}>      <TouchableOpacity         style={styles.settingsButton}        onPress={() => router.push('/settings')}      >        <Text style={styles.settingsButtonText}>⚙️</Text>      </TouchableOpacity>      {words.length === 0 ? (

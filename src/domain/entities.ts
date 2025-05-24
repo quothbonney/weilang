@@ -7,11 +7,16 @@ export interface Word {
   hanzi: string;
   pinyin: string;
   meaning: string;
-  addedAt: number;       // epoch ms
+  
+  // Spaced repetition fields
   ease: number;          // SM-2 factor (default 2.5)
   interval: number;      // days until next review
-  due: number;           // epoch ms when due for review
+  repetitions: number;   // number of successful reviews
+  nextReview: number;    // epoch ms when due for review
   status: "new" | "learning" | "review";
+  
+  createdAt: number;     // epoch ms
+  updatedAt?: number;    // epoch ms
 }
 
 export interface Example {
@@ -21,6 +26,22 @@ export interface Example {
   pinyin: string;
   gloss: string;
   createdAt: number;
+}
+
+export interface WordProfile {
+  id: string;
+  wordId: string;
+  partOfSpeech: string;
+  detailedMeaning: string;
+  exampleSentences: {
+    hanzi: string;
+    pinyin: string;
+    gloss: string;
+  }[];
+  etymology?: string;
+  usage?: string;
+  createdAt: number;
+  updatedAt?: number;
 }
 
 // Review quality ratings for SM-2

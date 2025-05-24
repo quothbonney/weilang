@@ -9,6 +9,7 @@ import { AddWordUseCase } from "../../domain/usecases/addWord";
 import { ReviewWordUseCase } from "../../domain/usecases/reviewWord";
 import { GenerateExampleUseCase } from "../../domain/usecases/generateExample";
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
+import { storage } from "../../platform/storageUtils";
 
 // Sample words for initial seeding
 const SAMPLE_WORDS = [
@@ -24,6 +25,10 @@ const SAMPLE_WORDS = [
   { hanzi: "不", pinyin: "bù", meaning: "not" },
 ];
 
+export type ExampleGenerationMode = 'strict' | 'some-ood' | 'many-ood' | 'independent';
+
+export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo';
+
 interface WeiLangStore {
   // State
   words: Word[];
@@ -33,6 +38,8 @@ interface WeiLangStore {
   apiKey: string | null;
   hasSeeded: boolean;
   lastGeneratedExample: Example | null;
+  exampleGenerationMode: ExampleGenerationMode;
+  selectedModel: ModelOption;
 
   // Actions
   loadWords: () => Promise<void>;
@@ -44,7 +51,14 @@ interface WeiLangStore {
   clearError: () => void;
   seedDatabase: () => Promise<void>;
   generateExample: (wordId: string) => Promise<Example | null>;
+  setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
+  setSelectedModel: (model: ModelOption) => void;
+  initializeSettings: () => Promise<void>;
 }
+
+const API_KEY_STORAGE_KEY = 'weilang_api_key';
+const GENERATION_MODE_STORAGE_KEY = 'weilang_generation_mode';
+const SELECTED_MODEL_STORAGE_KEY = 'weilang_selected_model';
 
 export const useStore = create<WeiLangStore>((set, get) => {
   const wordRepo = getWordRepository();
@@ -60,6 +74,49 @@ export const useStore = create<WeiLangStore>((set, get) => {
     apiKey: null,
     hasSeeded: false,
     lastGeneratedExample: null,
+    exampleGenerationMode: 'independent', // Default to independent for new users
+    selectedModel: 'deepseek-ai/DeepSeek-V3',
+
+    // Initialize settings from storage and .env
+    initializeSettings: async () => {
+      try {
+        // Load API key from storage first, then .env as fallback
+        let apiKey = await storage.getItem(API_KEY_STORAGE_KEY);
+        if (!apiKey) {
+          // Try to load from .env
+          try {
+            const envModule = await import("../../../env");
+            if (envModule.TOGETHER_KEY) {
+              apiKey = envModule.TOGETHER_KEY;
+              // Save to storage for persistence
+              if (apiKey) {
+                await storage.setItem(API_KEY_STORAGE_KEY, apiKey);
+              }
+            }
+          } catch (e) {
+            console.log("No .env file found or TOGETHER_KEY not set");
+          }
+        }
+        
+        if (apiKey) {
+          set({ apiKey });
+        }
+
+        // Load generation mode
+        const storedMode = await storage.getItem(GENERATION_MODE_STORAGE_KEY);
+        if (storedMode) {
+          set({ exampleGenerationMode: storedMode as ExampleGenerationMode });
+        }
+
+        // Load selected model
+        const storedModel = await storage.getItem(SELECTED_MODEL_STORAGE_KEY);
+        if (storedModel) {
+          set({ selectedModel: storedModel as ModelOption });
+        }
+      } catch (error) {
+        console.error('Failed to initialize settings:', error);
+      }
+    },
 
     // Load all words
     loadWords: async () => {
@@ -178,14 +235,16 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
       set({ isLoading: true, error: null });
       try {
-        const togetherAdapter = new TogetherAdapter(apiKey);
+        const selectedModel = get().selectedModel;
+        const togetherAdapter = new TogetherAdapter(apiKey, selectedModel);
         const generateExampleUseCase = new GenerateExampleUseCase(
           wordRepo,
           null as any, // We don't have example repository yet
           togetherAdapter
         );
         
-        const example = await generateExampleUseCase.execute(wordId);
+        const mode = get().exampleGenerationMode;
+        const example = await generateExampleUseCase.execute(wordId, mode);
         set({ lastGeneratedExample: example, isLoading: false });
         return example;
       } catch (error) {
@@ -195,6 +254,16 @@ export const useStore = create<WeiLangStore>((set, get) => {
         });
         return null;
       }
+    },
+
+    // Set example generation mode
+    setExampleGenerationMode: (mode: ExampleGenerationMode) => {
+      set({ exampleGenerationMode: mode });
+    },
+
+    // Set selected model
+    setSelectedModel: (model: ModelOption) => {
+      set({ selectedModel: model });
     },
   };
 }); 

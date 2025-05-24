@@ -2,30 +2,69 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useStore } from "../src/ui/hooks/useStore";
 import { storage } from "../src/platform/storageUtils";
+import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
+const GENERATION_MODE_STORAGE_KEY = 'weilang_generation_mode';
+const SELECTED_MODEL_STORAGE_KEY = 'weilang_selected_model';
+
+const GENERATION_MODES: { key: ExampleGenerationMode; label: string; description: string }[] = [
+  {
+    key: 'strict',
+    label: 'Strict (Known Words Only)',
+    description: 'Use only words you\'ve learned and reviewed'
+  },
+  {
+    key: 'some-ood',
+    label: 'Flexible (Some New Words)',
+    description: 'Add 1-2 new words for natural sentences'
+  },
+  {
+    key: 'many-ood',
+    label: 'Relaxed (Many New Words)',
+    description: 'Use additional common words freely'
+  },
+  {
+    key: 'independent',
+    label: 'Independent (Any Words)',
+    description: 'Generate beginner-friendly sentences independently'
+  }
+];
+
+const MODEL_OPTIONS: { key: ModelOption; label: string; description: string }[] = [
+  {
+    key: 'deepseek-ai/DeepSeek-V3',
+    label: 'DeepSeek V3',
+    description: 'Latest model with excellent Chinese support'
+  },
+  {
+    key: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+    label: 'Llama 3.1 405B Turbo',
+    description: 'Large model with strong reasoning capabilities'
+  },
+  {
+    key: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
+    label: 'Qwen 2.5 72B Turbo',
+    description: 'Optimized for Chinese language tasks'
+  }
+];
 
 export default function SettingsScreen() {
-  const { apiKey, setApiKey } = useStore();
+  const { 
+    apiKey, 
+    setApiKey, 
+    exampleGenerationMode, 
+    setExampleGenerationMode,
+    selectedModel,
+    setSelectedModel
+  } = useStore();
   const [inputKey, setInputKey] = useState(apiKey || '');
   const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
-    // Load API key from storage on mount
-    loadApiKey();
-  }, []);
-
-  const loadApiKey = async () => {
-    try {
-      const storedKey = await storage.getItem(API_KEY_STORAGE_KEY);
-      if (storedKey) {
-        setInputKey(storedKey);
-        setApiKey(storedKey);
-      }
-    } catch (error) {
-      console.error('Failed to load API key:', error);
-    }
-  };
+    // Update input when store updates
+    setInputKey(apiKey || '');
+  }, [apiKey]);
 
   const saveApiKey = async () => {
     try {
@@ -43,12 +82,33 @@ export default function SettingsScreen() {
     }
   };
 
+  const changeGenerationMode = async (mode: ExampleGenerationMode) => {
+    try {
+      setExampleGenerationMode(mode);
+      await storage.setItem(GENERATION_MODE_STORAGE_KEY, mode);
+    } catch (error) {
+      console.error('Failed to save generation mode:', error);
+    }
+  };
+
+  const changeModel = async (model: ModelOption) => {
+    try {
+      setSelectedModel(model);
+      await storage.setItem(SELECTED_MODEL_STORAGE_KEY, model);
+    } catch (error) {
+      console.error('Failed to save model selection:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Together API Configuration</Text>
         <Text style={styles.description}>
           Enter your Together API key to enable example sentence generation.
+          {apiKey && !inputKey.startsWith('sk-') && (
+            <Text style={styles.envNote}> (Loaded from .env file)</Text>
+          )}
         </Text>
         
         <View style={styles.inputContainer}>
@@ -79,6 +139,82 @@ export default function SettingsScreen() {
         <Text style={styles.helpText}>
           Get your API key from https://api.together.xyz
         </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>AI Model Selection</Text>
+        <Text style={styles.description}>
+          Choose which AI model to use for generating examples and profiles.
+        </Text>
+
+        {MODEL_OPTIONS.map((model, index) => (
+          <TouchableOpacity
+            key={model.key}
+            style={[
+              styles.modeOption,
+              selectedModel === model.key && styles.selectedMode,
+              index < MODEL_OPTIONS.length - 1 && styles.modeOptionMargin
+            ]}
+            onPress={() => changeModel(model.key)}
+          >
+            <View style={styles.modeContent}>
+              <Text style={[
+                styles.modeLabel,
+                selectedModel === model.key && styles.selectedModeText
+              ]}>
+                {model.label}
+              </Text>
+              <Text style={[
+                styles.modeDescription,
+                selectedModel === model.key && styles.selectedModeDescription
+              ]}>
+                {model.description}
+              </Text>
+            </View>
+            <View style={[
+              styles.radioCircle,
+              selectedModel === model.key && styles.selectedRadio
+            ]} />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Example Generation Mode</Text>
+        <Text style={styles.description}>
+          Choose how examples are generated when you have few or no learned words.
+        </Text>
+
+        {GENERATION_MODES.map((mode, index) => (
+          <TouchableOpacity
+            key={mode.key}
+            style={[
+              styles.modeOption,
+              exampleGenerationMode === mode.key && styles.selectedMode,
+              index < GENERATION_MODES.length - 1 && styles.modeOptionMargin
+            ]}
+            onPress={() => changeGenerationMode(mode.key)}
+          >
+            <View style={styles.modeContent}>
+              <Text style={[
+                styles.modeLabel,
+                exampleGenerationMode === mode.key && styles.selectedModeText
+              ]}>
+                {mode.label}
+              </Text>
+              <Text style={[
+                styles.modeDescription,
+                exampleGenerationMode === mode.key && styles.selectedModeDescription
+              ]}>
+                {mode.description}
+              </Text>
+            </View>
+            <View style={[
+              styles.radioCircle,
+              exampleGenerationMode === mode.key && styles.selectedRadio
+            ]} />
+          </TouchableOpacity>
+        ))}
       </View>
 
       <View style={styles.section}>
@@ -119,6 +255,10 @@ const styles = StyleSheet.create({
   description: {
     color: '#6b7280',
     marginBottom: 16,
+  },
+  envNote: {
+    color: '#059669',
+    fontStyle: 'italic',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -164,5 +304,50 @@ const styles = StyleSheet.create({
   infoText: {
     color: '#6b7280',
     marginBottom: 4,
+  },
+  modeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+  },
+  modeOptionMargin: {
+    marginBottom: 8,
+  },
+  selectedMode: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff',
+  },
+  modeContent: {
+    flex: 1,
+  },
+  modeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  modeDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  selectedModeText: {
+    color: '#3b82f6',
+  },
+  selectedModeDescription: {
+    color: '#2563eb',
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    marginLeft: 12,
+  },
+  selectedRadio: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
   },
 }); 
