@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Book, Info, Sparkles } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useStore } from "../../src/ui/hooks/useStore";
 import { WordProfile } from "../../src/domain/entities";
@@ -7,15 +9,16 @@ import { WordProfile } from "../../src/domain/entities";
 export default function WordProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { words, isLoading, error, clearError, apiKey, selectedModel } = useStore();
+  const { words, generateWordProfile, lastGeneratedProfile, error, clearError, apiKey } = useStore();
   const [profile, setProfile] = useState<WordProfile | null>(null);
+  const [dictionary, setDictionary] = useState<any | null>(null);
   const [generating, setGenerating] = useState(false);
   
   const word = words.find(w => w.id === id);
 
   useEffect(() => {
     if (word && apiKey) {
-      generateProfile();
+      fetchProfile();
     }
   }, [word, apiKey]);
 
@@ -25,67 +28,35 @@ export default function WordProfileScreen() {
     };
   }, []);
 
-  const generateProfile = async () => {
-    if (!word || !apiKey) return;
-
+  const fetchProfile = async () => {
+    if (!word) return;
     setGenerating(true);
     try {
-      // Mock profile generation for now - in real implementation this would use the use case
-      const mockProfile: WordProfile = {
-        id: `profile-${word.id}`,
-        wordId: word.id,
-        partOfSpeech: "Loading...",
-        detailedMeaning: "Generating detailed analysis...",
-        exampleSentences: [
-          { hanzi: word.hanzi, pinyin: word.pinyin, gloss: word.meaning }
-        ],
-        createdAt: Date.now(),
-      };
-      
-      setProfile(mockProfile);
-      
-      // Simulate API call delay
-      setTimeout(() => {
-        const enhancedProfile: WordProfile = {
-          ...mockProfile,
-          partOfSpeech: getPartOfSpeech(word.hanzi),
-          detailedMeaning: getDetailedMeaning(word.hanzi, word.meaning),
-          exampleSentences: [
-            { hanzi: `我说${word.hanzi}`, pinyin: `wǒ shuō ${word.pinyin}`, gloss: `I say ${word.meaning}` },
-            { hanzi: `这是${word.hanzi}`, pinyin: `zhè shì ${word.pinyin}`, gloss: `This is ${word.meaning}` },
-            { hanzi: `${word.hanzi}很好`, pinyin: `${word.pinyin} hěn hǎo`, gloss: `${word.meaning} is very good` }
-          ],
-          etymology: getEtymology(word.hanzi),
-          usage: `This word is commonly used in daily conversation. Model: ${selectedModel}`,
-        };
-        setProfile(enhancedProfile);
-        setGenerating(false);
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to generate profile:', error);
+      const p = await generateWordProfile(word.id);
+      setProfile(p);
+      if (p) {
+        fetchDictionary(word.meaning);
+      }
+    } catch (err) {
+      console.error('Failed to generate profile:', err);
+    } finally {
       setGenerating(false);
     }
   };
 
-  // Helper functions for mock data
-  const getPartOfSpeech = (hanzi: string): string => {
-    const verbIndicators = ['吃', '喝', '说', '看', '听'];
-    const nounIndicators = ['水', '人', '家', '车', '书'];
-    const adjectiveIndicators = ['好', '大', '小', '美', '快'];
-    
-    if (verbIndicators.some(v => hanzi.includes(v))) return 'Verb';
-    if (nounIndicators.some(n => hanzi.includes(n))) return 'Noun';
-    if (adjectiveIndicators.some(a => hanzi.includes(a))) return 'Adjective';
-    return 'Various';
+  const fetchDictionary = async (meaning: string) => {
+    try {
+      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${meaning}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDictionary(data[0]);
+      }
+    } catch (e) {
+      console.log('dictionary fetch failed');
+    }
   };
 
-  const getDetailedMeaning = (hanzi: string, basicMeaning: string): string => {
-    return `${basicMeaning.charAt(0).toUpperCase() + basicMeaning.slice(1)} - This word (${hanzi}) represents a fundamental concept in Chinese language and culture. It carries various nuances depending on context and is essential for daily communication.`;
-  };
 
-  const getEtymology = (hanzi: string): string => {
-    return `The character ${hanzi} has ancient origins and has evolved over thousands of years of Chinese writing history.`;
-  };
 
   if (!word) {
     return (
@@ -112,11 +83,11 @@ export default function WordProfileScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient colors={["#8b5cf6", "#ec4899"]} style={styles.header}>
         <Text style={styles.hanzi}>{word.hanzi}</Text>
         <Text style={styles.pinyin}>{word.pinyin}</Text>
         <Text style={styles.basicMeaning}>{word.meaning}</Text>
-      </View>
+      </LinearGradient>
 
       {generating && (
         <View style={styles.loadingContainer}>
@@ -128,17 +99,26 @@ export default function WordProfileScreen() {
       {profile && !generating && (
         <>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Part of Speech</Text>
+            <View style={styles.sectionHeader}>
+              <Book size={20} color="#8b5cf6" />
+              <Text style={styles.sectionTitle}>Part of Speech</Text>
+            </View>
             <Text style={styles.sectionContent}>{profile.partOfSpeech}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Detailed Meaning</Text>
+            <View style={styles.sectionHeader}>
+              <Info size={20} color="#8b5cf6" />
+              <Text style={styles.sectionTitle}>Detailed Meaning</Text>
+            </View>
             <Text style={styles.sectionContent}>{profile.detailedMeaning}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Example Sentences</Text>
+            <View style={styles.sectionHeader}>
+              <Sparkles size={20} color="#8b5cf6" />
+              <Text style={styles.sectionTitle}>Example Sentences</Text>
+            </View>
             {profile.exampleSentences.map((example, index) => (
               <View key={index} style={styles.exampleContainer}>
                 <Text style={styles.exampleHanzi}>{example.hanzi}</Text>
@@ -150,15 +130,40 @@ export default function WordProfileScreen() {
 
           {profile.etymology && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Etymology</Text>
+              <View style={styles.sectionHeader}>
+                <Book size={20} color="#8b5cf6" />
+                <Text style={styles.sectionTitle}>Etymology</Text>
+              </View>
               <Text style={styles.sectionContent}>{profile.etymology}</Text>
             </View>
           )}
 
           {profile.usage && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Usage Notes</Text>
+              <View style={styles.sectionHeader}>
+                <Info size={20} color="#8b5cf6" />
+                <Text style={styles.sectionTitle}>Usage Notes</Text>
+              </View>
               <Text style={styles.sectionContent}>{profile.usage}</Text>
+            </View>
+          )}
+
+          {dictionary && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Info size={20} color="#8b5cf6" />
+                <Text style={styles.sectionTitle}>English Definition</Text>
+              </View>
+              {dictionary.meanings?.[0]?.definitions?.[0]?.definition && (
+                <Text style={styles.sectionContent}>
+                  {dictionary.meanings[0].definitions[0].definition}
+                </Text>
+              )}
+              {dictionary.meanings?.[0]?.definitions?.[0]?.synonyms?.length > 0 && (
+                <Text style={styles.sectionContent}>
+                  Synonyms: {dictionary.meanings[0].definitions[0].synonyms.slice(0,5).join(', ')}
+                </Text>
+              )}
             </View>
           )}
         </>
@@ -195,25 +200,27 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   header: {
-    backgroundColor: 'white',
     padding: 24,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   hanzi: {
     fontSize: 48,
     fontWeight: 'bold',
     marginBottom: 8,
+    color: 'white',
   },
   pinyin: {
     fontSize: 24,
-    color: '#6b7280',
+    color: 'white',
     marginBottom: 8,
   },
   basicMeaning: {
     fontSize: 18,
-    color: '#4b5563',
+    color: 'white',
   },
   loadingContainer: {
     padding: 32,
@@ -237,10 +244,15 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 6,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 12,
     color: '#1f2937',
   },
   sectionContent: {
