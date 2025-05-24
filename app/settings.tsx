@@ -67,7 +67,9 @@ export default function SettingsScreen() {
     exampleGenerationMode, 
     setExampleGenerationMode,
     selectedModel,
-    setSelectedModel
+    setSelectedModel,
+    flashcardSettings,
+    setFlashcardSettings
   } = useStore();
   const [inputKey, setInputKey] = useState(apiKey || '');
   const [showKey, setShowKey] = useState(false);
@@ -109,6 +111,14 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error('Failed to save model selection:', error);
     }
+  };
+
+  const togglePinyin = () => {
+    setFlashcardSettings({ showPinyin: !flashcardSettings.showPinyin });
+  };
+
+  const toggleDeckFlip = () => {
+    setFlashcardSettings({ deckFlipped: !flashcardSettings.deckFlipped });
   };
 
   return (
@@ -172,6 +182,59 @@ export default function SettingsScreen() {
             </SelectContent>
           </SelectPortal>
         </Select>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Flashcard Settings</Text>
+        <Text style={styles.description}>
+          Customize your flashcard learning experience.
+        </Text>
+
+        {/* Pinyin Display Toggle */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Text style={styles.settingLabel}>Show Pinyin</Text>
+            <Text style={styles.settingDescription}>
+              Display pinyin pronunciation guide on flashcards
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={[styles.toggle, flashcardSettings.showPinyin && styles.toggleActive]}
+            onPress={togglePinyin}
+          >
+            <View style={[styles.toggleThumb, flashcardSettings.showPinyin && styles.toggleThumbActive]} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Deck Flip Toggle */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Text style={styles.settingLabel}>Flip Deck Direction</Text>
+            <Text style={styles.settingDescription}>
+              {flashcardSettings.deckFlipped 
+                ? "Show English → Write Chinese characters" 
+                : "Show Chinese → Recall English meaning"
+              }
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={[styles.toggle, flashcardSettings.deckFlipped && styles.toggleActive]}
+            onPress={toggleDeckFlip}
+          >
+            <View style={[styles.toggleThumb, flashcardSettings.deckFlipped && styles.toggleThumbActive]} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Current Settings Display */}
+        <View style={styles.currentSettings}>
+          <Text style={styles.currentSettingsTitle}>Current Configuration:</Text>
+          <Text style={styles.currentSettingsText}>
+            • Pinyin: {flashcardSettings.showPinyin ? 'Shown' : 'Hidden'}
+          </Text>
+          <Text style={styles.currentSettingsText}>
+            • Direction: {flashcardSettings.deckFlipped ? 'English → Chinese' : 'Chinese → English'}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -305,6 +368,71 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   infoText: {
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  settingDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+  },
+  toggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#d1d5db',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: '#3b82f6',
+  },
+  toggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  currentSettings: {
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  currentSettingsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  currentSettingsText: {
+    fontSize: 14,
     color: '#6b7280',
     marginBottom: 4,
   },

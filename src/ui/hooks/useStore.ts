@@ -20,6 +20,12 @@ export type ExampleGenerationMode = 'strict' | 'some-ood' | 'many-ood' | 'indepe
 
 export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo';
 
+interface FlashcardSettings {
+  showPinyin: boolean;
+  deckFlipped: boolean; // true = show English, answer with Chinese; false = show Chinese, answer with English
+  typingMode: boolean; // true = require typing in flipped mode; false = just show answer
+}
+
 interface WeiLangStore {
   // State
   words: Word[];
@@ -32,6 +38,7 @@ interface WeiLangStore {
   lastGeneratedProfile: WordProfile | null;
   exampleGenerationMode: ExampleGenerationMode;
   selectedModel: ModelOption;
+  flashcardSettings: FlashcardSettings;
   
   // Review system state
   reviewSettings: ReviewSettings;
@@ -51,6 +58,7 @@ interface WeiLangStore {
   generateWordProfile: (wordId: string) => Promise<WordProfile | null>;
   setExampleGenerationMode: (mode: ExampleGenerationMode) => void;
   setSelectedModel: (model: ModelOption) => void;
+  setFlashcardSettings: (settings: Partial<FlashcardSettings>) => void;
   initializeSettings: () => Promise<void>;
   
   // Review system actions
@@ -64,6 +72,13 @@ interface WeiLangStore {
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
 const GENERATION_MODE_STORAGE_KEY = 'weilang_generation_mode';
 const SELECTED_MODEL_STORAGE_KEY = 'weilang_selected_model';
+const FLASHCARD_SETTINGS_STORAGE_KEY = 'weilang_flashcard_settings';
+
+const DEFAULT_FLASHCARD_SETTINGS: FlashcardSettings = {
+  showPinyin: true,
+  deckFlipped: false,
+  typingMode: false, // Default to just showing answer, not typing
+};
 
 export const useStore = create<WeiLangStore>((set, get) => {
   const wordRepo = getWordRepository();
@@ -82,6 +97,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     lastGeneratedProfile: null,
     exampleGenerationMode: 'independent', // Default to independent for new users
     selectedModel: 'deepseek-ai/DeepSeek-V3',
+    flashcardSettings: DEFAULT_FLASHCARD_SETTINGS,
     
     // Review system state
     reviewSettings: DEFAULT_REVIEW_SETTINGS,
@@ -104,8 +120,8 @@ export const useStore = create<WeiLangStore>((set, get) => {
                 await storage.setItem(API_KEY_STORAGE_KEY, apiKey);
               }
             }
-          } catch {
-            // no env file
+          } catch (e) {
+            console.log("No .env file found or TOGETHER_KEY not set");
           }
         }
         
@@ -123,6 +139,17 @@ export const useStore = create<WeiLangStore>((set, get) => {
         const storedModel = await storage.getItem(SELECTED_MODEL_STORAGE_KEY);
         if (storedModel) {
           set({ selectedModel: storedModel as ModelOption });
+        }
+
+        // Load flashcard settings
+        const storedFlashcardSettings = await storage.getItem(FLASHCARD_SETTINGS_STORAGE_KEY);
+        if (storedFlashcardSettings) {
+          try {
+            const flashcardSettings = JSON.parse(storedFlashcardSettings);
+            set({ flashcardSettings: { ...DEFAULT_FLASHCARD_SETTINGS, ...flashcardSettings } });
+          } catch (e) {
+            console.error('Failed to parse flashcard settings:', e);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize settings:', error);
@@ -235,6 +262,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
         // Reload words
         const words = await wordRepo.listAll();
         set({ words, hasImported: true, isLoading: false });
+        console.log(`Successfully imported ${wordsData.length} words from CSV data`);
       } catch (error) {
         set({ 
           error: error instanceof Error ? error.message : "Failed to import words",
@@ -274,7 +302,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
       }
     },
 
-    // Generate comprehensive word profile
+    // Generate word profile
     generateWordProfile: async (wordId: string) => {
       const apiKey = get().apiKey;
       if (!apiKey) {
@@ -285,20 +313,20 @@ export const useStore = create<WeiLangStore>((set, get) => {
       set({ isLoading: true, error: null });
       try {
         const selectedModel = get().selectedModel;
-        const adapter = new TogetherAdapter(apiKey, selectedModel);
+        const togetherAdapter = new TogetherAdapter(apiKey, selectedModel);
         const useCase = new GenerateWordProfileUseCase(
           wordRepo,
-          null as any, // no repository implementation yet
-          adapter
+          null as any, // We don't have profile repository yet  
+          togetherAdapter
         );
-
+        
         const profile = await useCase.execute(wordId);
         set({ lastGeneratedProfile: profile, isLoading: false });
         return profile;
       } catch (error) {
-        set({
-          error: error instanceof Error ? error.message : "Failed to generate profile",
-          isLoading: false,
+        set({ 
+          error: error instanceof Error ? error.message : "Failed to generate word profile",
+          isLoading: false 
         });
         return null;
       }
@@ -320,18 +348,35 @@ export const useStore = create<WeiLangStore>((set, get) => {
       try {
         const settings = get().reviewSettings;
         
-        // Load cards from repository according to mode
+        // Get all available cards (not just due ones for now)
+        const allWords = await wordRepo.listAll();
+        
+        // Filter cards based on availability and mode
         let availableNewCards: Word[] = [];
         let availableLearningCards: Word[] = [];
         let availableReviewCards: Word[] = [];
-
+        
         if (mode !== 'review-only') {
-          availableNewCards = await wordRepo.listNewCards(settings.maxNewCardsPerDay);
+          // New cards - status is 'new'
+          availableNewCards = allWords
+            .filter(w => w.status === 'new')
+            .slice(0, settings.maxNewCardsPerDay);
         }
-
+        
         if (mode !== 'new-only') {
-          availableLearningCards = await wordRepo.listLearningCards();
-          availableReviewCards = await wordRepo.listReviewCards(settings.maxReviewsPerDay);
+          // Learning cards - have learningStep > 0 and are due
+          const now = Date.now();
+          availableLearningCards = allWords.filter(w => 
+            w.learningStep > 0 && 
+            w.learningDue !== undefined && 
+            w.learningDue <= now
+          );
+          
+          // Review cards - status is 'review' and are due
+          availableReviewCards = allWords.filter(w => 
+            w.status === 'review' && 
+            w.due <= now
+          );
         }
         
         // For learning-only mode, only show learning cards
@@ -352,22 +397,34 @@ export const useStore = create<WeiLangStore>((set, get) => {
           settings,
         };
         
-        // Helper to fill a batch in priority order
-        const fillBatch = () => {
-          const batch: Word[] = [];
-          while (batch.length < settings.batchSize && session.learningCards.length > 0) {
-            batch.push(session.learningCards.shift()!);
-          }
-          while (batch.length < settings.batchSize && session.newCards.length > 0) {
-            batch.push(session.newCards.shift()!);
-          }
-          while (batch.length < settings.batchSize && session.reviewCards.length > 0) {
-            batch.push(session.reviewCards.shift()!);
-          }
-          return batch;
-        };
-
-        session.currentBatch = fillBatch();
+        // Fill first batch with priority: learning > new > review
+        const batchCards: Word[] = [];
+        
+        // Add learning cards first (highest priority)
+        batchCards.push(...session.learningCards.slice(0, settings.batchSize));
+        
+        // Add new cards if there's space
+        const remainingSpace = settings.batchSize - batchCards.length;
+        if (remainingSpace > 0) {
+          batchCards.push(...session.newCards.slice(0, remainingSpace));
+        }
+        
+        // Add review cards if there's still space
+        const finalSpace = settings.batchSize - batchCards.length;
+        if (finalSpace > 0) {
+          batchCards.push(...session.reviewCards.slice(0, finalSpace));
+        }
+        
+        session.currentBatch = batchCards;
+        
+        console.log('Session created:', {
+          mode,
+          totalCards: allWords.length,
+          newCards: session.newCards.length,
+          learningCards: session.learningCards.length,
+          reviewCards: session.reviewCards.length,
+          batchSize: session.currentBatch.length
+        });
         
         set({ currentSession: session, reviewMode: mode, isLoading: false });
       } catch (error) {
@@ -388,48 +445,18 @@ export const useStore = create<WeiLangStore>((set, get) => {
       return session.currentBatch[0];
     },
     
-    // Remove current card from batch and load next when needed
+    // Remove current card from batch and update session
     advanceSession: () => {
       const session = get().currentSession;
       if (!session) return;
-
-      let { newCards, learningCards, reviewCards, currentBatch, settings, batchIndex } = session;
-
-      const current = currentBatch.shift();
-      if (current) {
-        newCards = newCards.filter(w => w.id !== current.id);
-        learningCards = learningCards.filter(w => w.id !== current.id);
-        reviewCards = reviewCards.filter(w => w.id !== current.id);
-      }
-
-      if (currentBatch.length === 0) {
-        batchIndex += 1;
-
-        const fillBatch = () => {
-          while (currentBatch.length < settings.batchSize && learningCards.length > 0) {
-            currentBatch.push(learningCards.shift()!);
-          }
-          while (currentBatch.length < settings.batchSize && newCards.length > 0) {
-            currentBatch.push(newCards.shift()!);
-          }
-          while (currentBatch.length < settings.batchSize && reviewCards.length > 0) {
-            currentBatch.push(reviewCards.shift()!);
-          }
-        };
-
-        fillBatch();
-      }
-
-      const updatedSession: ReviewSession = {
+      
+      // Remove the first card from current batch
+      const updatedSession = {
         ...session,
-        newCards,
-        learningCards,
-        reviewCards,
-        currentBatch,
-        batchIndex,
+        currentBatch: session.currentBatch.slice(1),
         reviewed: session.reviewed + 1,
       };
-
+      
       set({ currentSession: updatedSession });
     },
     
@@ -440,6 +467,20 @@ export const useStore = create<WeiLangStore>((set, get) => {
     
     setReviewMode: (mode: ReviewMode) => {
       set({ reviewMode: mode });
+    },
+
+    // Set flashcard settings
+    setFlashcardSettings: async (newSettings: Partial<FlashcardSettings>) => {
+      const currentSettings = get().flashcardSettings;
+      const updatedSettings = { ...currentSettings, ...newSettings };
+      
+      set({ flashcardSettings: updatedSettings });
+      
+      try {
+        await storage.setItem(FLASHCARD_SETTINGS_STORAGE_KEY, JSON.stringify(updatedSettings));
+      } catch (error) {
+        console.error('Failed to save flashcard settings:', error);
+      }
     },
   };
 }); 
