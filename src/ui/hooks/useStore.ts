@@ -16,6 +16,15 @@ import { DEFAULT_REVIEW_SETTINGS } from "../../domain/srs";
 // Import 300 words from CSV data
 import wordsData from '../../data/words_import.json';
 
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export type ExampleGenerationMode = 'strict' | 'some-ood' | 'many-ood' | 'independent';
 
 export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo';
@@ -65,6 +74,7 @@ interface WeiLangStore {
   startReviewSession: (mode: ReviewMode) => Promise<void>;
   getNextCard: () => Word | null;
   advanceSession: () => void;
+  requeueCard: (card: Word) => void;
   updateReviewSettings: (settings: Partial<ReviewSettings>) => void;
   setReviewMode: (mode: ReviewMode) => void;
 }
@@ -415,7 +425,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
           batchCards.push(...session.reviewCards.slice(0, finalSpace));
         }
         
-        session.currentBatch = batchCards;
+        session.currentBatch = shuffleArray(batchCards);
         
         console.log('Session created:', {
           mode,
@@ -458,6 +468,20 @@ export const useStore = create<WeiLangStore>((set, get) => {
       };
       
       set({ currentSession: updatedSession });
+    },
+
+    requeueCard: (card: Word) => {
+      const session = get().currentSession;
+      if (!session) return;
+
+      const insertIndex = Math.min(
+        session.currentBatch.length,
+        Math.floor(Math.random() * 3) + 1
+      );
+      const newBatch = [...session.currentBatch];
+      newBatch.splice(insertIndex, 0, card);
+
+      set({ currentSession: { ...session, currentBatch: newBatch } });
     },
     
     updateReviewSettings: (newSettings: Partial<ReviewSettings>) => {
