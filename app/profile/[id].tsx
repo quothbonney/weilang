@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions } from "react-native";
+import * as Speech from "expo-speech"; // fallback
+import { speakWithAzure } from "../../src/infra/tts/azureTts";
 import { 
   Card, 
   Badge,
@@ -157,6 +159,22 @@ export default function WordProfileScreen() {
     ]
   };
 
+  const speakWord = async () => {
+    if (word) {
+      const success = await speakWithAzure(word.hanzi);
+      if (!success) {
+        Speech.speak(word.hanzi, { language: 'zh-CN' });
+      }
+    }
+  };
+
+  const speakExample = async (text: string) => {
+    const success = await speakWithAzure(text);
+    if (!success) {
+      Speech.speak(text, { language: 'zh-CN' });
+    }
+  };
+
   if (!word) {
     return (
       <View className="flex-1 justify-center items-center p-6 bg-gradient-to-br from-gray-50 to-gray-100">
@@ -198,7 +216,7 @@ export default function WordProfileScreen() {
             <Text className="text-6xl font-light text-gray-900 mb-3 tracking-wide">{word.hanzi}</Text>
             <View className="flex-row items-center mb-3">
               <Text className="text-3xl text-blue-600 font-medium mr-4">{word.pinyin}</Text>
-              <TouchableOpacity className="bg-blue-50 p-2 rounded-full">
+              <TouchableOpacity className="bg-blue-50 p-2 rounded-full" onPress={speakWord}>
                 <Volume2Icon size={20} color="#3b82f6" />
               </TouchableOpacity>
             </View>
@@ -243,9 +261,6 @@ export default function WordProfileScreen() {
         <View className="flex-row space-x-4">
           <TouchableOpacity className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 py-4 rounded-xl items-center shadow-sm">
             <Text className="text-white font-semibold text-lg">Practice</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 py-4 rounded-xl items-center">
-            <Text className="text-gray-700 font-semibold text-lg">Listen</Text>
           </TouchableOpacity>
           <TouchableOpacity className="bg-gradient-to-r from-gray-100 to-gray-200 p-4 rounded-xl">
             <HeartIcon size={24} color="#6b7280" />
@@ -400,11 +415,15 @@ export default function WordProfileScreen() {
               
               <View className="space-y-6">
                 {profile.exampleSentences.map((example, index) => (
-                  <View key={index} className="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200">
+                  <TouchableOpacity
+                    key={index}
+                    className="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200"
+                    onPress={() => speakExample(example.hanzi)}
+                  >
                     <Text className="text-xl font-semibold text-gray-900 mb-2 leading-relaxed">{example.hanzi}</Text>
                     <Text className="text-lg text-blue-600 mb-3 font-medium">{example.pinyin}</Text>
                     <Text className="text-lg text-gray-700 italic leading-relaxed">{example.gloss}</Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
