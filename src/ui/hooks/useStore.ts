@@ -31,6 +31,7 @@ interface FlashcardSettings {
   showPinyin: boolean;
   deckFlipped: boolean; // true = show English, answer with Chinese; false = show Chinese, answer with English
   typingMode: boolean; // true = require typing in flipped mode; false = just show answer
+  handwritingMode: boolean; // true = draw characters with stylus in flipped mode
   autoPlayTTS: boolean; // true = auto-play TTS when answer is revealed in en-to-zh mode
 }
 
@@ -119,6 +120,7 @@ const DEFAULT_FLASHCARD_SETTINGS: FlashcardSettings = {
   showPinyin: true,
   deckFlipped: false,
   typingMode: false, // Default to just showing answer, not typing
+  handwritingMode: false, // Default to no drawing input
   autoPlayTTS: false, // Default to manual TTS
 };
 

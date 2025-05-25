@@ -5,4 +5,6 @@ export { ReviewButtons } from './ReviewButtons';
 export { ReviewModeSelector } from './ReviewModeSelector';
 export { SettingsPanel } from './SettingsPanel';
 export { LoadingState } from './LoadingState';
-export { CompletionState } from './CompletionState'; 
+export { CompletionState } from './CompletionState';
+export { HandwritingInput } from './HandwritingInput';
+export { StrokeOrderOverlay } from './StrokeOrderOverlay';

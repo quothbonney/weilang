@@ -85,6 +85,7 @@ export default function FlashcardsScreen() {
               inputFeedback={inputFeedback}
               onInputChange={setUserInput}
               onInputSubmit={handleInputSubmit}
+              onRevealAnswer={handleShowAnswer}
             />
 
             {!showAnswer ? (

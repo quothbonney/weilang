@@ -9,9 +9,12 @@ import { Asset } from 'expo-asset';
 export class DatabaseInitializer {
   private static isInitialized = false;
   
-  static async initializeDatabase(): Promise<string> {
+  static async initializeDatabase(
+    assetPath: string,
+    dbFileName = 'unihan.db'
+  ): Promise<string> {
     if (this.isInitialized) {
-      const dbPath = `${FileSystem.documentDirectory}unihan.db`;
+      const dbPath = `${FileSystem.documentDirectory}${dbFileName}`;
       return dbPath;
     }
     
@@ -19,11 +22,11 @@ export class DatabaseInitializer {
       console.log('📱 Initializing database for mobile...');
       
       // Load database asset
-      const asset = Asset.fromModule(require('../../../assets/databases/unihan.db'));
+      const asset = Asset.fromModule((require as any)(`../../../${assetPath}`));
       await asset.downloadAsync();
-      
+
       // Copy to documents directory
-      const dbPath = `${FileSystem.documentDirectory}unihan.db`;
+      const dbPath = `${FileSystem.documentDirectory}${dbFileName}`;
       
       // Check if database already exists
       const dbExists = await FileSystem.getInfoAsync(dbPath);
