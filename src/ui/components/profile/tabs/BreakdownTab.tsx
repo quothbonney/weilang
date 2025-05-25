@@ -38,9 +38,10 @@ export function BreakdownTab() {
   // Analyze characters using the new radicalBreakdown data
   const analyzeCharacters = (): CharacterData[] => {
     const characters = word.hanzi.split('');
-    return characters.map((char, idx) => {
+    return characters.map((char, index) => {
       const charComponent = profile?.characterComponents?.find(
-        c => c.type === 'character' && c.position === idx
+        c => c.type === 'character' && c.position === index
+
       );
       
       const relatedWords = words

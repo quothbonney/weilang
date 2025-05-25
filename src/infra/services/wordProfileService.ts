@@ -488,17 +488,19 @@ export class WordProfileService {
     if (!rBreakdown) return [];
 
     const components: WordProfileDTO['characterComponents'] = [];
+
     for (let charIndex = 0; charIndex < rBreakdown.characters.length; charIndex++) {
       const charAnalysis = rBreakdown.characters[charIndex];
 
-      // Pull pinyin/definition from the Unihan database
+      // Lookup full character info from the database
+
       const charData = await this.unihanRepo.getCharacterData(charAnalysis.character);
 
       components.push({
         char: charAnalysis.character,
         meaning: charData?.definition || '',
         type: 'character',
-        strokes: charAnalysis.totalStrokes,
+        strokes: charData?.totalStrokes || charAnalysis.totalStrokes,
         pinyin: charData?.pinyin || '',
         position: charIndex,
       });
@@ -518,14 +520,14 @@ export class WordProfileService {
       }
       // Add other components from its composition array
       charAnalysis.composition.forEach((comp, compIndex) => {
-        if (comp.type !== 'radical') { // Avoid duplicating the main radical listed above
+        if (comp.type !== 'radical') {
           components.push({
             char: comp.component,
             meaning: comp.meaning || '',
             type: comp.type,
             strokes: comp.strokes || 0,
             pinyin: comp.pinyin || '',
-            position: charIndex * 10 + 2 + compIndex // Example positioning scheme
+            position: charIndex * 10 + 2 + compIndex,
           });
         }
       });
