@@ -19,8 +19,10 @@ export function BreakdownTab() {
   // Analyze characters using profile data
   const analyzeCharacters = (): CharacterData[] => {
     const characters = word.hanzi.split('');
-    return characters.map((char) => {
-      const charComponent = profile?.characterComponents?.find(c => c.char === char);
+    return characters.map((char, index) => {
+      const charComponent = profile?.characterComponents?.find(
+        c => c.type === 'character' && c.position === index
+      );
       
       // Find other words in dataset that contain this character
       const relatedWords = words
