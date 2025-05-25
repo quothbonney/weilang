@@ -179,7 +179,7 @@ export class WordProfileService {
       culturalNotes: this.generateCulturalNotesFromBreakdown(rBreakdown),
       memoryAids: llmResult?.memoryAids || this.generateMemoryAidsFromBreakdown(rBreakdown),
       relatedWords: this.extractRelatedWords(hanzi, rBreakdown),
-      characterComponents: this.buildCharacterComponentsFromBreakdown(rBreakdown),
+      characterComponents: await this.buildCharacterComponentsFromBreakdown(rBreakdown),
       radicalBreakdown: rBreakdown || undefined,
       generatedAt: new Date().toISOString()
     };
@@ -254,7 +254,7 @@ export class WordProfileService {
       culturalNotes: this.generateCulturalNotesFromBreakdown(rBreakdown),
       memoryAids: this.generateMemoryAidsFromBreakdown(rBreakdown),
       relatedWords: this.extractRelatedWords(hanzi, rBreakdown),
-      characterComponents: this.buildCharacterComponentsFromBreakdown(rBreakdown),
+      characterComponents: await this.buildCharacterComponentsFromBreakdown(rBreakdown),
       radicalBreakdown: rBreakdown || undefined,
       generatedAt: new Date().toISOString()
     };
@@ -482,19 +482,25 @@ export class WordProfileService {
     return []; 
   }
 
-  private buildCharacterComponentsFromBreakdown(rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null): WordProfileDTO['characterComponents'] {
+  private async buildCharacterComponentsFromBreakdown(
+    rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null
+  ): Promise<WordProfileDTO['characterComponents']> {
     if (!rBreakdown) return [];
 
     const components: WordProfileDTO['characterComponents'] = [];
-    rBreakdown.characters.forEach((charAnalysis, charIndex) => {
-      // Add the character itself
+    for (let charIndex = 0; charIndex < rBreakdown.characters.length; charIndex++) {
+      const charAnalysis = rBreakdown.characters[charIndex];
+
+      // Pull pinyin/definition from the Unihan database
+      const charData = await this.unihanRepo.getCharacterData(charAnalysis.character);
+
       components.push({
         char: charAnalysis.character,
-        meaning: '', // Placeholder, could fetch full char definition if needed
+        meaning: charData?.definition || '',
         type: 'character',
         strokes: charAnalysis.totalStrokes,
-        pinyin: '', // Placeholder
-        position: charIndex 
+        pinyin: charData?.pinyin || '',
+        position: charIndex,
       });
 
       // Add its main radical
@@ -523,7 +529,7 @@ export class WordProfileService {
           });
         }
       });
-    });
+    }
     return components;
   }
 
