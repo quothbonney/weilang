@@ -7,4 +7,6 @@ const config = getDefaultConfig(__dirname);
 config.resolver.alias = {
   "@": "./src",
 };
+// Support WASM modules needed for expo-sqlite on web
+config.resolver.assetExts.push('wasm');
 module.exports = withNativeWind(config, { input: "./global.css" }); 
