@@ -82,7 +82,7 @@ export function BreakdownTab() {
                     word.pinyin.split(' ')[index] || charData.pinyin : charData.pinyin}
                 </Text>
                 <Text className="text-base text-gray-700 text-center">
-                  {index === 0 ? word.meaning.split(',')[0] || word.meaning : charData.meaning}
+                  {charData.meaning}
                 </Text>
               </View>
             </View>
