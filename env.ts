@@ -16,7 +16,10 @@ export const AZURE_TTS_REGION =
   (Constants.expoConfig?.extra as any)?.AZURE_TTS_REGION ?? "eastus";
 
 // Database paths
-export const UNIHAN_DB_PATH = 'unihan.db';
+// Use relative path for local development
+export const UNIHAN_DB_PATH = 'data/databases/unihan.db';
+// Mobile build copies database asset to documents directory
+export const UNIHAN_ASSET_PATH = 'assets/databases/unihan.db';
 export const CEDICT_DB_PATH = 'cedict.db';
 
 // CDN/asset URLs

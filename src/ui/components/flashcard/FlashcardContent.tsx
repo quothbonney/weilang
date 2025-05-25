@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { HandwritingInput } from './HandwritingInput';
 import { Shuffle, Eye, EyeOff, User, Volume2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Speech from "expo-speech";
@@ -12,6 +13,7 @@ interface FlashcardContentProps {
     showPinyin: boolean;
     deckFlipped: boolean;
     typingMode: boolean;
+    handwritingMode: boolean;
     autoPlayTTS: boolean;
   };
   showAnswer: boolean;
@@ -19,6 +21,7 @@ interface FlashcardContentProps {
   inputFeedback: 'correct' | 'incorrect' | null;
   onInputChange: (text: string) => void;
   onInputSubmit: () => void;
+  onRevealAnswer: () => void;
 }
 
 export const FlashcardContent: React.FC<FlashcardContentProps> = ({
@@ -29,6 +32,7 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
   inputFeedback,
   onInputChange,
   onInputSubmit,
+  onRevealAnswer,
 }) => {
   const router = useRouter();
   const ttsPlayedForThisRevealRef = useRef(false);
@@ -161,6 +165,53 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
     </View>
   );
 
+  const renderFlippedHandwritingMode = () => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.deckIndicator}>
+          <Shuffle size={16} color="#8b5cf6" />
+          <Text style={styles.deckIndicatorText}>EN → ZH ✍️</Text>
+        </View>
+      </View>
+
+      <Text style={styles.englishPrompt}>Write the Chinese characters for:</Text>
+      <Text style={styles.meaning}>{currentCard.meaning}</Text>
+
+      {!showAnswer && (
+        <HandwritingInput character={currentCard.hanzi} onComplete={onRevealAnswer} />
+      )}
+
+      {showAnswer && (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.hanziWithSpeaker}>
+            <Text style={styles.hanzi}>{currentCard.hanzi}</Text>
+            <TouchableOpacity
+              style={styles.speakerButton}
+              onPress={() => playTTS(currentCard.hanzi)}
+            >
+              <Volume2 size={20} color="#4b5563" />
+            </TouchableOpacity>
+          </View>
+          {flashcardSettings.showPinyin && (
+            <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
+          )}
+          <View style={styles.wordStats}>
+            <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
+            <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => router.push(`/profile/${currentCard.id}` as any)}
+          >
+            <User size={16} color="#3b82f6" />
+            <Text style={styles.profileButtonText}>See Profile</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+
   const renderFlippedMode = () => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -251,7 +302,9 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
   );
 
   if (flashcardSettings.deckFlipped) {
-    return flashcardSettings.typingMode ? renderFlippedTypingMode() : renderFlippedMode();
+    if (flashcardSettings.typingMode) return renderFlippedTypingMode();
+    if (flashcardSettings.handwritingMode) return renderFlippedHandwritingMode();
+    return renderFlippedMode();
   }
   
   return renderNormalMode();

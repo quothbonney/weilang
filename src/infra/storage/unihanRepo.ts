@@ -6,6 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 import { UnihanEntry } from '../../domain/entities';
 import { DatabaseInitializer } from './databaseInitializer';
+import { UNIHAN_DB_PATH, UNIHAN_ASSET_PATH } from '../../../env';
 
 export interface RadicalInfo {
   number: number;
@@ -21,7 +22,7 @@ export class UnihanRepository {
   private isWebPlatform: boolean;
   private initializationError: string | null = null;
 
-  constructor(dbPath: string = 'unihan.db') {
+  constructor(dbPath: string = UNIHAN_DB_PATH) {
     this.dbPath = dbPath;
     this.isWebPlatform = Platform.OS === 'web';
   }
@@ -70,7 +71,10 @@ export class UnihanRepository {
       let actualDbPath = this.dbPath;
       if (!this.isWebPlatform) {
         try {
-          actualDbPath = await DatabaseInitializer.initializeDatabase();
+          actualDbPath = await DatabaseInitializer.initializeDatabase(
+            UNIHAN_ASSET_PATH,
+            this.dbPath.split('/').pop() || 'unihan.db'
+          );
           console.log(`📱 Using mobile database path: ${actualDbPath}`);
         } catch (error) {
           console.warn('⚠️  Failed to initialize mobile database, falling back to default path:', error);
