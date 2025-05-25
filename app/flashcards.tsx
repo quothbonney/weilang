@@ -30,6 +30,7 @@ export default function FlashcardsScreen() {
     inputFeedback,
     isLoading,
     isSessionComplete,
+    sessionSummary,
 
     // Actions
     handleReview,
@@ -54,6 +55,8 @@ export default function FlashcardsScreen() {
         <CompletionState
           onStartNewSession={() => setShowModeSelector(true)}
           onBackToDashboard={() => router.back()}
+          reviewedWords={sessionSummary?.reviewedWords || []}
+          sessionStats={sessionSummary?.sessionStats}
         />
       ) : (
         <>

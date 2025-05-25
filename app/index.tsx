@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useStore } from "../src/ui/hooks/useStore";
 import { BookOpen, Brain, BarChart3, Settings, Calendar, Trophy, Target } from "lucide-react-native";
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { words, dueWords, loadWords, loadDueWords, initializeSettings } = useStore();
+  const { words, dueWords, loadWords, loadDueWords, initializeSettings, currentSession } = useStore();
   
-  // Mock data for stats - in real app this would come from the store
+  // Calculate real stats from actual data
   const [stats, setStats] = useState({
     totalWords: 0,
     dueToday: 0,
-    studiedToday: 12,
-    currentStreak: 7,
-    weeklyProgress: [5, 8, 12, 15, 10, 7, 12], // Last 7 days
-    accuracy: 85,
+    studiedToday: 0,
+    currentStreak: 0,
+    weeklyProgress: [0, 0, 0, 0, 0, 0, 0], // Last 7 days
+    accuracy: 0,
   });
 
   useEffect(() => {
@@ -25,17 +25,62 @@ export default function DashboardScreen() {
   }, []);
 
   useEffect(() => {
-    setStats(prev => ({
-      ...prev,
+    // Calculate real statistics
+    const now = Date.now();
+    const today = new Date(now).setHours(0, 0, 0, 0);
+    const oneDay = 24 * 60 * 60 * 1000;
+    
+    // Calculate studied today (words with updatedAt today)
+    const studiedToday = words.filter(w => 
+      w.updatedAt && w.updatedAt >= today
+    ).length;
+    
+    // Calculate current streak (consecutive days with reviews)
+    let currentStreak = 0;
+    for (let i = 0; i < 30; i++) { // Check last 30 days
+      const dayStart = today - (i * oneDay);
+      const dayEnd = dayStart + oneDay;
+      const hasReviews = words.some(w => 
+        w.updatedAt && w.updatedAt >= dayStart && w.updatedAt < dayEnd
+      );
+      if (hasReviews) {
+        currentStreak++;
+      } else if (i > 0) { // Don't break on today if no reviews yet
+        break;
+      }
+    }
+    
+    // Calculate weekly progress (last 7 days)
+    const weeklyProgress = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = today - (i * oneDay);
+      const dayEnd = dayStart + oneDay;
+      const dayCount = words.filter(w => 
+        w.updatedAt && w.updatedAt >= dayStart && w.updatedAt < dayEnd
+      ).length;
+      weeklyProgress.push(dayCount);
+    }
+    
+    // Calculate accuracy (successful reviews vs total reviews)
+    const reviewedWords = words.filter(w => w.repetitions > 0);
+    const totalReviews = reviewedWords.reduce((sum, w) => sum + w.repetitions, 0);
+    const successfulWords = reviewedWords.filter(w => w.ease >= 2.5).length;
+    const accuracy = totalReviews > 0 ? Math.round((successfulWords / reviewedWords.length) * 100) : 0;
+    
+    setStats({
       totalWords: words.length,
       dueToday: dueWords.length,
-    }));
-  }, [words.length, dueWords.length]);
+      studiedToday,
+      currentStreak,
+      weeklyProgress,
+      accuracy,
+    });
+  }, [words, dueWords]);
 
   const navigationCards = [
     {
       id: 'flashcards',
-      title: 'Flashcards',
+      title: 'Flashcard',
       subtitle: `${dueWords.length} cards due`,
       icon: Brain,
       color: '#3b82f6',
@@ -97,7 +142,7 @@ export default function DashboardScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={styles.title}>WeiLang Dashboard</Text>
+        <Text style={styles.title}>魏Lang</Text>
         <Text style={styles.subtitle}>Welcome back! Ready to learn some Chinese?</Text>
       </View>
 
@@ -193,18 +238,23 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
-    padding: 20,
-    paddingBottom: 16,
+    paddingTop: 40,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 4,
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 8,
+    letterSpacing: -0.5,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#6b7280',
+    fontWeight: '500',
+    lineHeight: 24,
   },
   section: {
     paddingHorizontal: 20,

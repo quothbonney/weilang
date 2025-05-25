@@ -17,7 +17,11 @@ export const useFlashcardLogic = () => {
     setReviewMode,
     isLoading,
     flashcardSettings,
-    setFlashcardSettings
+    setFlashcardSettings,
+    startSessionTracking,
+    addReviewedWord,
+    getSessionSummary,
+    resetSessionTracking
   } = useStore();
 
   const [currentCard, setCurrentCard] = useState<Word | null>(null);
@@ -57,7 +61,17 @@ export const useFlashcardLogic = () => {
 
     setIsReviewing(true);
     try {
+      // Store previous state for tracking
+      const previousState = {
+        status: currentCard.status,
+        ease: currentCard.ease,
+        interval: currentCard.interval,
+      };
+
       const updatedCard = await reviewWord(currentCard.id, quality);
+
+      // Track this review
+      addReviewedWord(updatedCard, previousState, quality);
 
       if (quality === 'again') {
         // For wrong answers, requeue the card and don't advance
@@ -65,10 +79,6 @@ export const useFlashcardLogic = () => {
       } else {
         // For correct answers, advance normally
         advanceSession();
-      }
-
-      if (quality === 'again' || updatedCard.status === 'learning') {
-        requeueCard(updatedCard);
       }
 
       if (quality === 'again' || updatedCard.status === 'learning') {
@@ -118,6 +128,7 @@ export const useFlashcardLogic = () => {
   };
 
   const isSessionComplete = !currentSession || !currentCard;
+  const sessionSummary = getSessionSummary();
 
   return {
     // State
@@ -134,6 +145,7 @@ export const useFlashcardLogic = () => {
     inputFeedback,
     isLoading,
     isSessionComplete,
+    sessionSummary,
 
     // Actions
     handleReview,

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { Shuffle, Eye, EyeOff, User } from 'lucide-react-native';
+import { Shuffle, Eye, EyeOff, User, Volume2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Speech from "expo-speech";
 import { speakWithAzure } from '../../../infra/tts/azureTts';
@@ -116,7 +116,15 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
           <View style={styles.divider} />
           <View style={styles.answerSection}>
             <Text style={styles.correctAnswerLabel}>Correct Answer:</Text>
-            <Text style={styles.hanzi}>{currentCard.hanzi}</Text>
+            <View style={styles.hanziWithSpeaker}>
+              <Text style={styles.hanzi}>{currentCard.hanzi}</Text>
+              <TouchableOpacity 
+                style={styles.speakerButton}
+                onPress={() => playTTS(currentCard.hanzi)}
+              >
+                <Volume2 size={20} color="#4b5563" />
+              </TouchableOpacity>
+            </View>
             {flashcardSettings.showPinyin && (
               <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
             )}
@@ -168,7 +176,15 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
       {showAnswer && (
         <>
           <View style={styles.divider} />
-          <Text style={styles.hanzi}>{currentCard.hanzi}</Text>
+          <View style={styles.hanziWithSpeaker}>
+            <Text style={styles.hanzi}>{currentCard.hanzi}</Text>
+            <TouchableOpacity 
+              style={styles.speakerButton}
+              onPress={() => playTTS(currentCard.hanzi)}
+            >
+              <Volume2 size={20} color="#4b5563" />
+            </TouchableOpacity>
+          </View>
           {flashcardSettings.showPinyin && (
             <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
           )}
@@ -207,6 +223,16 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
         <>
           <View style={styles.divider} />
           <Text style={styles.meaning}>{currentCard.meaning}</Text>
+          
+          <View style={styles.hanziWithSpeaker}>
+            <TouchableOpacity 
+              style={styles.speakerButton}
+              onPress={() => playTTS(currentCard.hanzi)}
+            >
+              <Volume2 size={20} color="#4b5563" />
+            </TouchableOpacity>
+          </View>
+          
           <View style={styles.wordStats}>
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
@@ -371,5 +397,17 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontSize: 14,
     fontWeight: '500',
+  },
+  hanziWithSpeaker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  speakerButton: {
+    backgroundColor: '#f3f4f6',
+    padding: 8,
+    borderRadius: 20,
+    marginLeft: 12,
   },
 }); 

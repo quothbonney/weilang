@@ -31,11 +31,38 @@ export function WordProfileProvider({ word, children }: WordProfileProviderProps
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Debug logging
+  console.log('🔍 WordProfileProvider Debug:', {
+    word: word.hanzi,
+    hasApiKey: !!apiKey,
+    apiKeyLength: apiKey?.length || 0,
+    hasWordProfileService: !!wordProfileService,
+    storeError,
+    hasWord: !!word,
+    isLoading
+  });
+
   useEffect(() => {
-    if (word && apiKey) {
+    console.log('🔍 WordProfileProvider useEffect triggered:', {
+      word: word.hanzi,
+      hasWord: !!word,
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      hasWordProfileService: !!wordProfileService
+    });
+    
+    if (word && (apiKey || wordProfileService)) {
+      console.log('🔍 WordProfileProvider: Conditions met, calling fetchProfile...');
       fetchProfile();
+    } else {
+      console.log('🔍 WordProfileProvider: Conditions NOT met:', {
+        hasWord: !!word,
+        hasApiKey: !!apiKey,
+        hasWordProfileService: !!wordProfileService,
+        willFetch: false
+      });
     }
-  }, [word, apiKey]);
+  }, [word, apiKey, wordProfileService]);
 
   useEffect(() => {
     if (storeError) {
