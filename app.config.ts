@@ -12,7 +12,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: "weilang",
   platforms: ["android", "web"],
   orientation: "portrait",
-  icon: "./assets/icon.png",
+  icon: "./assets/squarelogo.png",
   userInterfaceStyle: "light",
   splash: {
     image: "./assets/splash.png",
@@ -24,10 +24,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   assetBundlePatterns: ["**/*"],
   android: {
-    adaptiveIcon: {
-      foregroundImage: "./assets/adaptive-icon.png",
-      backgroundColor: "#FFFFFF",
-    },
+    package: "com.yourname.weilang",
+    // adaptiveIcon: {
+    //   foregroundImage: "./assets/adaptive-icon.png",
+    //   backgroundColor: "#FFFFFF",
+    // },
   },
   web: {
     bundler: "metro",
@@ -39,6 +40,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     typedRoutes: true,
   },
   extra: {
+    "eas": { 
+      "projectId": "747fb015-56d2-4a5b-a8ae-78e1d9f123ce" 
+    },
     // Pass environment variables to the app
     TOGETHER_API_KEY: process.env.TOGETHER_API_KEY,
     LINGVANEX_API_KEY: process.env.LINGVANEX_API_KEY, 
