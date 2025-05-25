@@ -119,27 +119,43 @@ export class WordProfileService {
   private async buildProfile(word: Word): Promise<WordProfileDTO> {
     const hanzi = word.hanzi;
     
-    // Start all data fetching in parallel for performance
-    const [
+    console.log(`🔍 WordProfileService: Building profile for "${hanzi}"`);
+    
+    const [ 
       radicalBreakdown,
       dictionaryData,
       llmData
     ] = await Promise.allSettled([
-      this.radicalAnalyzer.getWordBreakdown(hanzi),
+      this.radicalAnalyzer.getWordBreakdown(hanzi), // Use RadicalAnalyzer
       this.getDictionaryData(hanzi),
       this.getLLMData(word)
     ]);
 
-    // Extract character data
+    console.log(`🔍 WordProfileService: Data retrieval results for "${hanzi}":`, {
+      radicalBreakdown: radicalBreakdown.status,
+      dictionaryData: dictionaryData.status,
+      llmData: llmData.status
+    });
+
     const rBreakdown = radicalBreakdown.status === 'fulfilled' ? radicalBreakdown.value : null;
     const dictData = dictionaryData.status === 'fulfilled' ? dictionaryData.value : null;
     const llmResult = llmData.status === 'fulfilled' ? llmData.value : null;
 
-    // Extract primary character data
+    console.log(`🔍 WordProfileService: RadicalBreakdown result for "${hanzi}":`, {
+      hasBreakdown: !!rBreakdown,
+      charactersCount: rBreakdown?.characters?.length || 0,
+      commonRadicalsCount: rBreakdown?.commonRadicals?.length || 0,
+      totalComplexity: rBreakdown?.totalComplexity,
+      learningTipsCount: rBreakdown?.learningTips?.length || 0
+    });
+
+    if (radicalBreakdown.status === 'rejected') {
+      console.error(`🔍 WordProfileService: RadicalAnalyzer failed for "${hanzi}":`, radicalBreakdown.reason);
+    }
+
     const primaryCharData = rBreakdown?.characters?.[0];
     const primaryRadicalInfo = primaryCharData?.radical;
 
-    // Build comprehensive profile
     const profile: WordProfileDTO = {
       hanzi,
       pinyin: word.pinyin,
@@ -168,6 +184,12 @@ export class WordProfileService {
       generatedAt: new Date().toISOString()
     };
 
+    console.log(`🔍 WordProfileService: Final profile for "${hanzi}":`, {
+      hasRadicalBreakdown: !!profile.radicalBreakdown,
+      hasCharacterComponents: !!profile.characterComponents,
+      characterComponentsLength: profile.characterComponents?.length || 0
+    });
+
     return profile;
   }
 
@@ -176,33 +198,45 @@ export class WordProfileService {
    */
   private async buildPartialProfile(word: Word): Promise<WordProfileDTO> {
     const hanzi = word.hanzi;
+    console.log(`🔍 WordProfileService: Building PARTIAL profile for "${hanzi}" (API data only)...`);
     
-    console.log(`🔍 Building partial profile for "${hanzi}" (API data only)...`);
-    
-    // Get fast API data only (skip LLM)
     const [
       radicalBreakdown,
       dictionaryData
     ] = await Promise.allSettled([
-      this.radicalAnalyzer.getWordBreakdown(hanzi),
+      this.radicalAnalyzer.getWordBreakdown(hanzi), // Use RadicalAnalyzer
       this.getDictionaryData(hanzi)
     ]);
 
-    // Extract character data
+    console.log(`🔍 WordProfileService: Partial data retrieval results for "${hanzi}":`, {
+      radicalBreakdown: radicalBreakdown.status,
+      dictionaryData: dictionaryData.status
+    });
+
     const rBreakdown = radicalBreakdown.status === 'fulfilled' ? radicalBreakdown.value : null;
     const dictData = dictionaryData.status === 'fulfilled' ? dictionaryData.value : null;
 
-    // Extract primary character data
+    console.log(`🔍 WordProfileService: Partial RadicalBreakdown result for "${hanzi}":`, {
+      hasBreakdown: !!rBreakdown,
+      charactersCount: rBreakdown?.characters?.length || 0,
+      commonRadicalsCount: rBreakdown?.commonRadicals?.length || 0,
+      totalComplexity: rBreakdown?.totalComplexity,
+      learningTipsCount: rBreakdown?.learningTips?.length || 0
+    });
+
+    if (radicalBreakdown.status === 'rejected') {
+      console.error(`🔍 WordProfileService: RadicalAnalyzer failed in partial profile for "${hanzi}":`, radicalBreakdown.reason);
+    }
+
     const primaryCharData = rBreakdown?.characters?.[0];
     const primaryRadicalInfo = primaryCharData?.radical;
 
-    // Build partial profile (no LLM data yet)
     const profile: WordProfileDTO = {
       hanzi,
       pinyin: word.pinyin,
       primaryMeaning: word.meaning,
       meanings: this.extractMeanings(word, rBreakdown, dictData),
-      partOfSpeech: this.extractPartOfSpeech(dictData, null), // No LLM data yet
+      partOfSpeech: this.extractPartOfSpeech(dictData, null),
       radical: primaryRadicalInfo ? {
         number: primaryRadicalInfo.number,
         char: primaryRadicalInfo.character,
@@ -212,11 +246,11 @@ export class WordProfileService {
       totalStrokes: rBreakdown?.totalComplexity || this.estimateStrokes(hanzi),
       strokeSvgUrl: this.buildStrokeSvgUrl(hanzi[0]),
       dictionary: this.buildDictionaryInfo(dictData),
-      examples: [], // Will be filled by LLM later
+      examples: [],
       frequency: this.estimateFrequency(word, rBreakdown),
       difficulty: this.estimateDifficulty(word, rBreakdown),
       etymology: this.generateEtymologyFromBreakdown(rBreakdown),
-      usage: undefined, // Will be filled by LLM later
+      usage: undefined,
       culturalNotes: this.generateCulturalNotesFromBreakdown(rBreakdown),
       memoryAids: this.generateMemoryAidsFromBreakdown(rBreakdown),
       relatedWords: this.extractRelatedWords(hanzi, rBreakdown),
@@ -224,6 +258,12 @@ export class WordProfileService {
       radicalBreakdown: rBreakdown || undefined,
       generatedAt: new Date().toISOString()
     };
+
+    console.log(`🔍 WordProfileService: Final PARTIAL profile for "${hanzi}":`, {
+      hasRadicalBreakdown: !!profile.radicalBreakdown,
+      hasCharacterComponents: !!profile.characterComponents,
+      characterComponentsLength: profile.characterComponents?.length || 0
+    });
 
     console.log(`🔍 Partial profile ready for "${hanzi}"`);
     return profile;
@@ -453,6 +493,7 @@ export class WordProfileService {
       const charAnalysis = rBreakdown.characters[charIndex];
 
       // Lookup full character info from the database
+
       const charData = await this.unihanRepo.getCharacterData(charAnalysis.character);
 
       components.push({

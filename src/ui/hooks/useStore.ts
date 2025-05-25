@@ -34,6 +34,19 @@ interface FlashcardSettings {
   autoPlayTTS: boolean; // true = auto-play TTS when answer is revealed in en-to-zh mode
 }
 
+interface SessionTracking {
+  startTime: number;
+  reviewedWords: Array<{
+    word: Word;
+    previousStatus: string;
+    previousEase: number;
+    previousInterval: number;
+    qualityRating: string;
+    reviewedAt: number;
+  }>;
+  correctAnswers: number;
+}
+
 interface WeiLangStore {
   // State
   words: Word[];
@@ -53,6 +66,7 @@ interface WeiLangStore {
   reviewSettings: ReviewSettings;
   currentSession: ReviewSession | null;
   reviewMode: ReviewMode;
+  sessionTracking: SessionTracking | null;
 
   // New word profile service
   wordProfileService: WordProfileService | null;
@@ -80,6 +94,12 @@ interface WeiLangStore {
   requeueCard: (card: Word) => void;
   updateReviewSettings: (settings: Partial<ReviewSettings>) => void;
   setReviewMode: (mode: ReviewMode) => void;
+
+  // Session tracking actions
+  startSessionTracking: () => void;
+  addReviewedWord: (word: Word, previousState: { status: string; ease: number; interval: number }, quality: ReviewQuality) => void;
+  getSessionSummary: () => { reviewedWords: SessionTracking['reviewedWords']; sessionStats: { totalReviewed: number; correctAnswers: number; sessionDuration: number } } | null;
+  resetSessionTracking: () => void;
 
   // New profile service actions
   clearProfileCache: () => Promise<void>;
@@ -122,6 +142,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     reviewSettings: DEFAULT_REVIEW_SETTINGS,
     currentSession: null,
     reviewMode: 'mixed',
+    sessionTracking: null,
 
     // Word profile service
     wordProfileService: null,
@@ -410,6 +431,16 @@ export const useStore = create<WeiLangStore>((set, get) => {
     initializeProfileService: () => {
       const { apiKey } = get();
       
+      console.log('🔍 Store: Initializing profile service with:', {
+        hasStoreApiKey: !!apiKey,
+        storeApiKeyLength: apiKey?.length || 0,
+        hasTogetherKey: !!TOGETHER_KEY,
+        togetherKeyLength: TOGETHER_KEY.length,
+        hasLingvanexKey: !!LINGVANEX_KEY,
+        lingvanexKeyLength: LINGVANEX_KEY.length,
+        unihanDbPath: UNIHAN_DB_PATH
+      });
+      
       const config: WordProfileConfig = {
         togetherApiKey: apiKey || TOGETHER_KEY,
         lingvanexApiKey: LINGVANEX_KEY,
@@ -418,8 +449,23 @@ export const useStore = create<WeiLangStore>((set, get) => {
         strokeOrderBaseUrl: STROKE_ORDER_BASE_URL
       };
 
-      const service = new WordProfileService(config);
-      set({ wordProfileService: service });
+      console.log('🔍 Store: Profile service config:', {
+        hasTogetherApiKey: !!config.togetherApiKey,
+        togetherApiKeyLength: config.togetherApiKey?.length || 0,
+        hasLingvanexApiKey: !!config.lingvanexApiKey,
+        lingvanexApiKeyLength: config.lingvanexApiKey?.length || 0,
+        unihanDbPath: config.unihanDbPath,
+        enableCache: config.enableCache
+      });
+
+      try {
+        const service = new WordProfileService(config);
+        set({ wordProfileService: service });
+        console.log('🔍 Store: WordProfileService created successfully');
+      } catch (error) {
+        console.error('🔍 Store: Failed to create WordProfileService:', error);
+        set({ error: 'Failed to initialize profile service' });
+      }
     },
 
     // Profile service utility methods
@@ -539,6 +585,9 @@ export const useStore = create<WeiLangStore>((set, get) => {
         };
 
         set({ currentSession: session, reviewMode: mode, isLoading: false });
+        
+        // Start session tracking
+        set({ sessionTracking: { startTime: Date.now(), reviewedWords: [], correctAnswers: 0 } });
       } catch (error) {
         set({
           error:
@@ -632,6 +681,51 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
     setReviewMode: (mode: ReviewMode) => {
       set({ reviewMode: mode });
+    },
+
+    // Session tracking actions
+    startSessionTracking: () => {
+      set({ sessionTracking: { startTime: Date.now(), reviewedWords: [], correctAnswers: 0 } });
+    },
+
+    addReviewedWord: (word: Word, previousState: { status: string; ease: number; interval: number }, quality: ReviewQuality) => {
+      const sessionTracking = get().sessionTracking;
+      if (!sessionTracking) return;
+
+      const reviewedWord = {
+        word,
+        previousStatus: previousState.status,
+        previousEase: previousState.ease,
+        previousInterval: previousState.interval,
+        qualityRating: quality,
+        reviewedAt: Date.now(),
+      };
+
+      set({
+        sessionTracking: {
+          ...sessionTracking,
+          reviewedWords: [...sessionTracking.reviewedWords, reviewedWord],
+          correctAnswers: sessionTracking.correctAnswers + (quality !== 'again' ? 1 : 0),
+        },
+      });
+    },
+
+    getSessionSummary: () => {
+      const sessionTracking = get().sessionTracking;
+      if (!sessionTracking) return null;
+
+      const reviewedWords = sessionTracking.reviewedWords;
+      const sessionStats = {
+        totalReviewed: reviewedWords.length,
+        correctAnswers: sessionTracking.correctAnswers,
+        sessionDuration: Date.now() - sessionTracking.startTime,
+      };
+
+      return { reviewedWords, sessionStats };
+    },
+
+    resetSessionTracking: () => {
+      set({ sessionTracking: null });
     },
   };
 });

@@ -8,7 +8,14 @@ interface CharacterData {
   meaning: string;
   pinyin: string;
   strokes: number;
-  type: string;
+  radical?: {
+    character: string;
+    meaning: string;
+    pinyin: string;
+    strokes: number;
+    position: string;
+  };
+  components: string[];
   relatedWords: Array<{ hanzi: string; meaning: string; id: string }>;
 }
 
@@ -16,15 +23,27 @@ export function BreakdownTab() {
   const { word, profile } = useWordProfile();
   const { words } = useStore();
 
-  // Analyze characters using profile data
+  // Debug logging
+  console.log('🔍 BreakdownTab Debug:', {
+    word: word.hanzi,
+    hasProfile: !!profile,
+    hasRadicalBreakdown: !!profile?.radicalBreakdown,
+    hasCharacters: !!profile?.radicalBreakdown?.characters,
+    charactersLength: profile?.radicalBreakdown?.characters?.length || 0,
+    hasCharacterComponents: !!profile?.characterComponents,
+    characterComponentsLength: profile?.characterComponents?.length || 0,
+    profileKeys: profile ? Object.keys(profile) : []
+  });
+
+  // Analyze characters using the new radicalBreakdown data
   const analyzeCharacters = (): CharacterData[] => {
     const characters = word.hanzi.split('');
     return characters.map((char, index) => {
       const charComponent = profile?.characterComponents?.find(
         c => c.type === 'character' && c.position === index
+
       );
       
-      // Find other words in dataset that contain this character
       const relatedWords = words
         .filter(w => w.hanzi.includes(char) && w.id !== word.id)
         .slice(0, 6)
@@ -35,94 +54,43 @@ export function BreakdownTab() {
         meaning: charComponent?.meaning || 'Loading...',
         pinyin: charComponent?.pinyin || 'Loading...',
         strokes: charComponent?.strokes || 8,
-        type: charComponent?.type || 'component',
+        components: [],
         relatedWords,
       };
     });
   };
 
-  const characterBreakdown = word.hanzi.length > 1 ? analyzeCharacters() : null;
+  const characterBreakdown = analyzeCharacters();
+
+  // Hide radicals/components section
+  // const radicalsAndComponents = getAllRadicalsAndComponents();
 
   return (
     <View className="p-4 space-y-6">
-      {/* Character Section - matching the design */}
+      {/* Character Section - matching the concept art design */}
       <View>
         <Text className="text-2xl font-bold text-gray-900 mb-4">Character</Text>
         
-        {/* Single character display */}
-        {word.hanzi.length === 1 ? (
-          <View className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            <View className="items-center">
-              <Text className="text-8xl font-light text-gray-900 mb-4">{word.hanzi}</Text>
-              <Text className="text-2xl text-gray-600 font-medium mb-2">{word.pinyin}</Text>
-              <Text className="text-xl text-gray-700 text-center">{word.meaning}</Text>
-            </View>
-          </View>
-        ) : (
-          /* Multi-character breakdown - like the design */
-          <View className="flex-row space-x-4">
-            {characterBreakdown?.map((charData, index) => (
-              <View key={index} className="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <View className="items-center">
-                  <Text className="text-6xl font-light text-gray-900 mb-3">{charData.character}</Text>
-                  <Text className="text-lg font-medium text-gray-600 mb-1">{charData.pinyin}</Text>
-                  <Text className="text-base text-gray-700 text-center">{charData.meaning}</Text>
-                </View>
+        {/* Multi-character breakdown - like the concept art */}
+        <View className="flex-row space-x-4">
+          {characterBreakdown?.map((charData, index) => (
+            <View key={index} className="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <View className="items-center">
+                <Text className="text-6xl font-light text-gray-900 mb-3">{charData.character}</Text>
+                <Text className="text-lg font-medium text-gray-600 mb-1">
+                  {word.hanzi.split('')[index] === charData.character ? 
+                    word.pinyin.split(' ')[index] || charData.pinyin : charData.pinyin}
+                </Text>
+                <Text className="text-base text-gray-700 text-center">
+                  {index === 0 ? word.meaning.split(',')[0] || word.meaning : charData.meaning}
+                </Text>
               </View>
-            ))}
-          </View>
-        )}
+            </View>
+          ))}
+        </View>
       </View>
 
-      {/* Radicals / Components Section - matching the design */}
-      {profile?.characterComponents && profile.characterComponents.length > 0 && (
-        <View>
-          <Text className="text-2xl font-bold text-gray-900 mb-4">Radicals / Components</Text>
-          
-          <View className="space-y-4">
-            {/* Main components in a grid */}
-            <View className="flex-row flex-wrap -mx-2">
-              {profile.characterComponents
-                .filter(comp => comp.type === 'radical' || comp.meaning.length < 15) // Show main components first
-                .slice(0, 4)
-                .map((comp, idx) => (
-                <View key={idx} className="w-1/2 px-2 mb-4">
-                  <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <View className="items-center">
-                      <Text className="text-4xl font-light text-gray-900 mb-2">{comp.char}</Text>
-                      <Text className="text-sm text-gray-600 font-medium mb-1">{comp.pinyin}</Text>
-                      <Text className="text-sm text-gray-700 text-center">{comp.meaning}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Character evolution/transformation if available */}
-            {word.hanzi.length > 1 && characterBreakdown && (
-              <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <View className="flex-row items-center justify-center space-x-6">
-                  <View className="items-center">
-                    <Text className="text-3xl font-light text-gray-900 mb-1">种</Text>
-                    <Text className="text-sm text-gray-600">plant</Text>
-                  </View>
-                  
-                  <View className="items-center">
-                    <Text className="text-2xl text-gray-400">→</Text>
-                  </View>
-                  
-                  <View className="items-center">
-                    <Text className="text-3xl font-light text-gray-900 mb-1">研</Text>
-                    <Text className="text-sm text-gray-600">research</Text>
-                  </View>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      )}
-
-      {/* Examples Section - placeholder matching design style */}
+      {/* Examples Section - preserved from original */}
       <View>
         <Text className="text-2xl font-bold text-gray-900 mb-4">Examples</Text>
         
@@ -162,7 +130,7 @@ export function BreakdownTab() {
         )}
       </View>
 
-      {/* Related words if available */}
+      {/* Related words - enhanced with radical connections */}
       {characterBreakdown && characterBreakdown.some(char => char.relatedWords.length > 0) && (
         <View>
           <Text className="text-xl font-semibold text-gray-900 mb-4">Found in your vocabulary</Text>

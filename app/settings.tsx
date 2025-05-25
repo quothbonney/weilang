@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
 import {
   Select,
   SelectTrigger,
@@ -126,7 +126,13 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      bounces={true}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Together API Configuration</Text>
         <Text style={styles.description}>
@@ -311,11 +317,11 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>About</Text>
-        <Text style={styles.infoText}>WeiLang 魏Lang</Text>
+        <Text style={styles.infoText}>魏Lang</Text>
         <Text style={styles.infoText}>Version 1.0.0</Text>
         <Text style={styles.infoText}>Spaced repetition for Chinese learning</Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -324,6 +330,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f9fafb',
     padding: 16,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   section: {
     backgroundColor: 'white',

@@ -45,21 +45,21 @@ export default function RootLayout() {
           name="index" 
           options={{ 
             title: "Dashboard",
-            headerShown: true 
+            headerShown: false 
           }} 
         />
         <Stack.Screen 
           name="deck" 
           options={{ 
             title: "My Words",
-            headerShown: true 
+            headerShown: false 
           }} 
         />
         <Stack.Screen 
           name="flashcards" 
           options={{ 
             title: "Flashcards",
-            headerShown: true 
+            headerShown: false 
           }} 
         />
         <Stack.Screen 
@@ -80,7 +80,7 @@ export default function RootLayout() {
           name="profile/[id]" 
           options={{ 
             title: "Word Profile",
-            headerShown: true 
+            headerShown: false 
           }} 
         />
         <Stack.Screen 

@@ -111,14 +111,18 @@ export class RadicalAnalyzer {
    * Analyze a single character's radical breakdown
    */
   async analyzeCharacter(character: string): Promise<RadicalBreakdown | null> {
+    console.log(`🔍 RadicalAnalyzer: Analyzing character "${character}"`);
+    
     try {
       const characterData = await this.getCharacterData(character);
       if (!characterData || !characterData.radical) {
+        console.log(`🔍 RadicalAnalyzer: No character data or radical for "${character}"`);
         return null;
       }
 
       const radical = await this.getRadicalInfo(characterData.radical);
       if (!radical) {
+        console.log(`🔍 RadicalAnalyzer: No radical info found for radical #${characterData.radical} (character "${character}")`);
         return null;
       }
 
@@ -126,7 +130,7 @@ export class RadicalAnalyzer {
       const position = this.determineRadicalPosition(characterData.radical, character);
       const composition = await this.analyzeComposition(character, radical);
 
-      return {
+      const result = {
         character,
         radical,
         additionalStrokes: Math.max(0, additionalStrokes),
@@ -134,8 +138,17 @@ export class RadicalAnalyzer {
         radicalPosition: position,
         composition
       };
+
+      console.log(`🔍 RadicalAnalyzer: Successfully analyzed "${character}":`, {
+        radical: radical.character,
+        radicalMeaning: radical.meaning,
+        totalStrokes: result.totalStrokes,
+        position: result.radicalPosition
+      });
+
+      return result;
     } catch (error) {
-      console.error(`Failed to analyze character ${character}:`, error);
+      console.error(`🔍 RadicalAnalyzer: Failed to analyze character "${character}":`, error);
       return null;
     }
   }
@@ -144,12 +157,24 @@ export class RadicalAnalyzer {
    * Analyze multiple characters at once
    */
   async analyzeText(text: string): Promise<RadicalBreakdown[]> {
+    console.log(`🔍 RadicalAnalyzer: Analyzing text "${text}"`);
+    
     const characters = text.split('').filter(char => this.isChinese(char));
+    console.log(`🔍 RadicalAnalyzer: Found ${characters.length} Chinese characters:`, characters);
+    
     const analyses = await Promise.all(
       characters.map(char => this.analyzeCharacter(char))
     );
     
-    return analyses.filter((analysis): analysis is RadicalBreakdown => analysis !== null);
+    const validAnalyses = analyses.filter((analysis): analysis is RadicalBreakdown => analysis !== null);
+    console.log(`🔍 RadicalAnalyzer: Successfully analyzed ${validAnalyses.length}/${characters.length} characters`);
+    
+    if (validAnalyses.length < characters.length) {
+      const failedChars = characters.filter((char, idx) => !analyses[idx]);
+      console.warn(`🔍 RadicalAnalyzer: Failed to analyze characters:`, failedChars);
+    }
+    
+    return validAnalyses;
   }
 
   /**
@@ -264,38 +289,56 @@ export class RadicalAnalyzer {
     totalComplexity: number;
     learningTips: string[];
   }> {
-    const characters = await this.analyzeText(word);
+    console.log(`🔍 RadicalAnalyzer: Getting word breakdown for "${word}"`);
     
-    // Find most common radicals
-    const radicalCounts = new Map<number, { radical: RadicalInfo; count: number }>();
-    characters.forEach(char => {
-      if (char.radical) {
-        const existing = radicalCounts.get(char.radical.number);
-        if (existing) {
-          existing.count++;
-        } else {
-          radicalCounts.set(char.radical.number, { radical: char.radical, count: 1 });
+    try {
+      const characters = await this.analyzeText(word);
+      console.log(`🔍 RadicalAnalyzer: Analyzed ${characters.length} characters for "${word}"`);
+      
+      // Find most common radicals
+      const radicalCounts = new Map<number, { radical: RadicalInfo; count: number }>();
+      characters.forEach(char => {
+        if (char.radical) {
+          const existing = radicalCounts.get(char.radical.number);
+          if (existing) {
+            existing.count++;
+          } else {
+            radicalCounts.set(char.radical.number, { radical: char.radical, count: 1 });
+          }
         }
-      }
-    });
+      });
 
-    const commonRadicals = Array.from(radicalCounts.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3)
-      .map(entry => entry.radical);
+      const commonRadicals = Array.from(radicalCounts.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map(entry => entry.radical);
 
-    // Calculate complexity score
-    const totalComplexity = characters.reduce((sum, char) => sum + char.totalStrokes, 0);
+      // Calculate complexity score
+      const totalComplexity = characters.reduce((sum, char) => sum + char.totalStrokes, 0);
 
-    // Generate learning tips
-    const learningTips = this.generateLearningTips(characters, commonRadicals);
+      // Generate learning tips
+      const learningTips = this.generateLearningTips(characters, commonRadicals);
 
-    return {
-      characters,
-      commonRadicals,
-      totalComplexity,
-      learningTips
-    };
+      const result = {
+        characters,
+        commonRadicals,
+        totalComplexity,
+        learningTips
+      };
+
+      console.log(`🔍 RadicalAnalyzer: Word breakdown complete for "${word}":`, {
+        charactersCount: result.characters.length,
+        commonRadicalsCount: result.commonRadicals.length,
+        totalComplexity: result.totalComplexity,
+        learningTipsCount: result.learningTips.length,
+        hasValidCharacters: result.characters.every(c => !!c.character && !!c.radical)
+      });
+
+      return result;
+    } catch (error) {
+      console.error(`🔍 RadicalAnalyzer: Error in getWordBreakdown for "${word}":`, error);
+      throw error;
+    }
   }
 
   // Private helper methods
@@ -411,4 +454,4 @@ export class RadicalAnalyzer {
            (code >= 0x3400 && code <= 0x4dbf) || // CJK Extension A
            (code >= 0x20000 && code <= 0x2a6df);  // CJK Extension B
   }
-} 
+}
