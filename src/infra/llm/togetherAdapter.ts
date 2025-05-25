@@ -27,6 +27,12 @@ interface GeneratedWordProfile {
   memoryAids?: string;
 }
 
+interface CharacterMeaning {
+  character: string;
+  meaning: string;
+  pinyin: string;
+}
+
 export class TogetherAdapter {
   private openai: OpenAI;
   private model: ModelOption;
@@ -214,6 +220,75 @@ Return as JSON with hanzi (Chinese characters), pinyin (with tone marks), and gl
         throw error;
       }
       throw new Error("Failed to generate sentence");
+    }
+  }
+
+  async generateCharacterMeanings(characters: string[]): Promise<CharacterMeaning[]> {
+    console.log('🔍 TogetherAdapter.generateCharacterMeanings called with:', characters);
+    
+    const systemPrompt = `You are an expert Chinese language tutor and linguist.
+Return ONLY valid JSON in this exact format:
+[
+  {"character": "...", "meaning": "...", "pinyin": "..."},
+  {"character": "...", "meaning": "...", "pinyin": "..."}
+]
+Do NOT include any other text, markdown, or explanation.`;
+
+    const userPrompt = `Provide the meaning and pinyin for each of these Chinese characters: ${characters.join(', ')}
+
+For each character, provide:
+1. character: The Chinese character itself
+2. meaning: A concise English meaning or definition (1-3 words preferred)
+3. pinyin: The pinyin pronunciation with tone marks
+
+Return as JSON array only.`;
+
+    try {
+      console.log('🔍 Making API call to Together for character meanings...');
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 300,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      console.log('🔍 Together API response content:', content);
+      
+      if (!content) throw new Error("No response from Together API");
+
+      const parsed = TogetherAdapter.parseJson(content);
+      console.log('🔍 Parsed JSON:', parsed);
+      
+      if (!parsed || !Array.isArray(parsed)) throw new Error("Invalid JSON response from Together API");
+
+      // Validate the response structure
+      const validResults: CharacterMeaning[] = [];
+      for (const item of parsed) {
+        if (item.character && item.meaning && item.pinyin) {
+          validResults.push({
+            character: item.character,
+            meaning: item.meaning,
+            pinyin: item.pinyin
+          });
+        }
+      }
+
+      console.log('🔍 Valid character meanings generated:', validResults);
+      return validResults;
+    } catch (error) {
+      console.error('🔍 Failed to generate character meanings:', error);
+      // Return fallback data for each character
+      const fallback = characters.map(char => ({
+        character: char,
+        meaning: 'meaning unavailable',
+        pinyin: 'unknown'
+      }));
+      console.log('🔍 Returning fallback character meanings:', fallback);
+      return fallback;
     }
   }
 } 

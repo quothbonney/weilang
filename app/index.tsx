@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useStore } from "../src/ui/hooks/useStore";
 import { BookOpen, Brain, BarChart3, Settings, Calendar, Trophy, Target } from "lucide-react-native";
@@ -80,10 +80,11 @@ export default function DashboardScreen() {
   const navigationCards = [
     {
       id: 'flashcards',
-      title: 'Flashcard',
+      title: 'Flashcards',
       subtitle: `${dueWords.length} cards due`,
       icon: Brain,
-      color: '#3b82f6',
+      color: '#ef4444',
+      backgroundColor: '#fef2f2',
       onPress: () => router.push('/flashcards'),
     },
     {
@@ -91,23 +92,25 @@ export default function DashboardScreen() {
       title: 'My Words',
       subtitle: `${words.length} words total`,
       icon: BookOpen,
-      color: '#10b981',
+      color: '#3b82f6',
+      backgroundColor: '#eff6ff',
       onPress: () => router.push('/deck'),
     },
     {
       id: 'settings',
       title: 'Settings',
-      subtitle: 'Configure app preferences',
+      subtitle: 'Configure preferences',
       icon: Settings,
-      color: '#6b7280',
+      color: '#f59e0b',
+      backgroundColor: '#fffbeb',
       onPress: () => router.push('/settings'),
     },
   ];
 
   const StatCard = ({ title, value, subtitle, icon: Icon, color }: any) => (
-    <View style={[styles.statCard, { borderTopColor: color }]}>
+    <View style={styles.statCard}>
       <View style={styles.statHeader}>
-        <Icon size={24} color={color} />
+        <Icon size={20} color={color} />
         <Text style={styles.statTitle}>{title}</Text>
       </View>
       <Text style={styles.statValue}>{value}</Text>
@@ -142,22 +145,29 @@ export default function DashboardScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={styles.title}>魏Lang</Text>
-        <Text style={styles.subtitle}>Welcome back! Ready to learn some Chinese?</Text>
+        <View style={styles.headerContent}>
+          <Image 
+            source={require('../assets/logo-transparent.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Welcome Jack! Ready to learn some Chinese?</Text>
+          </View>
+        </View>
       </View>
 
       {/* Quick Actions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.navigationGrid}>
           {navigationCards.map((card) => (
             <TouchableOpacity
               key={card.id}
-              style={styles.navigationCard}
+              style={[styles.navigationCard, { backgroundColor: card.backgroundColor }]}
               onPress={card.onPress}
             >
               <View style={[styles.cardIcon, { backgroundColor: card.color }]}>
-                <card.icon size={28} color="white" />
+                <card.icon size={24} color="white" />
               </View>
               <Text style={styles.cardTitle}>{card.title}</Text>
               <Text style={styles.cardSubtitle}>{card.subtitle}</Text>
@@ -173,16 +183,14 @@ export default function DashboardScreen() {
           <StatCard
             title="Total Words"
             value={stats.totalWords}
-            subtitle="in your deck"
             icon={BookOpen}
             color="#3b82f6"
           />
           <StatCard
             title="Due Today"
             value={stats.dueToday}
-            subtitle="cards to review"
             icon={Calendar}
-            color="#f59e0b"
+            color="#ef4444"
           />
           <StatCard
             title="Studied Today"
@@ -231,77 +239,84 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#ffffff',
   },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 20,
   },
   header: {
-    paddingTop: 40,
+    paddingTop: 60,
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingBottom: 32,
+    backgroundColor: '#ffffff',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 52,
+    height: 52,
+    marginRight: 16,
+  },
+  titleContainer: {
+    flex: 1,
   },
   title: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 8,
-    letterSpacing: -0.5,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  },
-  subtitle: {
-    fontSize: 17,
-    color: '#6b7280',
-    fontWeight: '500',
-    lineHeight: 24,
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#1f2937',
+    lineHeight: 36,
+    letterSpacing: -0.3,
+    fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 16,
+    marginBottom: 20,
+    fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   navigationGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 12,
   },
   navigationCard: {
     flex: 1,
-    minWidth: '30%',
-    backgroundColor: 'white',
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
   },
   cardIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 4,
+    textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   cardSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6b7280',
     textAlign: 'center',
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -311,36 +326,36 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    borderTopWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#f8fafc',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   statTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
+    fontWeight: '600',
+    color: '#64748b',
     marginLeft: 8,
+    fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1e293b',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   statSubtitle: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: '#94a3b8',
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   chartCard: {
     backgroundColor: 'white',
