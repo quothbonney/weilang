@@ -96,6 +96,13 @@ export default function RootLayout() {
             title: "Settings" 
           }} 
         />
+        <Stack.Screen 
+          name="translation" 
+          options={{ 
+            title: "Translation",
+            headerShown: false 
+          }} 
+        />
       </Stack>
     </>
   );

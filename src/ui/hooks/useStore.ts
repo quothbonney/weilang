@@ -1,6 +1,6 @@
 /** * Global state management with Zustand */import React from 'react';import { create } from "zustand";
 import { Word, Example, WordProfile, WordProfileDTO, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode, SentenceExercise, TranslationAttempt, TranslationSession, TranslationEvaluation } from "../../domain/entities";
-import { getWordRepository } from "../../platform/storageProvider";
+import { getWordRepository, getSentenceExerciseRepository, getTranslationAttemptRepository, getTranslationSessionRepository } from "../../platform/storageProvider";
 import { AddWordUseCase } from "../../domain/usecases/addWord";
 import { ReviewWordUseCase } from "../../domain/usecases/reviewWord";
 import { GenerateExampleUseCase } from "../../domain/usecases/generateExample";
@@ -8,7 +8,6 @@ import { GenerateWordProfileUseCase } from "../../domain/usecases/generateWordPr
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
 import { WordProfileService, WordProfileConfig } from "../../infra/services/wordProfileService";
 import { SentenceTranslationService } from "../../infra/services/sentenceTranslationService";
-import { DexieSentenceExerciseRepository, DexieTranslationAttemptRepository, DexieTranslationSessionRepository } from "../../infra/storage/wordRepo.dexie";
 import { storage } from "../../platform/storageUtils";
 import { DEFAULT_REVIEW_SETTINGS, getCardPriority } from "../../domain/srs";
 import { TOGETHER_KEY, LINGVANEX_KEY, OPENAI_KEY, UNIHAN_DB_PATH, STROKE_ORDER_BASE_URL } from '../../../env';
@@ -27,7 +26,7 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export type ExampleGenerationMode = 'strict' | 'some-ood' | 'many-ood' | 'independent';
 
-export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo';
+export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo' | 'Qwen/Qwen2.5-7B-Instruct-Turbo';
 
 interface FlashcardSettings {
   showPinyin: boolean;
@@ -768,7 +767,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
     // Sentence translation actions
     initializeSentenceTranslationService: () => {
-      const { apiKey } = get();
+      const { apiKey, selectedModel } = get();
       
       if (!apiKey && !TOGETHER_KEY) {
         console.warn('No API key available for sentence translation service');
@@ -777,10 +776,12 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
       try {
         const wordRepo = getWordRepo();
-        const exerciseRepo = new DexieSentenceExerciseRepository();
-        const attemptRepo = new DexieTranslationAttemptRepository();
-        const sessionRepo = new DexieTranslationSessionRepository();
-        const llmAdapter = new TogetherAdapter(apiKey || TOGETHER_KEY, get().selectedModel);
+        const exerciseRepo = getSentenceExerciseRepository();
+        const attemptRepo = getTranslationAttemptRepository();
+        const sessionRepo = getTranslationSessionRepository();
+        // Use Qwen/Qwen2.5-7B-Instruct-Turbo for translation for better performance
+        const translationModel = 'Qwen/Qwen2.5-7B-Instruct-Turbo';
+        const llmAdapter = new TogetherAdapter(apiKey || TOGETHER_KEY, translationModel);
 
         const service = new SentenceTranslationService({
           wordRepository: wordRepo,

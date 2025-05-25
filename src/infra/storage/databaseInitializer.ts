@@ -10,7 +10,6 @@ export class DatabaseInitializer {
   private static isInitialized = false;
   
   static async initializeDatabase(
-    assetPath: string,
     dbFileName = 'unihan.db'
   ): Promise<string> {
     if (this.isInitialized) {
@@ -21,8 +20,8 @@ export class DatabaseInitializer {
     try {
       console.log('📱 Initializing database for mobile...');
       
-      // Load database asset
-      const asset = Asset.fromModule((require as any)(`../../../${assetPath}`));
+      // Load database asset - use static require instead of dynamic
+      const asset = Asset.fromModule(require('../../../assets/databases/unihan.db'));
       await asset.downloadAsync();
 
       // Copy to documents directory

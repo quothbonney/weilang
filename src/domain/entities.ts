@@ -203,7 +203,6 @@ export interface SentenceExercise {
   direction: 'en-to-zh' | 'zh-to-en';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   usedWords: string[];          // Words from user's learned vocabulary
-  context?: string;             // Optional context for the sentence
   createdAt: number;
   lastAttempted?: number;
 }
@@ -259,7 +258,6 @@ export interface GeneratedSentencePair {
   english: string;
   usedWords: string[];            // Which of the user's known words were used
   difficulty: 'beginner' | 'intermediate' | 'advanced';
-  context?: string;               // Optional context for the sentence
 }
 
 export interface SentenceGenerationRequest {

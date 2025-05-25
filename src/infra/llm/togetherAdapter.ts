@@ -6,7 +6,7 @@ import OpenAI from "openai";
 import { Word, GeneratedSentencePair, TranslationEvaluation } from "../../domain/entities";
 
 export type ExampleGenerationMode = 'strict' | 'some-ood' | 'many-ood' | 'independent';
-export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo';
+export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo' | 'Qwen/Qwen2.5-7B-Instruct-Turbo';
 
 interface GeneratedSentence {
   hanzi: string;
@@ -310,7 +310,10 @@ Return as JSON array only.`;
     const chineseResult = await this.generateChineseSentence(knownWords, difficulty);
     
     // Step 2: Generate English translation
-    const englishResult = await this.generateEnglishTranslation(chineseResult);
+    const englishResult = await this.generateEnglishTranslation({
+      hanzi: chineseResult.hanzi,
+      pinyin: chineseResult.pinyin
+    });
     
     return {
       chinese: {
@@ -319,8 +322,7 @@ Return as JSON array only.`;
       },
       english: englishResult.english,
       usedWords: chineseResult.usedWords,
-      difficulty,
-      context: chineseResult.context
+      difficulty
     };
   }
 
@@ -334,7 +336,6 @@ Return as JSON array only.`;
     hanzi: string;
     pinyin: string;
     usedWords: string[];
-    context: string;
   }> {
     const maxLength = difficulty === 'beginner' ? 8 : difficulty === 'intermediate' ? 12 : 15;
     const minWords = difficulty === 'beginner' ? 3 : difficulty === 'intermediate' ? 4 : 5;
@@ -344,8 +345,7 @@ Return ONLY valid JSON in this exact format:
 {
   "hanzi": "...",
   "pinyin": "...",
-  "usedWords": ["word1", "word2", ...],
-  "context": "brief context explanation"
+  "usedWords": ["word1", "word2", ...]
 }
 Do NOT include any other text, markdown, or explanation.`;
 
@@ -363,7 +363,6 @@ Provide:
 1. hanzi: The Chinese sentence using only the provided words
 2. pinyin: Complete pinyin with tone marks
 3. usedWords: Array of which words from the list were actually used
-4. context: Brief explanation of when/where this sentence would be used
 
 Return as JSON only.`;
 
@@ -392,8 +391,7 @@ Return as JSON only.`;
       return {
         hanzi: parsed.hanzi,
         pinyin: parsed.pinyin,
-        usedWords: parsed.usedWords,
-        context: parsed.context || "General conversation"
+        usedWords: parsed.usedWords
       };
     } catch (error) {
       console.error('Failed to generate Chinese sentence:', error);
@@ -407,7 +405,6 @@ Return as JSON only.`;
   private async generateEnglishTranslation(chineseResult: {
     hanzi: string;
     pinyin: string;
-    context: string;
   }): Promise<{
     english: string;
     literalTranslation?: string;
@@ -426,7 +423,6 @@ Do NOT include any other text, markdown, or explanation.`;
 
 Chinese: ${chineseResult.hanzi}
 Pinyin: ${chineseResult.pinyin}
-Context: ${chineseResult.context}
 
 Provide:
 1. english: A natural, fluent English translation that captures the meaning and tone

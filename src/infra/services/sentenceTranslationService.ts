@@ -73,7 +73,6 @@ export class SentenceTranslationService {
           direction,
           difficulty,
           usedWords: generatedPair.usedWords,
-          context: generatedPair.context,
           createdAt: Date.now()
         };
 
@@ -296,7 +295,6 @@ export class SentenceTranslationService {
       direction,
       difficulty,
       usedWords: generatedPair.usedWords,
-      context: generatedPair.context,
       createdAt: Date.now()
     };
 

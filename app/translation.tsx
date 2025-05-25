@@ -24,6 +24,7 @@ export default function TranslationScreen() {
   // UI State
   const [showModeSelector, setShowModeSelector] = useState(true);
   const [userTranslation, setUserTranslation] = useState('');
+  const [currentUserTranslation, setCurrentUserTranslation] = useState(''); // Store the translation for current feedback
   const [showEvaluation, setShowEvaluation] = useState(false);
   const [currentExercise, setCurrentExercise] = useState<SentenceExercise | null>(null);
   const [sessionStats, setSessionStats] = useState<any>(null);
@@ -55,6 +56,13 @@ export default function TranslationScreen() {
   const handleStartSession = async () => {
     try {
       clearError();
+      // Reset all state when starting a new session
+      setUserTranslation('');
+      setCurrentUserTranslation('');
+      setShowEvaluation(false);
+      setCurrentExercise(null);
+      setSessionStats(null);
+      
       await startTranslationSession(difficulty, direction, exerciseCount);
     } catch (error) {
       console.error('Failed to start session:', error);
@@ -69,6 +77,9 @@ export default function TranslationScreen() {
 
     try {
       clearError();
+      // Store the current user translation for feedback display
+      setCurrentUserTranslation(userTranslation.trim());
+      
       const result = await submitTranslation(
         currentTranslationSession.id,
         currentExercise.id,
@@ -87,6 +98,7 @@ export default function TranslationScreen() {
   const handleNextExercise = () => {
     setShowEvaluation(false);
     setUserTranslation('');
+    setCurrentUserTranslation(''); // Clear the stored translation
     const nextExercise = getCurrentTranslationExercise();
     setCurrentExercise(nextExercise);
     
@@ -261,9 +273,6 @@ export default function TranslationScreen() {
             {direction === 'zh-to-en' && (
               <Text style={styles.pinyinText}>{currentExercise.chinese.pinyin}</Text>
             )}
-            {currentExercise.context && (
-              <Text style={styles.contextText}>Context: {currentExercise.context}</Text>
-            )}
           </View>
 
           <View style={styles.inputSection}>
@@ -319,11 +328,20 @@ export default function TranslationScreen() {
             <Text style={styles.scoreLabel}>Overall Score</Text>
           </View>
 
-          {/* Translations Comparison */}
+          {/* Original Sentence */}
           <View style={styles.comparisonSection}>
             <View style={styles.translationItem}>
+              <Text style={styles.translationLabel}>Original Sentence:</Text>
+              <Text style={styles.originalSentenceText}>
+                {direction === 'zh-to-en' ? currentExercise.chinese.hanzi : currentExercise.english}
+              </Text>
+              {direction === 'zh-to-en' && (
+                <Text style={styles.pinyinText}>{currentExercise.chinese.pinyin}</Text>
+              )}
+            </View>
+            <View style={styles.translationItem}>
               <Text style={styles.translationLabel}>Your Translation:</Text>
-              <Text style={styles.userTranslationText}>{userTranslation}</Text>
+              <Text style={styles.userTranslationText}>{currentUserTranslation}</Text>
             </View>
             <View style={styles.translationItem}>
               <Text style={styles.translationLabel}>Expected Translation:</Text>
@@ -420,7 +438,15 @@ export default function TranslationScreen() {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.newSessionButton}
-            onPress={() => setShowModeSelector(true)}
+            onPress={() => {
+              // Reset all state when going back to mode selector
+              setUserTranslation('');
+              setCurrentUserTranslation('');
+              setShowEvaluation(false);
+              setCurrentExercise(null);
+              setSessionStats(null);
+              setShowModeSelector(true);
+            }}
           >
             <Text style={styles.newSessionButtonText}>Start New Session</Text>
           </TouchableOpacity>
@@ -617,11 +643,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 8,
   },
-  contextText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-  },
+
   inputSection: {
     marginBottom: 24,
   },
@@ -696,6 +718,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6b7280',
     marginBottom: 4,
+  },
+  originalSentenceText: {
+    fontSize: 18,
+    color: '#1f2937',
+    padding: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    fontWeight: '500',
   },
   userTranslationText: {
     fontSize: 16,
