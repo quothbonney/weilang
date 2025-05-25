@@ -192,6 +192,96 @@ export interface ProfileCacheEntry {
   expiresAt: number;    // epoch ms (90 days TTL)
 }
 
+// Sentence Translation Feature Entities
+export interface SentenceExercise {
+  id: string;
+  chinese: {
+    hanzi: string;
+    pinyin: string;
+  };
+  english: string;
+  direction: 'en-to-zh' | 'zh-to-en';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  usedWords: string[];          // Words from user's learned vocabulary
+  context?: string;             // Optional context for the sentence
+  createdAt: number;
+  lastAttempted?: number;
+}
+
+export interface TranslationAttempt {
+  id: string;
+  exerciseId: string;
+  userTranslation: string;
+  llmEvaluation: TranslationEvaluation;
+  attemptedAt: number;
+}
+
+export interface TranslationEvaluation {
+  overallScore: number;           // 0-100
+  detailedFeedback: {
+    accuracy: {
+      score: number;              // 0-100
+      correctElements: string[];
+      incorrectElements: string[];
+      missedElements: string[];
+    };
+    fluency: {
+      score: number;              // 0-100
+      strengths: string[];
+      improvements: string[];
+    };
+    vocabulary: {
+      score: number;              // 0-100
+      correctUsage: string[];
+      incorrectUsage: string[];
+      suggestions: string[];
+    };
+    grammar: {
+      score: number;              // 0-100
+      correctStructures: string[];
+      errors: Array<{
+        error: string;
+        correction: string;
+        explanation: string;
+      }>;
+    };
+  };
+  overallFeedback: string;
+  encouragement: string;
+  nextSteps: string[];
+}
+
+export interface GeneratedSentencePair {
+  chinese: {
+    hanzi: string;
+    pinyin: string;
+  };
+  english: string;
+  usedWords: string[];            // Which of the user's known words were used
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  context?: string;               // Optional context for the sentence
+}
+
+export interface SentenceGenerationRequest {
+  knownWords: string[];           // User's learned Chinese characters/words
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  exerciseDirection: 'en-to-zh' | 'zh-to-en';  // For UI presentation only
+}
+
+export interface TranslationSession {
+  id: string;
+  exercises: SentenceExercise[];
+  currentExerciseIndex: number;
+  attempts: TranslationAttempt[];
+  startedAt: number;
+  completedAt?: number;
+  settings: {
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    direction: 'en-to-zh' | 'zh-to-en';
+    exerciseCount: number;
+  };
+}
+
 // Review quality ratings for SM-2
 export type ReviewQuality = "again" | "hard" | "good" | "easy";
 

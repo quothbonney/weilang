@@ -1,5 +1,5 @@
 /** * Global state management with Zustand */import React from 'react';import { create } from "zustand";
-import { Word, Example, WordProfile, WordProfileDTO, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode } from "../../domain/entities";
+import { Word, Example, WordProfile, WordProfileDTO, ReviewQuality, ReviewSettings, ReviewSession, ReviewMode, SentenceExercise, TranslationAttempt, TranslationSession, TranslationEvaluation } from "../../domain/entities";
 import { getWordRepository } from "../../platform/storageProvider";
 import { AddWordUseCase } from "../../domain/usecases/addWord";
 import { ReviewWordUseCase } from "../../domain/usecases/reviewWord";
@@ -7,6 +7,8 @@ import { GenerateExampleUseCase } from "../../domain/usecases/generateExample";
 import { GenerateWordProfileUseCase } from "../../domain/usecases/generateWordProfile";
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
 import { WordProfileService, WordProfileConfig } from "../../infra/services/wordProfileService";
+import { SentenceTranslationService } from "../../infra/services/sentenceTranslationService";
+import { DexieSentenceExerciseRepository, DexieTranslationAttemptRepository, DexieTranslationSessionRepository } from "../../infra/storage/wordRepo.dexie";
 import { storage } from "../../platform/storageUtils";
 import { DEFAULT_REVIEW_SETTINGS, getCardPriority } from "../../domain/srs";
 import { TOGETHER_KEY, LINGVANEX_KEY, OPENAI_KEY, UNIHAN_DB_PATH, STROKE_ORDER_BASE_URL } from '../../../env';
@@ -69,8 +71,13 @@ interface WeiLangStore {
   reviewMode: ReviewMode;
   sessionTracking: SessionTracking | null;
 
-  // New word profile service
+  // Services
   wordProfileService: WordProfileService | null;
+  sentenceTranslationService: SentenceTranslationService | null;
+
+  // Sentence translation state
+  currentTranslationSession: TranslationSession | null;
+  lastTranslationEvaluation: TranslationEvaluation | null;
 
   // Actions
   loadWords: () => Promise<void>;
@@ -107,6 +114,14 @@ interface WeiLangStore {
   clearProfileCache: () => Promise<void>;
   getProfileCacheStats: () => Promise<{ count: number; memoryCount: number; totalSize: number }>;
   testProfileConnections: () => Promise<{ unihan: boolean; lingvanex: boolean; llm: boolean }>;
+
+  // Sentence translation actions
+  initializeSentenceTranslationService: () => void;
+  startTranslationSession: (difficulty: 'beginner' | 'intermediate' | 'advanced', direction: 'en-to-zh' | 'zh-to-en', exerciseCount?: number) => Promise<TranslationSession>;
+  submitTranslation: (sessionId: string, exerciseId: string, userTranslation: string) => Promise<{ attempt: TranslationAttempt; evaluation: TranslationEvaluation; isSessionComplete: boolean }>;
+  getCurrentTranslationExercise: () => SentenceExercise | null;
+  getTranslationSessionStats: (sessionId: string) => Promise<any>;
+  getActiveTranslationSession: () => Promise<TranslationSession | null>;
 }
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
@@ -148,8 +163,13 @@ export const useStore = create<WeiLangStore>((set, get) => {
     reviewMode: 'mixed',
     sessionTracking: null,
 
-    // Word profile service
+    // Services
     wordProfileService: null,
+    sentenceTranslationService: null,
+
+    // Sentence translation state
+    currentTranslationSession: null,
+    lastTranslationEvaluation: null,
 
     // Load words from repository
     loadWords: async () => {
@@ -551,6 +571,9 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
         // Initialize profile service
         get().initializeProfileService();
+        
+        // Initialize sentence translation service
+        get().initializeSentenceTranslationService();
       } catch (error) {
         console.error('Failed to initialize settings:', error);
       }
@@ -739,6 +762,126 @@ export const useStore = create<WeiLangStore>((set, get) => {
 
     resetSessionTracking: () => {
       set({ sessionTracking: null });
+    },
+
+    // Sentence translation actions
+    initializeSentenceTranslationService: () => {
+      const { apiKey } = get();
+      
+      if (!apiKey && !TOGETHER_KEY) {
+        console.warn('No API key available for sentence translation service');
+        return;
+      }
+
+      try {
+        const wordRepo = getWordRepo();
+        const exerciseRepo = new DexieSentenceExerciseRepository();
+        const attemptRepo = new DexieTranslationAttemptRepository();
+        const sessionRepo = new DexieTranslationSessionRepository();
+        const llmAdapter = new TogetherAdapter(apiKey || TOGETHER_KEY, get().selectedModel);
+
+        const service = new SentenceTranslationService({
+          wordRepository: wordRepo,
+          sentenceExerciseRepository: exerciseRepo,
+          translationAttemptRepository: attemptRepo,
+          translationSessionRepository: sessionRepo,
+          llmAdapter
+        });
+
+        set({ sentenceTranslationService: service });
+        console.log('✅ Sentence translation service initialized');
+      } catch (error) {
+        console.error('Failed to initialize sentence translation service:', error);
+        set({ error: 'Failed to initialize sentence translation service' });
+      }
+    },
+
+    startTranslationSession: async (difficulty, direction, exerciseCount = 5) => {
+      const { sentenceTranslationService } = get();
+      
+      if (!sentenceTranslationService) {
+        get().initializeSentenceTranslationService();
+        const service = get().sentenceTranslationService;
+        if (!service) {
+          throw new Error('Failed to initialize sentence translation service');
+        }
+      }
+
+      set({ isLoading: true, error: null });
+      
+      try {
+        const session = await sentenceTranslationService!.startSession(difficulty, direction, exerciseCount);
+        set({ currentTranslationSession: session, isLoading: false });
+        return session;
+      } catch (error) {
+        set({ 
+          error: error instanceof Error ? error.message : "Failed to start translation session",
+          isLoading: false 
+        });
+        throw error;
+      }
+    },
+
+    submitTranslation: async (sessionId, exerciseId, userTranslation) => {
+      const { sentenceTranslationService } = get();
+      
+      if (!sentenceTranslationService) {
+        throw new Error('Sentence translation service not initialized');
+      }
+
+      set({ isLoading: true, error: null });
+      
+      try {
+        const result = await sentenceTranslationService.submitTranslation(sessionId, exerciseId, userTranslation);
+        
+        // Update the current session if it matches
+        const currentSession = get().currentTranslationSession;
+        if (currentSession && currentSession.id === sessionId) {
+          const updatedSession = await sentenceTranslationService.getActiveSession();
+          set({ currentTranslationSession: updatedSession });
+        }
+        
+        set({ lastTranslationEvaluation: result.evaluation, isLoading: false });
+        return result;
+      } catch (error) {
+        set({ 
+          error: error instanceof Error ? error.message : "Failed to submit translation",
+          isLoading: false 
+        });
+        throw error;
+      }
+    },
+
+    getCurrentTranslationExercise: () => {
+      const { sentenceTranslationService, currentTranslationSession } = get();
+      
+      if (!sentenceTranslationService || !currentTranslationSession) {
+        return null;
+      }
+
+      return sentenceTranslationService.getCurrentExercise(currentTranslationSession);
+    },
+
+    getTranslationSessionStats: async (sessionId) => {
+      const { sentenceTranslationService } = get();
+      
+      if (!sentenceTranslationService) {
+        throw new Error('Sentence translation service not initialized');
+      }
+
+      return sentenceTranslationService.getSessionStats(sessionId);
+    },
+
+    getActiveTranslationSession: async () => {
+      const { sentenceTranslationService } = get();
+      
+      if (!sentenceTranslationService) {
+        return null;
+      }
+
+      const session = await sentenceTranslationService.getActiveSession();
+      set({ currentTranslationSession: session });
+      return session;
     },
   };
 });

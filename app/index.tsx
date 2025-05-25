@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useStore } from "../src/ui/hooks/useStore";
-import { BookOpen, Brain, BarChart3, Settings, Calendar, Trophy, Target } from "lucide-react-native";
+import { BookOpen, Brain, BarChart3, Settings, Calendar, Trophy, Target, Languages } from "lucide-react-native";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -86,6 +86,15 @@ export default function DashboardScreen() {
       color: '#ef4444',
       backgroundColor: '#fef2f2',
       onPress: () => router.push('/flashcards'),
+    },
+    {
+      id: 'translation',
+      title: 'Translation',
+      subtitle: 'Practice sentences',
+      icon: Languages,
+      color: '#8b5cf6',
+      backgroundColor: '#f3f4f6',
+      onPress: () => router.push('/translation'),
     },
     {
       id: 'deck',

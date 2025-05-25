@@ -3,7 +3,7 @@
  */
 
 import OpenAI from "openai";
-import { Word } from "../../domain/entities";
+import { Word, GeneratedSentencePair, TranslationEvaluation } from "../../domain/entities";
 
 export type ExampleGenerationMode = 'strict' | 'some-ood' | 'many-ood' | 'independent';
 export type ModelOption = 'deepseek-ai/DeepSeek-V3' | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo' | 'Qwen/Qwen2.5-72B-Instruct-Turbo';
@@ -289,6 +289,351 @@ Return as JSON array only.`;
       }));
       console.log('🔍 Returning fallback character meanings:', fallback);
       return fallback;
+    }
+  }
+
+  /**
+   * Generate a sentence exercise using Chinese-first approach
+   * Always generates Chinese sentence first using known words, then derives English
+   */
+  async generateSentenceExercise(
+    knownWords: string[], 
+    difficulty: 'beginner' | 'intermediate' | 'advanced'
+  ): Promise<GeneratedSentencePair> {
+    console.log('🔍 Generating sentence exercise with known words:', knownWords.slice(0, 10), '...');
+    
+    if (knownWords.length < 3) {
+      throw new Error("Need at least 3 known words to generate meaningful sentences");
+    }
+
+    // Step 1: Generate Chinese sentence using known words
+    const chineseResult = await this.generateChineseSentence(knownWords, difficulty);
+    
+    // Step 2: Generate English translation
+    const englishResult = await this.generateEnglishTranslation(chineseResult);
+    
+    return {
+      chinese: {
+        hanzi: chineseResult.hanzi,
+        pinyin: chineseResult.pinyin
+      },
+      english: englishResult.english,
+      usedWords: chineseResult.usedWords,
+      difficulty,
+      context: chineseResult.context
+    };
+  }
+
+  /**
+   * Step 1: Generate Chinese sentence using only known words
+   */
+  private async generateChineseSentence(
+    knownWords: string[], 
+    difficulty: 'beginner' | 'intermediate' | 'advanced'
+  ): Promise<{
+    hanzi: string;
+    pinyin: string;
+    usedWords: string[];
+    context: string;
+  }> {
+    const maxLength = difficulty === 'beginner' ? 8 : difficulty === 'intermediate' ? 12 : 15;
+    const minWords = difficulty === 'beginner' ? 3 : difficulty === 'intermediate' ? 4 : 5;
+    
+    const systemPrompt = `You are an expert Chinese language tutor.
+Return ONLY valid JSON in this exact format:
+{
+  "hanzi": "...",
+  "pinyin": "...",
+  "usedWords": ["word1", "word2", ...],
+  "context": "brief context explanation"
+}
+Do NOT include any other text, markdown, or explanation.`;
+
+    const userPrompt = `Generate a natural Chinese sentence using ONLY these learned words: [${knownWords.join(', ')}]
+
+Requirements:
+- Use ONLY the provided words (no additional characters)
+- Create a natural, practical sentence for daily use
+- Target difficulty: ${difficulty}
+- Sentence length: ${maxLength} characters maximum
+- Use at least ${minWords} different words from the list
+- Focus on common daily situations (greetings, food, family, work, etc.)
+
+Provide:
+1. hanzi: The Chinese sentence using only the provided words
+2. pinyin: Complete pinyin with tone marks
+3. usedWords: Array of which words from the list were actually used
+4. context: Brief explanation of when/where this sentence would be used
+
+Return as JSON only.`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 200,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error("No response from Together API");
+
+      const parsed = TogetherAdapter.parseJson(content);
+      if (!parsed) throw new Error("Invalid JSON response from Together API");
+
+      // Validate the response structure
+      if (!parsed.hanzi || !parsed.pinyin || !Array.isArray(parsed.usedWords)) {
+        throw new Error("Incomplete Chinese sentence response from Together API");
+      }
+
+      return {
+        hanzi: parsed.hanzi,
+        pinyin: parsed.pinyin,
+        usedWords: parsed.usedWords,
+        context: parsed.context || "General conversation"
+      };
+    } catch (error) {
+      console.error('Failed to generate Chinese sentence:', error);
+      throw new Error("Failed to generate Chinese sentence");
+    }
+  }
+
+  /**
+   * Step 2: Generate English translation from Chinese sentence
+   */
+  private async generateEnglishTranslation(chineseResult: {
+    hanzi: string;
+    pinyin: string;
+    context: string;
+  }): Promise<{
+    english: string;
+    literalTranslation?: string;
+    notes?: string;
+  }> {
+    const systemPrompt = `You are an expert Chinese-English translator.
+Return ONLY valid JSON in this exact format:
+{
+  "english": "natural English translation",
+  "literalTranslation": "word-for-word translation",
+  "notes": "any cultural or linguistic notes"
+}
+Do NOT include any other text, markdown, or explanation.`;
+
+    const userPrompt = `Provide a natural English translation for this Chinese sentence:
+
+Chinese: ${chineseResult.hanzi}
+Pinyin: ${chineseResult.pinyin}
+Context: ${chineseResult.context}
+
+Provide:
+1. english: A natural, fluent English translation that captures the meaning and tone
+2. literalTranslation: A word-for-word translation to show structure
+3. notes: Any cultural context or linguistic notes that would help learners
+
+Return as JSON only.`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.5,
+        max_tokens: 150,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error("No response from Together API");
+
+      const parsed = TogetherAdapter.parseJson(content);
+      if (!parsed) throw new Error("Invalid JSON response from Together API");
+
+      // Validate the response structure
+      if (!parsed.english) {
+        throw new Error("Incomplete English translation response from Together API");
+      }
+
+      return {
+        english: parsed.english,
+        literalTranslation: parsed.literalTranslation,
+        notes: parsed.notes
+      };
+    } catch (error) {
+      console.error('Failed to generate English translation:', error);
+      throw new Error("Failed to generate English translation");
+    }
+  }
+
+  /**
+   * Evaluate a user's translation attempt with comprehensive feedback
+   */
+  async evaluateTranslation(
+    originalChinese: string,
+    pinyin: string,
+    expectedEnglish: string,
+    userTranslation: string,
+    direction: 'en-to-zh' | 'zh-to-en'
+  ): Promise<TranslationEvaluation> {
+    console.log('🔍 Evaluating translation:', { originalChinese, expectedEnglish, userTranslation, direction });
+
+    const systemPrompt = `You are an expert language tutor evaluating translation attempts.
+Return ONLY valid JSON in this exact format:
+{
+  "overallScore": 85,
+  "detailedFeedback": {
+    "accuracy": {
+      "score": 80,
+      "correctElements": ["element1", "element2"],
+      "incorrectElements": ["error1", "error2"],
+      "missedElements": ["missed1", "missed2"]
+    },
+    "fluency": {
+      "score": 90,
+      "strengths": ["strength1", "strength2"],
+      "improvements": ["improvement1", "improvement2"]
+    },
+    "vocabulary": {
+      "score": 85,
+      "correctUsage": ["usage1", "usage2"],
+      "incorrectUsage": ["incorrect1", "incorrect2"],
+      "suggestions": ["suggestion1", "suggestion2"]
+    },
+    "grammar": {
+      "score": 75,
+      "correctStructures": ["structure1", "structure2"],
+      "errors": [
+        {
+          "error": "specific error",
+          "correction": "how to fix it",
+          "explanation": "why this is wrong"
+        }
+      ]
+    }
+  },
+  "overallFeedback": "comprehensive feedback",
+  "encouragement": "positive encouragement",
+  "nextSteps": ["step1", "step2", "step3"]
+}
+Do NOT include any other text, markdown, or explanation.`;
+
+    const userPrompt = `Evaluate this translation attempt:
+
+Original Chinese: ${originalChinese}
+Pinyin: ${pinyin}
+Expected English: ${expectedEnglish}
+User's translation: ${userTranslation}
+Exercise direction: ${direction}
+
+Provide comprehensive evaluation with:
+
+1. overallScore: Overall score from 0-100
+2. detailedFeedback with four categories:
+   - accuracy: How well the meaning was captured (score, correct/incorrect/missed elements)
+   - fluency: How natural the translation sounds (score, strengths, improvements)
+   - vocabulary: Word choice and usage (score, correct/incorrect usage, suggestions)
+   - grammar: Grammatical correctness (score, correct structures, specific errors with corrections)
+3. overallFeedback: 2-3 sentences summarizing the translation quality
+4. encouragement: Positive, motivating feedback about what they did well
+5. nextSteps: 3 specific actionable suggestions for improvement
+
+Be constructive, specific, and educational. Focus on helping the learner improve.
+
+Return as JSON only.`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 800,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error("No response from Together API");
+
+      const parsed = TogetherAdapter.parseJson(content);
+      if (!parsed) throw new Error("Invalid JSON response from Together API");
+
+      // Validate the response structure
+      if (!parsed.overallScore || !parsed.detailedFeedback || !parsed.overallFeedback) {
+        throw new Error("Incomplete evaluation response from Together API");
+      }
+
+      // Ensure all required fields exist with defaults
+      const evaluation: TranslationEvaluation = {
+        overallScore: parsed.overallScore || 0,
+        detailedFeedback: {
+          accuracy: {
+            score: parsed.detailedFeedback?.accuracy?.score || 0,
+            correctElements: parsed.detailedFeedback?.accuracy?.correctElements || [],
+            incorrectElements: parsed.detailedFeedback?.accuracy?.incorrectElements || [],
+            missedElements: parsed.detailedFeedback?.accuracy?.missedElements || []
+          },
+          fluency: {
+            score: parsed.detailedFeedback?.fluency?.score || 0,
+            strengths: parsed.detailedFeedback?.fluency?.strengths || [],
+            improvements: parsed.detailedFeedback?.fluency?.improvements || []
+          },
+          vocabulary: {
+            score: parsed.detailedFeedback?.vocabulary?.score || 0,
+            correctUsage: parsed.detailedFeedback?.vocabulary?.correctUsage || [],
+            incorrectUsage: parsed.detailedFeedback?.vocabulary?.incorrectUsage || [],
+            suggestions: parsed.detailedFeedback?.vocabulary?.suggestions || []
+          },
+          grammar: {
+            score: parsed.detailedFeedback?.grammar?.score || 0,
+            correctStructures: parsed.detailedFeedback?.grammar?.correctStructures || [],
+            errors: parsed.detailedFeedback?.grammar?.errors || []
+          }
+        },
+        overallFeedback: parsed.overallFeedback || "Translation evaluated",
+        encouragement: parsed.encouragement || "Keep practicing!",
+        nextSteps: parsed.nextSteps || ["Continue practicing", "Review vocabulary", "Focus on grammar"]
+      };
+
+      console.log('🔍 Translation evaluation completed:', evaluation);
+      return evaluation;
+    } catch (error) {
+      console.error('Failed to evaluate translation:', error);
+      
+      // Return a fallback evaluation
+      return {
+        overallScore: 50,
+        detailedFeedback: {
+          accuracy: {
+            score: 50,
+            correctElements: [],
+            incorrectElements: [],
+            missedElements: []
+          },
+          fluency: {
+            score: 50,
+            strengths: [],
+            improvements: ["Continue practicing"]
+          },
+          vocabulary: {
+            score: 50,
+            correctUsage: [],
+            incorrectUsage: [],
+            suggestions: ["Review vocabulary"]
+          },
+          grammar: {
+            score: 50,
+            correctStructures: [],
+            errors: []
+          }
+        },
+        overallFeedback: "Unable to evaluate translation at this time. Please try again.",
+        encouragement: "Keep practicing! Every attempt helps you improve.",
+        nextSteps: ["Try again", "Review the original sentence", "Practice more translations"]
+      };
     }
   }
 } 
