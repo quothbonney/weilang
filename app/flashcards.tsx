@@ -48,27 +48,24 @@ export default function FlashcardsScreen() {
     return <LoadingState />;
   }
 
-  // Session complete state
-  if (isSessionComplete) {
-    return (
-      <CompletionState
-        onStartNewSession={() => setShowModeSelector(true)}
-        onBackToDashboard={() => router.back()}
-      />
-    );
-  }
-
-  // Main flashcard interface
+  // Render main flashcard screen or completion state
   return (
     <View style={styles.container}>
-      {/* Header with session info and controls */}
-      <FlashcardHeader
-        reviewMode={reviewMode}
-        currentSession={currentSession!}
-        flashcardSettings={flashcardSettings}
-        onOpenModeSelector={() => setShowModeSelector(true)}
-        onOpenSettings={() => setShowSettings(true)}
-      />
+      {isSessionComplete ? (
+        <CompletionState
+          onStartNewSession={() => setShowModeSelector(true)}
+          onBackToDashboard={() => router.back()}
+        />
+      ) : (
+        <>
+          {/* Header with session info and controls */}
+          <FlashcardHeader
+            reviewMode={reviewMode}
+            currentSession={currentSession!}
+            flashcardSettings={flashcardSettings}
+            onOpenModeSelector={() => setShowModeSelector(true)}
+            onOpenSettings={() => setShowSettings(true)}
+          />
 
       {/* Progress and card type indicator */}
       <ProgressSection
@@ -104,6 +101,8 @@ export default function FlashcardsScreen() {
           />
         )}
       </View>
+        </>
+      )}
 
       {/* Modals */}
       <ReviewModeSelector

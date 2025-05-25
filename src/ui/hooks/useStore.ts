@@ -8,7 +8,7 @@ import { GenerateWordProfileUseCase } from "../../domain/usecases/generateWordPr
 import { TogetherAdapter } from "../../infra/llm/togetherAdapter";
 import { WordProfileService, WordProfileConfig } from "../../infra/services/wordProfileService";
 import { storage } from "../../platform/storageUtils";
-import { DEFAULT_REVIEW_SETTINGS } from "../../domain/srs";
+import { DEFAULT_REVIEW_SETTINGS, getCardPriority } from "../../domain/srs";
 import { TOGETHER_KEY, LINGVANEX_KEY, OPENAI_KEY, UNIHAN_DB_PATH, STROKE_ORDER_BASE_URL } from '../../../env';
 
 // Import 300 words from CSV data
@@ -500,71 +500,75 @@ export const useStore = create<WeiLangStore>((set, get) => {
     // Review system methods
     startReviewSession: async (mode: ReviewMode) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const wordRepo = getWordRepo();
-        const words = await wordRepo.listAll();
-        const now = Date.now();
-        
-        // Filter cards by type and due status
-        const newCards = words.filter(w => w.status === 'new').slice(0, 20);
-        const learningCards = words.filter(w => 
-          w.learningStep > 0 && 
-          (w.learningDue || 0) <= now
-        );
-        const reviewCards = words.filter(w => 
-          w.status === 'review' && 
-          w.due <= now
-        ).slice(0, 100);
+        const settings = get().reviewSettings;
 
-        // Create session based on mode
-        let sessionCards: Word[] = [];
-        switch (mode) {
-          case 'new-only':
-            sessionCards = newCards;
-            break;
-          case 'review-only':
-            sessionCards = reviewCards;
-            break;
-          case 'learning-only':
-            sessionCards = learningCards;
-            break;
-          case 'mixed':
-          default:
-            sessionCards = [...learningCards, ...newCards, ...reviewCards];
-            break;
+        let newCards: Word[] = [];
+        let learningCards: Word[] = [];
+        let reviewCards: Word[] = [];
+
+        if (mode === 'mixed' || mode === 'new-only') {
+          newCards = await wordRepo.listNewCards(settings.maxNewCardsPerDay);
+        }
+        if (mode === 'mixed' || mode === 'learning-only') {
+          learningCards = await wordRepo.listLearningCards();
+        }
+        if (mode === 'mixed' || mode === 'review-only') {
+          reviewCards = await wordRepo.listReviewCards(settings.maxReviewsPerDay);
         }
 
-        // Shuffle and batch
-        const shuffledCards = shuffleArray(sessionCards);
-        const settings = get().reviewSettings;
+        const allCards = [...learningCards, ...newCards, ...reviewCards];
+        allCards.sort((a, b) => getCardPriority(a) - getCardPriority(b));
+
         const batchSize = settings.batchSize;
-        
+        const initialBatch = allCards.slice(0, batchSize);
+        const queue = allCards.slice(batchSize);
+
         const session: ReviewSession = {
           mode,
           newCards,
           learningCards,
           reviewCards,
-          currentBatch: shuffledCards.slice(0, batchSize),
+          queue,
+          currentBatch: initialBatch,
           batchIndex: 0,
           reviewed: 0,
-          settings
+          settings,
         };
 
         set({ currentSession: session, reviewMode: mode, isLoading: false });
       } catch (error) {
-        set({ 
-          error: error instanceof Error ? error.message : "Failed to start review session",
-          isLoading: false 
+        set({
+          error:
+            error instanceof Error ? error.message : 'Failed to start review session',
+          isLoading: false,
         });
       }
     },
 
     getNextCard: () => {
       const session = get().currentSession;
-      if (!session || session.currentBatch.length === 0) {
-        return null;
+      if (!session) return null;
+
+      if (session.currentBatch.length === 0 && session.queue.length > 0) {
+        const newBatch = session.queue.slice(0, session.settings.batchSize);
+        const queue = session.queue.slice(newBatch.length);
+        const batchIndex = session.batchIndex + 1;
+
+        const updatedSession: ReviewSession = {
+          ...session,
+          currentBatch: newBatch,
+          queue,
+          batchIndex,
+        };
+
+        set({ currentSession: updatedSession });
+        return newBatch[0] || null;
       }
+
+      if (session.currentBatch.length === 0) return null;
       return session.currentBatch[0];
     },
 
@@ -572,15 +576,25 @@ export const useStore = create<WeiLangStore>((set, get) => {
       const session = get().currentSession;
       if (!session) return;
 
-      const updatedBatch = session.currentBatch.slice(1);
+      let batch = session.currentBatch.slice(1);
+      let queue = session.queue;
+      let batchIndex = session.batchIndex;
       const reviewed = session.reviewed + 1;
+
+      if (batch.length === 0 && queue.length > 0) {
+        batch = queue.slice(0, session.settings.batchSize);
+        queue = queue.slice(batch.length);
+        batchIndex += 1;
+      }
 
       set({
         currentSession: {
           ...session,
-          currentBatch: updatedBatch,
-          reviewed
-        }
+          currentBatch: batch,
+          queue,
+          batchIndex,
+          reviewed,
+        },
       });
     },
 
@@ -588,14 +602,25 @@ export const useStore = create<WeiLangStore>((set, get) => {
       const session = get().currentSession;
       if (!session) return;
 
-      // Add card back to the end of current batch
-      const updatedBatch = [...session.currentBatch.slice(1), card];
+      let batch = session.currentBatch.slice(1);
+      let queue = session.queue;
+      let batchIndex = session.batchIndex;
+
+      if (batch.length === 0 && queue.length > 0) {
+        batch = queue.slice(0, session.settings.batchSize);
+        queue = queue.slice(batch.length);
+        batchIndex += 1;
+      }
+
+      const updatedBatch = [...batch, card];
 
       set({
         currentSession: {
           ...session,
-          currentBatch: updatedBatch
-        }
+          currentBatch: updatedBatch,
+          queue,
+          batchIndex,
+        },
       });
     },
 
