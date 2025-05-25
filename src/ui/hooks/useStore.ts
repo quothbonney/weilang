@@ -54,6 +54,7 @@ interface WeiLangStore {
   isLoading: boolean;
   error: string | null;
   apiKey: string | null;
+  ttsApiKey: string | null;
   hasImported: boolean;
   lastGeneratedExample: Example | null;
   lastGeneratedProfile: WordProfile | null;
@@ -78,6 +79,7 @@ interface WeiLangStore {
   reviewWord: (wordId: string, quality: ReviewQuality) => Promise<Word>;
   deleteWord: (wordId: string) => Promise<void>;
   setApiKey: (key: string | null) => void;
+  setTtsApiKey: (key: string | null) => void;
   clearError: () => void;
   importWords: () => Promise<void>;
   generateExample: (wordId: string) => Promise<Example | null>;
@@ -108,6 +110,7 @@ interface WeiLangStore {
 }
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
+const TTS_KEY_STORAGE_KEY = 'weilang_tts_key';
 const GENERATION_MODE_STORAGE_KEY = 'weilang_generation_mode';
 const SELECTED_MODEL_STORAGE_KEY = 'weilang_selected_model';
 const FLASHCARD_SETTINGS_STORAGE_KEY = 'weilang_flashcard_settings';
@@ -130,6 +133,7 @@ export const useStore = create<WeiLangStore>((set, get) => {
     isLoading: false,
     error: null,
     apiKey: null,
+    ttsApiKey: null,
     hasImported: false,
     lastGeneratedExample: null,
     lastGeneratedProfile: null,
@@ -236,6 +240,10 @@ export const useStore = create<WeiLangStore>((set, get) => {
       set({ apiKey: key });
       // Reinitialize profile service with new API key
       get().initializeProfileService();
+    },
+
+    setTtsApiKey: (key) => {
+      set({ ttsApiKey: key });
     },
 
     // Clear error
@@ -516,6 +524,11 @@ export const useStore = create<WeiLangStore>((set, get) => {
         const apiKey = await storage.getItem(API_KEY_STORAGE_KEY);
         if (apiKey) {
           set({ apiKey });
+        }
+
+        const ttsKey = await storage.getItem(TTS_KEY_STORAGE_KEY);
+        if (ttsKey) {
+          set({ ttsApiKey: ttsKey });
         }
 
         // Load generation mode
