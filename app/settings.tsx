@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from "react-native";
 import {
   Select,
   SelectTrigger,
@@ -8,14 +8,18 @@ import {
   SelectPortal,
   SelectBackdrop,
   SelectContent,
-  SelectItem
+  SelectItem,
 } from "@gluestack-ui/themed";
 import { ChevronDown } from "lucide-react-native";
 import { useStore } from "../src/ui/hooks/useStore";
 import { storage } from "../src/platform/storageUtils";
 import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
+import SettingsSection from "../src/ui/components/settings/SettingsSection";
+import ToggleSwitch from "../src/ui/components/settings/ToggleSwitch";
+import { AZURE_TTS_KEY } from "../env";
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
+const TTS_KEY_STORAGE_KEY = 'weilang_tts_key';
 const GENERATION_MODE_STORAGE_KEY = 'weilang_generation_mode';
 const SELECTED_MODEL_STORAGE_KEY = 'weilang_selected_model';
 
@@ -61,10 +65,12 @@ const MODEL_OPTIONS: { key: ModelOption; label: string; description: string }[] 
 ];
 
 export default function SettingsScreen() {
-  const { 
-    apiKey, 
-    setApiKey, 
-    exampleGenerationMode, 
+  const {
+    apiKey,
+    setApiKey,
+    ttsApiKey,
+    setTtsApiKey,
+    exampleGenerationMode,
     setExampleGenerationMode,
     selectedModel,
     setSelectedModel,
@@ -73,11 +79,14 @@ export default function SettingsScreen() {
   } = useStore();
   const [inputKey, setInputKey] = useState(apiKey || '');
   const [showKey, setShowKey] = useState(false);
+  const [inputTtsKey, setInputTtsKey] = useState(ttsApiKey || AZURE_TTS_KEY || '');
+  const [showTtsKey, setShowTtsKey] = useState(false);
 
   useEffect(() => {
     // Update input when store updates
     setInputKey(apiKey || '');
-  }, [apiKey]);
+    setInputTtsKey(ttsApiKey || AZURE_TTS_KEY || '');
+  }, [apiKey, ttsApiKey]);
 
   const saveApiKey = async () => {
     try {
@@ -92,6 +101,22 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to save API key');
+    }
+  };
+
+  const saveTtsKey = async () => {
+    try {
+      if (inputTtsKey.trim()) {
+        await storage.setItem(TTS_KEY_STORAGE_KEY, inputTtsKey.trim());
+        setTtsApiKey(inputTtsKey.trim());
+        Alert.alert('Success', 'TTS key saved successfully');
+      } else {
+        await storage.removeItem(TTS_KEY_STORAGE_KEY);
+        setTtsApiKey(null);
+        Alert.alert('Success', 'TTS key removed');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save TTS key');
     }
   };
 
@@ -126,25 +151,24 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
+    <ScrollView
+      className="flex-1 bg-gray-50 p-4"
+      contentContainerStyle={{ paddingBottom: 20 }}
       showsVerticalScrollIndicator={false}
-      bounces={true}
+      bounces
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Together API Configuration</Text>
-        <Text style={styles.description}>
+      <SettingsSection title="Together API Configuration">
+        <Text className="text-gray-600 mb-4">
           Enter your Together API key to enable example sentence generation.
           {apiKey && !inputKey.startsWith('sk-') && (
-            <Text style={styles.envNote}> (Loaded from .env file)</Text>
+            <Text className="text-green-600 italic"> (Loaded from .env file)</Text>
           )}
         </Text>
-        
-        <View style={styles.inputContainer}>
+
+        <View className="flex-row items-center mb-4">
           <TextInput
-            style={styles.input}
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base"
             value={inputKey}
             onChangeText={setInputKey}
             placeholder="Enter your API key"
@@ -152,32 +176,65 @@ export default function SettingsScreen() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <TouchableOpacity 
-            style={styles.toggleButton}
+          <TouchableOpacity
+            className="ml-2 px-3 py-2"
             onPress={() => setShowKey(!showKey)}
           >
-            <Text style={styles.toggleText}>{showKey ? 'Hide' : 'Show'}</Text>
+            <Text className="text-blue-500 font-medium">{showKey ? 'Hide' : 'Show'}</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={styles.saveButton}
+        <TouchableOpacity
+          className="bg-blue-500 rounded-lg px-6 py-3 items-center"
           onPress={saveApiKey}
         >
-          <Text style={styles.saveButtonText}>Save API Key</Text>
+          <Text className="text-white font-semibold text-base">Save API Key</Text>
         </TouchableOpacity>
 
-        <Text style={styles.helpText}>
+        <Text className="text-xs text-gray-500 mt-2 italic">
           Get your API key from https://api.together.xyz
         </Text>
-      </View>
+      </SettingsSection>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>AI Model Selection</Text>
-        <Text style={styles.description}>
-          Choose which AI model to use for generating examples and profiles.
+      <SettingsSection title="Azure TTS Configuration">
+        <Text className="text-gray-600 mb-4">
+          Provide an Azure TTS key for high quality speech synthesis.
+          {AZURE_TTS_KEY ? (
+            <Text className="text-green-600 italic"> (Loaded from .env file)</Text>
+          ) : null}
         </Text>
 
+        <View className="flex-row items-center mb-4">
+          <TextInput
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base"
+            value={inputTtsKey}
+            onChangeText={setInputTtsKey}
+            placeholder="Enter your TTS key"
+            secureTextEntry={!showTtsKey}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            className="ml-2 px-3 py-2"
+            onPress={() => setShowTtsKey(!showTtsKey)}
+          >
+            <Text className="text-blue-500 font-medium">{showTtsKey ? 'Hide' : 'Show'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          className="bg-blue-500 rounded-lg px-6 py-3 items-center"
+          onPress={saveTtsKey}
+        >
+          <Text className="text-white font-semibold text-base">Save TTS Key</Text>
+        </TouchableOpacity>
+
+        <Text className="text-xs text-gray-500 mt-2 italic">
+          Azure portal &gt; Cognitive Services &gt; Speech
+        </Text>
+      </SettingsSection>
+
+      <SettingsSection title="AI Model Selection" description="Choose which AI model to use for generating examples and profiles.">
         <Select selectedValue={selectedModel} onValueChange={value => changeModel(value as ModelOption)}>
           <SelectTrigger>
             <SelectInput placeholder="Select model" />
@@ -192,335 +249,79 @@ export default function SettingsScreen() {
             </SelectContent>
           </SelectPortal>
         </Select>
-      </View>
+      </SettingsSection>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Flashcard Settings</Text>
-        <Text style={styles.description}>
-          Customize your flashcard learning experience.
-        </Text>
+      <SettingsSection title="Flashcard Settings" description="Customize your flashcard learning experience.">
+        <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
+          <View className="flex-1 mr-4">
+            <Text className="text-base font-semibold text-gray-900 mb-1">Show Pinyin</Text>
+            <Text className="text-sm text-gray-600">Display pinyin pronunciation guide on flashcards</Text>
+          </View>
+          <ToggleSwitch value={flashcardSettings.showPinyin} onChange={togglePinyin} />
+        </View>
 
-        {/* Pinyin Display Toggle */}
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>Show Pinyin</Text>
-            <Text style={styles.settingDescription}>
-              Display pinyin pronunciation guide on flashcards
+        <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
+          <View className="flex-1 mr-4">
+            <Text className="text-base font-semibold text-gray-900 mb-1">Flip Deck Direction</Text>
+            <Text className="text-sm text-gray-600">
+              {flashcardSettings.deckFlipped
+                ? 'Show English → Write Chinese characters'
+                : 'Show Chinese → Recall English meaning'}
             </Text>
           </View>
-          <TouchableOpacity 
-            style={[styles.toggle, flashcardSettings.showPinyin && styles.toggleActive]}
-            onPress={togglePinyin}
-          >
-            <View style={[styles.toggleThumb, flashcardSettings.showPinyin && styles.toggleThumbActive]} />
-          </TouchableOpacity>
+          <ToggleSwitch value={flashcardSettings.deckFlipped} onChange={toggleDeckFlip} />
         </View>
 
-        {/* Deck Flip Toggle */}
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>Flip Deck Direction</Text>
-            <Text style={styles.settingDescription}>
-              {flashcardSettings.deckFlipped 
-                ? "Show English → Write Chinese characters" 
-                : "Show Chinese → Recall English meaning"
-              }
+        <View className="flex-row justify-between items-center py-3">
+          <View className="flex-1 mr-4">
+            <Text className="text-base font-semibold text-gray-900 mb-1">Auto-play TTS</Text>
+            <Text className="text-sm text-gray-600">
+              {flashcardSettings.autoPlayTTS
+                ? 'Automatically speak Chinese when answer is revealed'
+                : 'Manual audio playback only'}
             </Text>
           </View>
-          <TouchableOpacity 
-            style={[styles.toggle, flashcardSettings.deckFlipped && styles.toggleActive]}
-            onPress={toggleDeckFlip}
-          >
-            <View style={[styles.toggleThumb, flashcardSettings.deckFlipped && styles.toggleThumbActive]} />
-          </TouchableOpacity>
+          <ToggleSwitch value={flashcardSettings.autoPlayTTS} onChange={toggleAutoPlayTTS} />
         </View>
 
-        {/* Auto-play TTS Toggle */}
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>Auto-play TTS</Text>
-            <Text style={styles.settingDescription}>
-              {flashcardSettings.autoPlayTTS 
-                ? "Automatically speak Chinese when answer is revealed" 
-                : "Manual audio playback only"
-              }
-            </Text>
-          </View>
-          <TouchableOpacity 
-            style={[styles.toggle, flashcardSettings.autoPlayTTS && styles.toggleActive]}
-            onPress={toggleAutoPlayTTS}
-          >
-            <View style={[styles.toggleThumb, flashcardSettings.autoPlayTTS && styles.toggleThumbActive]} />
-          </TouchableOpacity>
+        <View className="bg-gray-50 p-3 rounded-lg mt-4">
+          <Text className="text-sm font-semibold text-gray-900 mb-2">Current Configuration:</Text>
+          <Text className="text-sm text-gray-600 mb-1">• Pinyin: {flashcardSettings.showPinyin ? 'Shown' : 'Hidden'}</Text>
+          <Text className="text-sm text-gray-600 mb-1">• Direction: {flashcardSettings.deckFlipped ? 'English → Chinese' : 'Chinese → English'}</Text>
+          <Text className="text-sm text-gray-600">• Auto-play TTS: {flashcardSettings.autoPlayTTS ? 'Enabled' : 'Disabled'}</Text>
         </View>
+      </SettingsSection>
 
-        {/* Current Settings Display */}
-        <View style={styles.currentSettings}>
-          <Text style={styles.currentSettingsTitle}>Current Configuration:</Text>
-          <Text style={styles.currentSettingsText}>
-            • Pinyin: {flashcardSettings.showPinyin ? 'Shown' : 'Hidden'}
-          </Text>
-          <Text style={styles.currentSettingsText}>
-            • Direction: {flashcardSettings.deckFlipped ? 'English → Chinese' : 'Chinese → English'}
-          </Text>
-          <Text style={styles.currentSettingsText}>
-            • Auto-play TTS: {flashcardSettings.autoPlayTTS ? 'Enabled' : 'Disabled'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Example Generation Mode</Text>
-        <Text style={styles.description}>
-          Choose how examples are generated when you have few or no learned words.
-        </Text>
-
-        {/* Current selection info */}
-        <View style={styles.currentModeInfo}>
-          <Text style={styles.currentModeLabel}>
+      <SettingsSection title="Example Generation Mode" description="Choose how examples are generated when you have few or no learned words.">
+        <View className="bg-gray-100 p-4 rounded-lg mb-4">
+          <Text className="text-base font-semibold text-gray-900 mb-1">
             Current: {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.label}
           </Text>
-          <Text style={styles.currentModeDescription}>
+          <Text className="text-sm text-gray-600">
             {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.description}
           </Text>
         </View>
 
-        {/* Mode selection buttons */}
-        <View style={styles.modeButtons}>
+        <View className="gap-3">
           {GENERATION_MODES.map((mode) => (
             <TouchableOpacity
               key={mode.key}
-              style={[
-                styles.modeButton,
-                exampleGenerationMode === mode.key && styles.modeButtonActive
-              ]}
+              className={`p-4 rounded-xl border-2 ${exampleGenerationMode === mode.key ? 'bg-blue-500 border-blue-500' : 'border-gray-200 bg-white'}`}
               onPress={() => changeGenerationMode(mode.key)}
             >
-              <View style={styles.modeButtonContent}>
-                <Text style={[
-                  styles.modeButtonText,
-                  exampleGenerationMode === mode.key && styles.modeButtonTextActive
-                ]}>
-                  {mode.label}
-                </Text>
-                <Text style={[
-                  styles.modeButtonDescription,
-                  exampleGenerationMode === mode.key && styles.modeButtonDescriptionActive
-                ]}>
-                  {mode.description}
-                </Text>
-              </View>
+              <Text className={`text-base font-semibold mb-1 ${exampleGenerationMode === mode.key ? 'text-white' : 'text-gray-900'}`}>{mode.label}</Text>
+              <Text className={`text-sm ${exampleGenerationMode === mode.key ? 'text-indigo-100' : 'text-gray-600'}`}>{mode.description}</Text>
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+      </SettingsSection>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
-        <Text style={styles.infoText}>魏Lang</Text>
-        <Text style={styles.infoText}>Version 1.0.0</Text>
-        <Text style={styles.infoText}>Spaced repetition for Chinese learning</Text>
-      </View>
+      <SettingsSection title="About">
+        <Text className="text-gray-600 mb-1">魏Lang</Text>
+        <Text className="text-gray-600 mb-1">Version 1.0.0</Text>
+        <Text className="text-gray-600">Spaced repetition for Chinese learning</Text>
+      </SettingsSection>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-    padding: 16,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  section: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  description: {
-    color: '#6b7280',
-    marginBottom: 16,
-  },
-  envNote: {
-    color: '#059669',
-    fontStyle: 'italic',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  toggleButton: {
-    marginLeft: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  toggleText: {
-    color: '#3b82f6',
-    fontWeight: '500',
-  },
-  saveButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  helpText: {
-    color: '#6b7280',
-    fontSize: 12,
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  infoText: {
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  settingInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  settingDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
-  },
-  toggle: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#d1d5db',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  toggleActive: {
-    backgroundColor: '#3b82f6',
-  },
-  toggleThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  currentSettings: {
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-  },
-  currentSettingsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  currentSettingsText: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  currentModeInfo: {
-    backgroundColor: '#f3f4f6',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  currentModeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#1f2937',
-  },
-  currentModeDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
-  },
-  modeButtons: {
-    gap: 12,
-  },
-  modeButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
-  },
-  modeButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  modeButtonContent: {
-    alignItems: 'flex-start',
-  },
-  modeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  modeButtonTextActive: {
-    color: '#ffffff',
-  },
-  modeButtonDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
-  },
-  modeButtonDescriptionActive: {
-    color: '#e0e7ff',
-  },
-});

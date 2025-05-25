@@ -1,5 +1,6 @@
 import { Audio } from 'expo-av';
 import { AZURE_TTS_KEY, AZURE_TTS_REGION } from '../../../env';
+import { useStore } from '../../ui/hooks/useStore';
 import Constants from 'expo-constants';
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -26,26 +27,30 @@ function debugEnvironmentVariables() {
   console.log('🔑 Imported AZURE_TTS_KEY:', AZURE_TTS_KEY);
   console.log('🔑 AZURE_TTS_KEY length:', AZURE_TTS_KEY?.length);
   console.log('🔑 AZURE_TTS_KEY first 10 chars:', AZURE_TTS_KEY?.substring(0, 10));
+  console.log('🔑 Store TTS key length:', useStore.getState().ttsApiKey?.length);
   console.log('📍 Imported AZURE_TTS_REGION:', AZURE_TTS_REGION);
 }
 
 export async function speakWithAzure(text: string, voice = 'zh-CN-XiaoxiaoNeural'): Promise<boolean> {
   console.log('🎤 Azure TTS: Starting speech generation...');
-  
+
   // Debug environment variables
   debugEnvironmentVariables();
-  
-  if (!AZURE_TTS_KEY || !AZURE_TTS_REGION) {
-    console.warn('❌ Azure TTS credentials not configured', { 
-      hasKey: !!AZURE_TTS_KEY, 
-      keyLength: AZURE_TTS_KEY?.length || 0,
-      region: AZURE_TTS_REGION 
+
+  const storeKey = useStore.getState().ttsApiKey;
+  const key = storeKey || AZURE_TTS_KEY;
+
+  if (!key || !AZURE_TTS_REGION) {
+    console.warn('❌ Azure TTS credentials not configured', {
+      hasKey: !!key,
+      keyLength: key?.length || 0,
+      region: AZURE_TTS_REGION
     });
     return false;
   }
 
-  if (AZURE_TTS_KEY.length < 30) {
-    console.warn('⚠️ Azure TTS key seems too short:', AZURE_TTS_KEY.length, 'characters');
+  if (key.length < 30) {
+    console.warn('⚠️ Azure TTS key seems too short:', key.length, 'characters');
     return false;
   }
 
@@ -61,7 +66,7 @@ export async function speakWithAzure(text: string, voice = 'zh-CN-XiaoxiaoNeural
     const tokenRes = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
-        'Ocp-Apim-Subscription-Key': AZURE_TTS_KEY,
+        'Ocp-Apim-Subscription-Key': key,
         'Content-Length': '0',
       },
     });
