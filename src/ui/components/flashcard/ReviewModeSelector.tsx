@@ -10,11 +10,12 @@ interface ReviewModeSelectorProps {
     showPinyin: boolean;
     deckFlipped: boolean;
     typingMode: boolean;
+    handwritingMode: boolean;
     autoPlayTTS: boolean;
   };
   onClose: () => void;
   onSelectMode: (mode: ReviewMode) => void;
-  onUpdateFlashcardSettings: (settings: Partial<{ showPinyin: boolean; deckFlipped: boolean; typingMode: boolean; autoPlayTTS: boolean; }>) => void;
+  onUpdateFlashcardSettings: (settings: Partial<{ showPinyin: boolean; deckFlipped: boolean; typingMode: boolean; handwritingMode: boolean; autoPlayTTS: boolean; }>) => void;
 }
 
 interface ModeConfig {
@@ -151,6 +152,15 @@ export const ReviewModeSelector: React.FC<ReviewModeSelectorProps> = ({
                   : "Just reveal the answer (default)",
                 flashcardSettings.typingMode,
                 () => onUpdateFlashcardSettings({ typingMode: !flashcardSettings.typingMode })
+              )}
+
+              {renderSettingRow(
+                "Handwriting Mode",
+                flashcardSettings.handwritingMode
+                  ? "Write characters with stylus"
+                  : "Disable drawing input",
+                flashcardSettings.handwritingMode,
+                () => onUpdateFlashcardSettings({ handwritingMode: !flashcardSettings.handwritingMode })
               )}
               
               {renderSettingRow(
