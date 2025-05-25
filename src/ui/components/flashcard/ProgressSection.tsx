@@ -7,6 +7,7 @@ interface ProgressSectionProps {
   currentSession: {
     reviewed: number;
     currentBatch: Word[];
+    queue: Word[];
   };
 }
 
@@ -26,7 +27,12 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
     return "#10b981";
   };
 
-  const progressPercentage = (currentSession.reviewed / (currentSession.reviewed + currentSession.currentBatch.length)) * 100;
+  const totalCards =
+    currentSession.reviewed +
+    currentSession.currentBatch.length +
+    currentSession.queue.length;
+  const progressPercentage =
+    totalCards === 0 ? 0 : (currentSession.reviewed / totalCards) * 100;
 
   return (
     <View style={styles.progressSection}>
