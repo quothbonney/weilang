@@ -79,15 +79,6 @@ export default function DashboardScreen() {
 
   const navigationCards = [
     {
-      id: 'flashcards',
-      title: 'Flashcards',
-      subtitle: `${dueWords.length} cards due`,
-      icon: Brain,
-      color: '#ef4444',
-      backgroundColor: '#fef2f2',
-      onPress: () => router.push('/flashcards'),
-    },
-    {
       id: 'translation',
       title: 'Translation',
       subtitle: 'Practice sentences',
@@ -95,6 +86,15 @@ export default function DashboardScreen() {
       color: '#8b5cf6',
       backgroundColor: '#f3f4f6',
       onPress: () => router.push('/translation'),
+    },
+    {
+      id: 'flashcards',
+      title: 'Flashcards',
+      subtitle: `${dueWords.length} cards due`,
+      icon: Brain,
+      color: '#ef4444',
+      backgroundColor: '#fef2f2',
+      onPress: () => router.push('/flashcards'),
     },
     {
       id: 'deck',
@@ -105,24 +105,7 @@ export default function DashboardScreen() {
       backgroundColor: '#eff6ff',
       onPress: () => router.push('/deck'),
     },
-    {
-      id: 'settings',
-      title: 'Settings',
-      subtitle: 'Configure preferences',
-      icon: Settings,
-      color: '#f59e0b',
-      backgroundColor: '#fffbeb',
-      onPress: () => router.push('/settings'),
-    },
   ];
-
-  // Split navigation cards for layout
-  const mainCards = [
-    navigationCards.find(c => c.id === 'translation'),
-    navigationCards.find(c => c.id === 'flashcards'),
-    navigationCards.find(c => c.id === 'deck'),
-  ].filter(Boolean);
-  const settingsCard = navigationCards.find(c => c.id === 'settings');
 
   const StatCard = ({ title, value, subtitle, icon: Icon, color }: any) => (
     <View style={styles.statCard}>
@@ -135,22 +118,27 @@ export default function DashboardScreen() {
     </View>
   );
 
-  const WeeklyChart = () => (
-    <View style={styles.chartCard}>
-      <Text style={styles.chartTitle}>Weekly Progress</Text>
-      <View style={styles.chartContainer}>
-        {stats.weeklyProgress.map((value, index) => (
-          <View key={index} style={styles.barContainer}>
-            <View style={[styles.bar, { height: (value / 20) * 100 }]} />
-            <Text style={styles.barLabel}>
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
-            </Text>
-          </View>
-        ))}
+  const WeeklyChart = () => {
+    const maxValue = Math.max(...stats.weeklyProgress, 1); // Ensure minimum of 1 to avoid division by zero
+    const chartHeight = 60;
+    
+    return (
+      <View style={styles.chartCard}>
+        <Text style={styles.chartTitle}>Weekly Progress</Text>
+        <View style={styles.chartContainer}>
+          {stats.weeklyProgress.map((value, index) => (
+            <View key={index} style={styles.barContainer}>
+              <View style={[styles.bar, { height: Math.max((value / maxValue) * chartHeight, 2) }]} />
+              <Text style={styles.barLabel}>
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.chartSubtitle}>Cards reviewed per day</Text>
       </View>
-      <Text style={styles.chartSubtitle}>Cards reviewed per day</Text>
-    </View>
-  );
+    );
+  };
 
   return (
     <ScrollView 
@@ -177,37 +165,21 @@ export default function DashboardScreen() {
       {/* Quick Actions */}
       <View style={styles.section}>
         <View style={styles.navigationGrid}>
-          {mainCards.map((card) => {
-            if (!card) return null;
+          {navigationCards.map((card) => {
             return (
               <TouchableOpacity
-                key={card?.id}
-                style={[styles.navigationCard, { backgroundColor: card?.backgroundColor }]}
-                onPress={card?.onPress}
+                key={card.id}
+                style={[styles.navigationCard, { backgroundColor: card.backgroundColor }]}
+                onPress={card.onPress}
               >
-                <View style={[styles.cardIcon, { backgroundColor: card?.color }]}> 
-                  {card?.icon && <card.icon size={28} color="white" />}
+                <View style={[styles.cardIcon, { backgroundColor: card.color }]}> 
+                  {card.icon && <card.icon size={28} color="white" />}
                 </View>
-                <Text style={styles.cardTitle}>{card?.title}</Text>
-                <Text style={styles.cardSubtitle}>{card?.subtitle}</Text>
+                <Text style={styles.cardTitle}>{card.title}</Text>
+                <Text style={styles.cardSubtitle}>{card.subtitle}</Text>
               </TouchableOpacity>
             );
           })}
-        </View>
-        {/* Settings row */}
-        <View style={styles.settingsRow}>
-          {settingsCard ? (
-            <TouchableOpacity
-              key={settingsCard?.id}
-              style={[styles.settingsCard, { backgroundColor: settingsCard?.backgroundColor }]}
-              onPress={settingsCard?.onPress}
-            >
-              <View style={[styles.settingsIcon, { backgroundColor: settingsCard?.color }]}> 
-                {settingsCard?.icon && <settingsCard.icon size={18} color="white" />}
-              </View>
-              <Text style={styles.settingsTitle}>{settingsCard?.title}</Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
       </View>
 
@@ -266,6 +238,17 @@ export default function DashboardScreen() {
             You're getting {stats.accuracy}% of your reviews correct!
           </Text>
         </View>
+      </View>
+
+      {/* Footer Settings Button */}
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={styles.footerSettingsButton}
+          onPress={() => router.push('/settings')}
+        >
+          <Settings size={24} color="#6b7280" />
+          <Text style={styles.footerSettingsButtonText}>Settings</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -341,7 +324,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 4,
@@ -349,7 +332,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? '-apple-system' : Platform.OS === 'web' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : 'Roboto',
   },
   cardSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#6b7280',
     textAlign: 'center',
     fontWeight: '500',
@@ -414,8 +397,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: 120,
+    height: 60,
     marginBottom: 8,
+    overflow: 'hidden',
   },
   barContainer: {
     alignItems: 'center',
@@ -426,6 +410,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3b82f6',
     borderRadius: 4,
     marginBottom: 8,
+    maxHeight: 60,
   },
   barLabel: {
     fontSize: 10,
@@ -486,35 +471,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  // Settings row and card
-  settingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 8,
+  footer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16, // Add some padding
+    alignItems: 'center', // Center the button
   },
-  settingsCard: {
+  footerSettingsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    backgroundColor: '#fffbeb',
-    minWidth: 90,
-    minHeight: 36,
-  },
-  settingsIcon: {
-    width: 24,
-    height: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  settingsTitle: {
-    fontSize: 13,
-    color: '#b45309',
-    fontWeight: '600',
+  footerSettingsButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500',
   },
 }); 
