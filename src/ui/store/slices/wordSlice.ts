@@ -61,7 +61,7 @@ export const createWordSlice = (set: any, get: any): WordSlice => ({
       const repo = getWordRepository();
       const useCase = new ReviewWordUseCase(repo);
       const updated = await useCase.execute({ wordId, quality });
-      const words = get().words.map(w => (w.id === wordId ? updated : w));
+      const words = get().words.map((w: Word) => (w.id === wordId ? updated : w));
       set({ words, isLoading: false });
       return updated;
     } catch (error: any) {
@@ -76,8 +76,8 @@ export const createWordSlice = (set: any, get: any): WordSlice => ({
       const repo = getWordRepository();
       await repo.delete(wordId);
       set({
-        words: get().words.filter(w => w.id !== wordId),
-        dueWords: get().dueWords.filter(w => w.id !== wordId),
+        words: get().words.filter((w: Word) => w.id !== wordId),
+        dueWords: get().dueWords.filter((w: Word) => w.id !== wordId),
         isLoading: false
       });
     } catch (error: any) {

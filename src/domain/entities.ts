@@ -203,6 +203,8 @@ export interface SentenceExercise {
   direction: 'en-to-zh' | 'zh-to-en';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   usedWords: string[];          // Words from user's learned vocabulary
+  /** Additional sentence context or notes */
+  context?: string;
   createdAt: number;
   lastAttempted?: number;
 }
