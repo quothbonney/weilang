@@ -116,6 +116,14 @@ export default function DashboardScreen() {
     },
   ];
 
+  // Split navigation cards for layout
+  const mainCards = [
+    navigationCards.find(c => c.id === 'translation'),
+    navigationCards.find(c => c.id === 'flashcards'),
+    navigationCards.find(c => c.id === 'deck'),
+  ].filter(Boolean);
+  const settingsCard = navigationCards.find(c => c.id === 'settings');
+
   const StatCard = ({ title, value, subtitle, icon: Icon, color }: any) => (
     <View style={styles.statCard}>
       <View style={styles.statHeader}>
@@ -169,19 +177,37 @@ export default function DashboardScreen() {
       {/* Quick Actions */}
       <View style={styles.section}>
         <View style={styles.navigationGrid}>
-          {navigationCards.map((card) => (
+          {mainCards.map((card) => {
+            if (!card) return null;
+            return (
+              <TouchableOpacity
+                key={card?.id}
+                style={[styles.navigationCard, { backgroundColor: card?.backgroundColor }]}
+                onPress={card?.onPress}
+              >
+                <View style={[styles.cardIcon, { backgroundColor: card?.color }]}> 
+                  {card?.icon && <card.icon size={28} color="white" />}
+                </View>
+                <Text style={styles.cardTitle}>{card?.title}</Text>
+                <Text style={styles.cardSubtitle}>{card?.subtitle}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {/* Settings row */}
+        <View style={styles.settingsRow}>
+          {settingsCard ? (
             <TouchableOpacity
-              key={card.id}
-              style={[styles.navigationCard, { backgroundColor: card.backgroundColor }]}
-              onPress={card.onPress}
+              key={settingsCard?.id}
+              style={[styles.settingsCard, { backgroundColor: settingsCard?.backgroundColor }]}
+              onPress={settingsCard?.onPress}
             >
-              <View style={[styles.cardIcon, { backgroundColor: card.color }]}>
-                <card.icon size={24} color="white" />
+              <View style={[styles.settingsIcon, { backgroundColor: settingsCard?.color }]}> 
+                {settingsCard?.icon && <settingsCard.icon size={18} color="white" />}
               </View>
-              <Text style={styles.cardTitle}>{card.title}</Text>
-              <Text style={styles.cardSubtitle}>{card.subtitle}</Text>
+              <Text style={styles.settingsTitle}>{settingsCard?.title}</Text>
             </TouchableOpacity>
-          ))}
+          ) : null}
         </View>
       </View>
 
@@ -295,6 +321,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+    marginBottom: 12,
   },
   navigationCard: {
     flex: 1,
@@ -303,6 +330,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#f3f4f6',
+    marginHorizontal: 2,
   },
   cardIcon: {
     width: 48,
@@ -457,5 +485,36 @@ const styles = StyleSheet.create({
   accuracySubtitle: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  // Settings row and card
+  settingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  settingsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    backgroundColor: '#fffbeb',
+    minWidth: 90,
+    minHeight: 36,
+  },
+  settingsIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  settingsTitle: {
+    fontSize: 13,
+    color: '#b45309',
+    fontWeight: '600',
   },
 }); 

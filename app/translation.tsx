@@ -34,6 +34,10 @@ export default function TranslationScreen() {
   const [direction, setDirection] = useState<'en-to-zh' | 'zh-to-en'>('zh-to-en');
   const [exerciseCount, setExerciseCount] = useState(5);
 
+  // Add new state for last submitted exercise and translation
+  const [lastSubmittedExercise, setLastSubmittedExercise] = useState<SentenceExercise | null>(null);
+  const [lastUserTranslation, setLastUserTranslation] = useState('');
+
   useEffect(() => {
     if (currentTranslationSession) {
       setShowModeSelector(false);
@@ -77,8 +81,10 @@ export default function TranslationScreen() {
 
     try {
       clearError();
-      // Store the current user translation for feedback display
-      setCurrentUserTranslation(userTranslation.trim());
+      // Cache the current exercise and user translation for feedback
+      setLastSubmittedExercise(currentExercise);
+      setLastUserTranslation(userTranslation.trim());
+      setCurrentUserTranslation(userTranslation.trim()); // (if still used elsewhere)
       
       const result = await submitTranslation(
         currentTranslationSession.id,
@@ -99,6 +105,8 @@ export default function TranslationScreen() {
     setShowEvaluation(false);
     setUserTranslation('');
     setCurrentUserTranslation(''); // Clear the stored translation
+    setLastSubmittedExercise(null); // Clear cached exercise
+    setLastUserTranslation(''); // Clear cached translation
     const nextExercise = getCurrentTranslationExercise();
     setCurrentExercise(nextExercise);
     
@@ -302,11 +310,35 @@ export default function TranslationScreen() {
     );
   };
 
+  const renderHighlightedTranslation = (text: string, characterDiff: any[] = []) => {
+    if (!characterDiff || characterDiff.length === 0) return <Text>{text}</Text>;
+    const chars = text.split('');
+    return (
+      <Text>
+        {chars.map((char, idx) => {
+          const diff = characterDiff.find((d: any) => d.position === idx);
+          if (diff) {
+            return (
+              <Text key={idx} style={diff.type === 'incorrect' ? styles.incorrectChar : styles.correctChar}>
+                {char}
+                <Text style={styles.feedbackBadge}>
+                  {diff.type !== 'correct' && diff.expectedChar && ` (${diff.expectedChar})`}
+                  {typeof diff.score === 'number' && ` ${diff.score}%`}
+                </Text>
+              </Text>
+            );
+          }
+          return <Text key={idx}>{char}</Text>;
+        })}
+      </Text>
+    );
+  };
+
   const renderEvaluation = () => {
-    if (!lastTranslationEvaluation || !currentExercise) return null;
+    if (!lastTranslationEvaluation || !lastSubmittedExercise) return null;
 
     const evaluation = lastTranslationEvaluation;
-    const expectedText = direction === 'zh-to-en' ? currentExercise.english : currentExercise.chinese.hanzi;
+    const expectedText = direction === 'zh-to-en' ? lastSubmittedExercise.english : lastSubmittedExercise.chinese.hanzi;
 
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -333,15 +365,15 @@ export default function TranslationScreen() {
             <View style={styles.translationItem}>
               <Text style={styles.translationLabel}>Original Sentence:</Text>
               <Text style={styles.originalSentenceText}>
-                {direction === 'zh-to-en' ? currentExercise.chinese.hanzi : currentExercise.english}
+                {direction === 'zh-to-en' ? lastSubmittedExercise.chinese.hanzi : lastSubmittedExercise.english}
               </Text>
               {direction === 'zh-to-en' && (
-                <Text style={styles.pinyinText}>{currentExercise.chinese.pinyin}</Text>
+                <Text style={styles.pinyinText}>{lastSubmittedExercise.chinese.pinyin}</Text>
               )}
             </View>
             <View style={styles.translationItem}>
               <Text style={styles.translationLabel}>Your Translation:</Text>
-              <Text style={styles.userTranslationText}>{currentUserTranslation}</Text>
+              {renderHighlightedTranslation(lastUserTranslation, evaluation.characterDiff)}
             </View>
             <View style={styles.translationItem}>
               <Text style={styles.translationLabel}>Expected Translation:</Text>
@@ -880,5 +912,27 @@ const styles = StyleSheet.create({
   backToDashboardButtonText: {
     color: '#6b7280',
     fontSize: 16,
+  },
+  incorrectChar: {
+    color: '#dc2626',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
+  correctChar: {
+    color: '#10b981',
+    fontWeight: 'normal',
+    fontSize: 12,
+    marginLeft: 2,
+  },
+  charScore: {
+    fontSize: 10,
+    color: '#f59e0b',
+    marginLeft: 2,
+  },
+  feedbackBadge: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginLeft: 2,
+    fontWeight: 'normal',
   },
 }); 

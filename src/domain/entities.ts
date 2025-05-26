@@ -248,6 +248,14 @@ export interface TranslationEvaluation {
   overallFeedback: string;
   encouragement: string;
   nextSteps: string[];
+  characterDiff?: Array<{
+    position: number; // index in the string
+    userChar: string;
+    expectedChar: string;
+    type: 'missing' | 'incorrect' | 'ambiguous';
+    score: number; // 0-100, how correct this character/word is
+    explanation?: string;
+  }>;
 }
 
 export interface GeneratedSentencePair {

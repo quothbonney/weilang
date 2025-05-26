@@ -512,7 +512,17 @@ Return ONLY valid JSON in this exact format:
   },
   "overallFeedback": "comprehensive feedback",
   "encouragement": "positive encouragement",
-  "nextSteps": ["step1", "step2", "step3"]
+  "nextSteps": ["step1", "step2", "step3"],
+  "characterDiff": [
+    {
+      "position": 0,
+      "userChar": "你",
+      "expectedChar": "吃",
+      "type": "incorrect", // or "missing", "ambiguous"
+      "score": 0, // 0-100, how correct this character/word is
+      "explanation": "You wrote '你' (you) instead of '吃' (to eat)."
+    }
+  ]
 }
 Do NOT include any other text, markdown, or explanation.`;
 
@@ -535,9 +545,13 @@ Provide comprehensive evaluation with:
 3. overallFeedback: 2-3 sentences summarizing the translation quality
 4. encouragement: Positive, motivating feedback about what they did well
 5. nextSteps: 3 specific actionable suggestions for improvement
-
-Be constructive, specific, and educational. Focus on helping the learner improve.
-
+6. characterDiff: For each character (or word for English), compare the user's translation to the expected translation. For each position, if the user's character/word is incorrect, missing, or ambiguous (e.g., '?'), add an entry to a new array "characterDiff" with:
+   - position (0-based index)
+   - userChar (or userWord)
+   - expectedChar (or expectedWord)
+   - type: "incorrect", "missing", or "ambiguous"
+   - score: 0-100, how correct this character/word is
+   - explanation: a brief explanation of the error
 Return as JSON only.`;
 
     try {
@@ -562,7 +576,7 @@ Return as JSON only.`;
         throw new Error("Incomplete evaluation response from Together API");
       }
 
-      // Ensure all required fields exist with defaults
+      // Parse characterDiff if present
       const evaluation: TranslationEvaluation = {
         overallScore: parsed.overallScore || 0,
         detailedFeedback: {
@@ -591,7 +605,8 @@ Return as JSON only.`;
         },
         overallFeedback: parsed.overallFeedback || "Translation evaluated",
         encouragement: parsed.encouragement || "Keep practicing!",
-        nextSteps: parsed.nextSteps || ["Continue practicing", "Review vocabulary", "Focus on grammar"]
+        nextSteps: parsed.nextSteps || ["Continue practicing", "Review vocabulary", "Focus on grammar"],
+        characterDiff: parsed.characterDiff || []
       };
 
       console.log('🔍 Translation evaluation completed:', evaluation);
@@ -628,7 +643,8 @@ Return as JSON only.`;
         },
         overallFeedback: "Unable to evaluate translation at this time. Please try again.",
         encouragement: "Keep practicing! Every attempt helps you improve.",
-        nextSteps: ["Try again", "Review the original sentence", "Practice more translations"]
+        nextSteps: ["Try again", "Review the original sentence", "Practice more translations"],
+        characterDiff: []
       };
     }
   }
