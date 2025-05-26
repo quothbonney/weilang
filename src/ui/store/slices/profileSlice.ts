@@ -99,7 +99,7 @@ export const createProfileSlice = (set: any, get: any): ProfileSlice => ({
       const repo = getWordRepository();
       const word = await repo.get(wordId);
       if (!word) throw new Error('Word not found');
-      const partial = await wordProfileService.generateProfileProgressive(word, (p) => {
+      const partial = await wordProfileService.generateProfileProgressive(word, (p: WordProfileDTO) => {
         set({ lastEnhancedProfile: p });
         onUpdate?.(p);
       });

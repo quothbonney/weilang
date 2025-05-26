@@ -33,9 +33,9 @@ export class GenerateWordProfileUseCase {
     const profile: WordProfile = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       wordId,
-      partOfSpeech: generated.partOfSpeech,
+      partOfSpeech: generated.partOfSpeech ?? '',
       detailedMeaning: generated.detailedMeaning,
-      exampleSentences: generated.exampleSentences,
+      exampleSentences: generated.exampleSentences ?? [],
       etymology: generated.etymology,
       usage: generated.usage,
       createdAt: Date.now(),
