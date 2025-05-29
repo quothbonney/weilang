@@ -9,6 +9,7 @@ import { LingvanexApi, DictionaryResult } from '../api/lingvanexApi';
 import { ProfileCache } from '../storage/profileCache';
 import { TogetherAdapter } from '../llm/togetherAdapter';
 import { RadicalAnalyzer, RadicalBreakdown } from './radicalAnalyzer';
+import { splitPinyinWithTones } from './pinyinSplitter';
 
 export interface WordProfileConfig {
   lingvanexApiKey?: string;
@@ -190,7 +191,7 @@ export class WordProfileService {
       culturalNotes: this.generateCulturalNotesFromBreakdown(rBreakdown),
       memoryAids: llmResult?.memoryAids || this.generateMemoryAidsFromBreakdown(rBreakdown),
       relatedWords: this.extractRelatedWords(hanzi, rBreakdown),
-      characterComponents: await this.buildCharacterComponentsFromBreakdown(rBreakdown, hanzi),
+      characterComponents: await this.buildCharacterComponentsFromBreakdown(rBreakdown, hanzi, word),
       radicalBreakdown: rBreakdown || undefined,
       generatedAt: new Date().toISOString()
     };
@@ -265,7 +266,7 @@ export class WordProfileService {
       culturalNotes: this.generateCulturalNotesFromBreakdown(rBreakdown),
       memoryAids: this.generateMemoryAidsFromBreakdown(rBreakdown),
       relatedWords: this.extractRelatedWords(hanzi, rBreakdown),
-      characterComponents: await this.buildCharacterComponentsFromBreakdown(rBreakdown, hanzi),
+      characterComponents: await this.buildCharacterComponentsFromBreakdown(rBreakdown, hanzi, word),
       radicalBreakdown: rBreakdown || undefined,
       generatedAt: new Date().toISOString()
     };
@@ -607,11 +608,44 @@ export class WordProfileService {
     }
   }
 
+  /**
+   * Split word pinyin into individual character pinyin syllables
+   */
+  private splitWordPinyinToCharacters(word: Word): string[] {
+    const characterCount = word.hanzi.length;
+    
+    // First try to split the compound pinyin intelligently
+    const splitPinyin = splitPinyinWithTones(word.pinyin, characterCount);
+    
+    if (splitPinyin.length === characterCount) {
+      console.log(`🔍 Successfully split pinyin "${word.pinyin}" into:`, splitPinyin);
+      return splitPinyin;
+    }
+    
+    // Fallback: if pinyin already has spaces, use those
+    const spaceSplit = word.pinyin.split(/\s+/);
+    if (spaceSplit.length === characterCount) {
+      console.log(`🔍 Using space-split pinyin for "${word.hanzi}":`, spaceSplit);
+      return spaceSplit;
+    }
+    
+    // Last resort: return empty array to trigger LLM lookup
+    console.warn(`🔍 Could not split pinyin "${word.pinyin}" for word "${word.hanzi}" (${characterCount} characters)`);
+    return [];
+  }
+
   private async buildCharacterComponentsFromBreakdown(
     rBreakdown: WordProfileDTO['radicalBreakdown'] | null,
-    hanzi?: string
+    hanzi?: string,
+    word?: Word // Add word parameter to access pinyin
   ): Promise<WordProfileDTO['characterComponents']> {
     const components: WordProfileDTO['characterComponents'] = [];
+
+    // Try to get split pinyin for individual characters
+    let characterPinyinArray: string[] = [];
+    if (word) {
+      characterPinyinArray = this.splitWordPinyinToCharacters(word);
+    }
 
     if (rBreakdown && rBreakdown.characters && rBreakdown.characters.length > 0) {
       // Path 1: Radical breakdown IS available
@@ -619,13 +653,16 @@ export class WordProfileService {
       for (let charIndex = 0; charIndex < rBreakdown.characters.length; charIndex++) {
         const charAnalysis = rBreakdown.characters[charIndex];
 
+        // Use split pinyin if available, otherwise fall back to 'Loading...'
+        const characterPinyin = characterPinyinArray[charIndex] || 'Loading...';
+
         // Main character from the input word (e.g., "放" or "心")
         components.push({
           char: charAnalysis.character,
           meaning: 'Loading...', // To be filled by LLM via enhanceCharacterComponentsWithLLM
           type: 'character',
           strokes: charAnalysis.totalStrokes,
-          pinyin: 'Loading...', // To be filled by LLM
+          pinyin: characterPinyin, // Use split pinyin
           position: charIndex,
         });
 
@@ -668,12 +705,15 @@ export class WordProfileService {
       // Path 2: No radical breakdown, but hanzi string is available
       console.log(`🔍 No rBreakdown for "${hanzi}", creating basic character components for LLM enhancement.`);
       hanzi.split('').forEach((char, index) => {
+        // Use split pinyin if available, otherwise fall back to 'Loading...'
+        const characterPinyin = characterPinyinArray[index] || 'Loading...';
+        
         components.push({
           char: char,
           meaning: 'Loading...', 
           type: 'character',
           strokes: 0, // Unknown, LLM won't provide this. Unihan would.
-          pinyin: 'Loading...', 
+          pinyin: characterPinyin, // Use split pinyin
           position: index,
         });
       });

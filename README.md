@@ -204,6 +204,7 @@ S3_CLIENT_SECRET_ACCESS_KEY=your_secret_key
 #### 4. Cloudflare R2 (Optional)
 - Create a Cloudflare account and enable R2
 - Create a bucket (e.g., `weilang-sync`)
+
 - Generate an Access Key and Secret Key
 - Used for backing up your data to the cloud
 
@@ -240,10 +241,6 @@ Each word profile includes:
 - **Generation Modes** - Control AI example complexity
 - **Model Selection** - Choose between different LLM models
 
-### Cloud Sync with R2
-You can back up your study progress to a Cloudflare R2 bucket. Configure the
-`CLOUDFLARE_R2_*` variables in `.env` and use the `CloudSyncService` to upload or
-restore your `words.json` file. This keeps your progress in sync across devices.
 
 ## 🧪 Development
 

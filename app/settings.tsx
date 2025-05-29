@@ -19,6 +19,8 @@ import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
 import SettingsSection from "../src/ui/components/settings/SettingsSection";
 import ToggleSwitch from "../src/ui/components/settings/ToggleSwitch";
 import { AZURE_TTS_KEY } from "../env";
+import { CloudSyncService } from "../src/infra/services/cloudSyncService";
+import { getWordRepository } from "../src/platform/storageProvider";
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
 const TTS_KEY_STORAGE_KEY = 'weilang_tts_key';

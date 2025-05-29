@@ -26,12 +26,14 @@ export function BreakdownTab() {
   // Debug logging
   console.log('🔍 BreakdownTab Debug:', {
     word: word.hanzi,
+    wordPinyin: word.pinyin,
     hasProfile: !!profile,
     hasRadicalBreakdown: !!profile?.radicalBreakdown,
     hasCharacters: !!profile?.radicalBreakdown?.characters,
     charactersLength: profile?.radicalBreakdown?.characters?.length || 0,
     hasCharacterComponents: !!profile?.characterComponents,
     characterComponentsLength: profile?.characterComponents?.length || 0,
+    characterComponents: profile?.characterComponents?.map(c => ({char: c.char, pinyin: c.pinyin, meaning: c.meaning, type: c.type})),
     profileKeys: profile ? Object.keys(profile) : []
   });
 
@@ -41,7 +43,6 @@ export function BreakdownTab() {
     return characters.map((char, index) => {
       const charComponent = profile?.characterComponents?.find(
         c => c.type === 'character' && c.position === index
-
       );
       
       const relatedWords = words
@@ -78,8 +79,7 @@ export function BreakdownTab() {
               <View className="items-center">
                 <Text className="text-6xl font-light text-gray-900 mb-3">{charData.character}</Text>
                 <Text className="text-lg font-medium text-gray-600 mb-1">
-                  {word.hanzi.split('')[index] === charData.character ? 
-                    word.pinyin.split(' ')[index] || charData.pinyin : charData.pinyin}
+                  {charData.pinyin}
                 </Text>
                 <Text className="text-base text-gray-700 text-center">
                   {charData.meaning}
@@ -98,15 +98,7 @@ export function BreakdownTab() {
           <View className="space-y-4">
             {profile.examples.slice(0, 1).map((example, index) => (
               <View key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                {/* HSK Level Badge */}
-                <View className="flex-row items-center mb-4">
-                  <View className="bg-purple-100 px-3 py-1 rounded-full mr-3">
-                    <Text className="text-purple-700 font-semibold text-sm">HSK 5</Text>
-                  </View>
-                  <View className="bg-blue-100 px-3 py-1 rounded-full">
-                    <Text className="text-blue-700 font-medium text-sm">考</Text>
-                  </View>
-                </View>
+                {/* Removed HSK Level Badge and 考 tag */}
                 
                 {/* Example sentence */}
                 <Text className="text-lg font-medium text-gray-900 mb-2 leading-relaxed">

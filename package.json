@@ -10,6 +10,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.817.0",
     "@expo/metro-runtime": "~5.0.4",
     "@gluestack-style/react": "^1.0.57",
     "@gluestack-ui/themed": "^1.1.73",
