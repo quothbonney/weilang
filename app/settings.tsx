@@ -87,7 +87,7 @@ export default function SettingsScreen() {
   const [showKey, setShowKey] = useState(false);
   const [inputTtsKey, setInputTtsKey] = useState(ttsApiKey || AZURE_TTS_KEY || '');
   const [showTtsKey, setShowTtsKey] = useState(false);
-  const { theme } = useTheme();
+  const { theme, styles } = useTheme();
   const cloudSync = React.useMemo(() => {
     try {
       return new CloudSyncService();
@@ -221,7 +221,7 @@ export default function SettingsScreen() {
             }}
           >
             <TextInput
-              style={[theme.styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: 1 }]}
               value={inputKey}
               onChangeText={setInputKey}
               placeholder="Enter your API key"
@@ -274,7 +274,7 @@ export default function SettingsScreen() {
             }}
           >
             <TextInput
-              style={[theme.styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: 1 }]}
               value={inputTtsKey}
               onChangeText={setInputTtsKey}
               placeholder="Enter your TTS key"
@@ -461,7 +461,7 @@ export default function SettingsScreen() {
         <SettingsSection title="AI Model Selection" description="Choose which AI model to use for generating examples and character meanings.">
           <View
             style={{
-              backgroundColor: theme.colors.info.background,
+              backgroundColor: theme.colors.status.infoBackground,
               padding: theme.layout.md,
               borderRadius: theme.borderRadius.md,
               marginBottom: theme.layout.md,
@@ -469,11 +469,11 @@ export default function SettingsScreen() {
           >
             <Text
               variant="bodySmall"
-              style={{ color: theme.colors.info.border, fontWeight: '600', marginBottom: theme.layout.xs }}
+              style={{ color: theme.colors.status.infoBorder, fontWeight: '600', marginBottom: theme.layout.xs }}
             >
               Enhanced Character Analysis
             </Text>
-            <Text style={{ color: theme.colors.info.border }}>
+            <Text style={{ color: theme.colors.status.infoBorder }}>
               Character meanings are now generated using AI when database lookup fails, providing more comprehensive definitions.
             </Text>
           </View>
