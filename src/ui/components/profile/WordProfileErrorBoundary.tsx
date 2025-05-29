@@ -1,6 +1,8 @@
-import React, { Component, ErrorInfo, ReactNode } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { AlertCircle } from "lucide-react-native";
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { View } from 'react-native';
+import { AlertCircle } from 'lucide-react-native';
+import { Card, Text, Button } from '../themed';
+import { useTheme } from '../../theme';
 
 interface Props {
   children: ReactNode;
@@ -31,29 +33,52 @@ export class WordProfileErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <View className="flex-1 justify-center items-center p-6 bg-gray-50">
-          <View className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 max-w-md">
-            <View className="items-center mb-6">
-              <AlertCircle size={56} color="#ef4444" />
-            </View>
-            <Text className="text-2xl font-bold text-gray-900 text-center mb-4">
-              Something went wrong
-            </Text>
-            <Text className="text-gray-600 text-center mb-6 leading-relaxed">
-              We encountered an error while loading the word profile. Please try again.
-            </Text>
-            <TouchableOpacity
-              className="bg-blue-600 py-3 px-6 rounded-xl"
-              onPress={this.handleReset}
-            >
-              <Text className="text-white font-semibold text-center">Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
+      return <WordProfileError onReset={this.handleReset} />;
     }
 
     return this.props.children;
   }
-} 
+}
+
+const WordProfileError: React.FC<{ onReset: () => void }> = ({ onReset }) => {
+  const { theme } = useTheme();
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: theme.layout.lg,
+        backgroundColor: theme.colors.background.primary,
+      }}
+    >
+      <Card
+        variant="elevated"
+        style={{ padding: theme.layout.xl, alignItems: 'center', maxWidth: 400 }}
+      >
+        <AlertCircle
+          size={theme.dimensions.iconSize.lg * 2}
+          color={theme.colors.status.error}
+          style={{ marginBottom: theme.layout.lg }}
+        />
+        <Text
+          variant="h4"
+          style={{ textAlign: 'center', marginBottom: theme.layout.md }}
+        >
+          Something went wrong
+        </Text>
+        <Text
+          color="secondary"
+          style={{ textAlign: 'center', marginBottom: theme.layout.lg }}
+        >
+          We encountered an error while loading the word profile. Please try
+          again.
+        </Text>
+        <Button title="Try Again" onPress={onReset} />
+      </Card>
+    </View>
+  );
+};
+
+export default WordProfileErrorBoundary;

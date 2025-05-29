@@ -40,6 +40,7 @@ export default function DashboardScreen() {
       width: 52,
       height: 52,
       marginRight: theme.layout.md,
+      tintColor: theme.colors.text.primary,
     },
     titleContainer: {
       flex: 1,
