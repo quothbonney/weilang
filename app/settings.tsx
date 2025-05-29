@@ -17,6 +17,8 @@ import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
 import SettingsSection from "../src/ui/components/settings/SettingsSection";
 import ToggleSwitch from "../src/ui/components/settings/ToggleSwitch";
 import { AZURE_TTS_KEY } from "../env";
+import { CloudSyncService } from "../src/infra/services/cloudSyncService";
+import { getWordRepository } from "../src/platform/storageProvider";
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
 const TTS_KEY_STORAGE_KEY = 'weilang_tts_key';
@@ -75,7 +77,8 @@ export default function SettingsScreen() {
     selectedModel,
     setSelectedModel,
     flashcardSettings,
-    setFlashcardSettings
+    setFlashcardSettings,
+    loadWords
   } = useStore();
   const [inputKey, setInputKey] = useState(apiKey || '');
   const [showKey, setShowKey] = useState(false);
@@ -148,6 +151,31 @@ export default function SettingsScreen() {
 
   const toggleAutoPlayTTS = () => {
     setFlashcardSettings({ autoPlayTTS: !flashcardSettings.autoPlayTTS });
+  };
+
+  const handleBackup = async () => {
+    const repo = getWordRepository();
+    const service = new CloudSyncService();
+    try {
+      await service.backupWords(repo);
+      Alert.alert('Success', 'Data uploaded to Cloudflare R2');
+    } catch (error) {
+      console.error('Failed to backup words:', error);
+      Alert.alert('Error', 'Failed to upload data');
+    }
+  };
+
+  const handleRestore = async () => {
+    const repo = getWordRepository();
+    const service = new CloudSyncService();
+    try {
+      await service.restoreWords(repo);
+      await loadWords();
+      Alert.alert('Success', 'Data synced from Cloudflare R2');
+    } catch (error) {
+      console.error('Failed to restore words:', error);
+      Alert.alert('Error', 'Failed to sync data');
+    }
   };
 
   return (
@@ -331,6 +359,21 @@ export default function SettingsScreen() {
               {MODEL_OPTIONS.find(m => m.key === selectedModel)?.description}
             </Text>
           </View>
+        </SettingsSection>
+
+        <SettingsSection title="Cloud Sync" description="Backup or restore your words using Cloudflare R2.">
+          <TouchableOpacity
+            className="bg-blue-500 rounded-lg px-6 py-3 items-center mb-3"
+            onPress={handleBackup}
+          >
+            <Text className="text-white font-semibold text-base">Upload to Cloud</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-green-500 rounded-lg px-6 py-3 items-center"
+            onPress={handleRestore}
+          >
+            <Text className="text-white font-semibold text-base">Sync from Cloud</Text>
+          </TouchableOpacity>
         </SettingsSection>
 
         <SettingsSection title="About">
