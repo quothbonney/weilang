@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import "../global.css";
+import { ThemeProvider, useTheme } from "../src/ui/theme";
 
 // Import nativewind
 import "react-native-gesture-handler";
@@ -14,7 +15,9 @@ if (typeof window !== 'undefined') {
   window.tailwindcss = { config: {} };
 }
 
-export default function RootLayout() {
+const AppStack = () => {
+  const { theme, isDark } = useTheme();
+
   useEffect(() => {
     // Initialize any global setup here
     console.log(`WeiLang App Started on ${Platform.OS}!`);
@@ -27,15 +30,16 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: "#f5f5f5",
+            backgroundColor: theme.colors.surface.primary,
           },
-          headerTintColor: "#000",
+          headerTintColor: theme.colors.text.primary,
           headerTitleStyle: {
             fontWeight: "600",
+            color: theme.colors.text.primary,
           },
           // Ensure proper touch handling on mobile
           gestureEnabled: true,
@@ -105,5 +109,13 @@ export default function RootLayout() {
         />
       </Stack>
     </>
+  );
+};
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <AppStack />
+    </ThemeProvider>
   );
 } 
