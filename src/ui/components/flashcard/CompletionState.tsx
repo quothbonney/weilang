@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { CheckCircle, TrendingUp, BarChart3, Clock, Volume2 } from 'lucide-react-native';
 import { Word } from '../../../domain/entities';
 import { speakWithAzure } from '../../../infra/tts/azureTts';
 import * as Speech from "expo-speech";
+import { useTheme } from '../../theme';
 
 interface ReviewedWord {
   word: Word;
@@ -30,6 +31,7 @@ export const CompletionState: React.FC<CompletionStateProps> = ({
   reviewedWords = [],
   sessionStats,
 }) => {
+  const { theme } = useTheme();
   const playTTS = async (text: string) => {
     const success = await speakWithAzure(text);
     if (!success) {
@@ -39,29 +41,176 @@ export const CompletionState: React.FC<CompletionStateProps> = ({
 
   const getProgressIcon = (word: ReviewedWord) => {
     if (word.word.ease > word.previousEase) {
-      return <TrendingUp size={16} color="#10b981" />;
+      return <TrendingUp size={16} color={theme.colors.status.success} />;
     } else if (word.word.ease < word.previousEase) {
-      return <TrendingUp size={16} color="#ef4444" style={{ transform: [{ rotate: '180deg' }] }} />;
+      return (
+        <TrendingUp
+          size={16}
+          color={theme.colors.status.error}
+          style={{ transform: [{ rotate: '180deg' }] }}
+        />
+      );
     }
-    return <BarChart3 size={16} color="#6b7280" />;
+    return <BarChart3 size={16} color={theme.colors.text.secondary} />;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'new': return '#3b82f6';
-      case 'learning': return '#f59e0b';
-      case 'review': return '#10b981';
-      default: return '#6b7280';
+      case 'new':
+        return theme.colors.interactive.primary;
+      case 'learning':
+        return theme.colors.status.warning;
+      case 'review':
+        return theme.colors.status.success;
+      default:
+        return theme.colors.text.secondary;
     }
   };
 
   const accuracy = sessionStats ? Math.round((sessionStats.correctAnswers / sessionStats.totalReviewed) * 100) : 0;
 
+  const styles = {
+    container: { flex: 1, backgroundColor: theme.colors.background.primary },
+    scrollContent: {
+      padding: theme.layout.lg,
+      paddingBottom: theme.layout['2xl'],
+    },
+    header: { alignItems: 'center' as const, marginBottom: theme.layout.xl },
+    congratsTitle: {
+      fontSize: 32,
+      fontWeight: 'bold' as const,
+      color: theme.colors.text.primary,
+      marginTop: theme.layout.lg,
+      marginBottom: theme.layout.sm,
+    },
+    congratsText: {
+      fontSize: 18,
+      color: theme.colors.text.secondary,
+      textAlign: 'center' as const,
+    },
+    statsCard: {
+      backgroundColor: theme.colors.surface.primary,
+      borderRadius: theme.borderRadius.xl,
+      padding: theme.layout.lg,
+      marginBottom: theme.layout.lg,
+      ...theme.shadows.md,
+    },
+    statsTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: theme.colors.text.primary,
+      marginBottom: theme.layout.lg,
+      textAlign: 'center' as const,
+    },
+    statsGrid: { flexDirection: 'row' as const, justifyContent: 'space-around' as const },
+    statItem: { alignItems: 'center' as const },
+    statValue: {
+      fontSize: 28,
+      fontWeight: 'bold' as const,
+      color: theme.colors.interactive.primary,
+      marginBottom: theme.layout.xs,
+    },
+    statLabel: {
+      fontSize: 14,
+      color: theme.colors.text.secondary,
+      fontWeight: '500' as const,
+    },
+    wordsCard: {
+      backgroundColor: theme.colors.surface.primary,
+      borderRadius: theme.borderRadius.xl,
+      padding: theme.layout.lg,
+      marginBottom: theme.layout.xl,
+      ...theme.shadows.md,
+    },
+    wordsTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: theme.colors.text.primary,
+      marginBottom: theme.layout.lg,
+    },
+    wordItem: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.subtle,
+      paddingVertical: theme.layout.md,
+    },
+    wordContent: { flex: 1 },
+    wordHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: theme.layout.xs,
+    },
+    hanzi: {
+      fontSize: 20,
+      fontWeight: 'bold' as const,
+      color: theme.colors.text.primary,
+      marginRight: theme.layout.sm,
+    },
+    speakerButton: { padding: theme.layout.xs, marginRight: theme.layout.sm },
+    pinyin: { fontSize: 14, color: theme.colors.text.secondary, marginBottom: 2 },
+    meaning: { fontSize: 14, color: theme.colors.text.primary, marginBottom: theme.layout.sm },
+    progressInfo: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      flexWrap: 'wrap' as const,
+      gap: theme.layout.sm,
+    },
+    statusBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: theme.colors.surface.secondary,
+      paddingHorizontal: theme.layout.sm,
+      paddingVertical: theme.layout.xs,
+      borderRadius: theme.borderRadius.full,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginRight: theme.layout.xs,
+    },
+    statusText: {
+      fontSize: 12,
+      color: theme.colors.text.primary,
+      fontWeight: '500' as const,
+      textTransform: 'capitalize' as const,
+    },
+    progressText: {
+      fontSize: 12,
+      color: theme.colors.text.secondary,
+      backgroundColor: theme.colors.background.secondary,
+      paddingHorizontal: theme.layout.sm,
+      paddingVertical: theme.layout.xs,
+      borderRadius: theme.borderRadius.md,
+    },
+    actions: { gap: theme.layout.lg },
+    newSessionButton: {
+      backgroundColor: theme.colors.interactive.primary,
+      paddingHorizontal: theme.layout['2xl'],
+      paddingVertical: theme.layout.lg,
+      borderRadius: theme.borderRadius.lg,
+      alignItems: 'center' as const,
+    },
+    newSessionButtonText: {
+      color: theme.colors.text.inverse,
+      fontWeight: '600' as const,
+      fontSize: 16,
+    },
+    backButton: {
+      paddingVertical: theme.layout.md,
+      alignItems: 'center' as const,
+    },
+    backButtonText: {
+      color: theme.colors.text.secondary,
+      fontWeight: '500' as const,
+      fontSize: 16,
+    },
+  } as const;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* Header */}
       <View style={styles.header}>
-        <CheckCircle size={64} color="#10b981" />
+        <CheckCircle size={64} color={theme.colors.status.success} />
         <Text style={styles.congratsTitle}>Session Complete!</Text>
         <Text style={styles.congratsText}>
           Great work! You've completed your review session.
@@ -102,7 +251,7 @@ export const CompletionState: React.FC<CompletionStateProps> = ({
                     style={styles.speakerButton}
                     onPress={() => playTTS(item.word.hanzi)}
                   >
-                    <Volume2 size={14} color="#6b7280" />
+                    <Volume2 size={14} color={theme.colors.text.secondary} />
                   </TouchableOpacity>
                   {getProgressIcon(item)}
                 </View>
@@ -149,174 +298,3 @@ export const CompletionState: React.FC<CompletionStateProps> = ({
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  congratsTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  congratsText: {
-    fontSize: 18,
-    color: '#4b5563',
-    textAlign: 'center',
-  },
-  statsCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statsTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  wordsCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  wordsTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
-  },
-  wordItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-    paddingVertical: 12,
-  },
-  wordContent: {
-    flex: 1,
-  },
-  wordHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  hanzi: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginRight: 8,
-  },
-  speakerButton: {
-    padding: 4,
-    marginRight: 8,
-  },
-  pinyin: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  meaning: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#374151',
-    fontWeight: '500',
-    textTransform: 'capitalize',
-  },
-  progressText: {
-    fontSize: 12,
-    color: '#6b7280',
-    backgroundColor: '#f9fafb',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  actions: {
-    gap: 16,
-  },
-  newSessionButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  newSessionButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  backButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#6b7280',
-    fontWeight: '500',
-    fontSize: 16,
-  },
-}); 
