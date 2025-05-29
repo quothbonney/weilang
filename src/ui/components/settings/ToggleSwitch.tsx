@@ -1,18 +1,38 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { useTheme } from '../../theme';
 
 interface Props {
   value: boolean;
   onChange: (val: boolean) => void;
 }
 
-export const ToggleSwitch: React.FC<Props> = ({ value, onChange }) => (
-  <Pressable
-    onPress={() => onChange(!value)}
-    className={`w-12 h-7 rounded-full p-1 ${value ? 'bg-blue-500' : 'bg-gray-300'}`}
-  >
-    <View className={`w-5 h-5 rounded-full bg-white ${value ? 'ml-auto' : ''}`} />
-  </Pressable>
-);
+export const ToggleSwitch: React.FC<Props> = ({ value, onChange }) => {
+  const { theme } = useTheme();
+
+  const containerStyle = {
+    width: 48,
+    height: 28,
+    borderRadius: theme.borderRadius.full,
+    padding: theme.layout.xs,
+    backgroundColor: value
+      ? theme.colors.interactive.primary
+      : theme.colors.border.secondary,
+  } as const;
+
+  const thumbStyle = {
+    width: 20,
+    height: 20,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.surface.primary,
+    marginLeft: value ? 20 : 0,
+  } as const;
+
+  return (
+    <Pressable onPress={() => onChange(!value)} style={containerStyle}>
+      <View style={thumbStyle} />
+    </Pressable>
+  );
+};
 
 export default ToggleSwitch;

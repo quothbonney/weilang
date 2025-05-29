@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { Screen } from "../src/ui/components/themed";
+import { useTheme } from "../src/ui/theme";
 import {
   Select,
   SelectTrigger,
@@ -84,6 +86,7 @@ export default function SettingsScreen() {
   const [showKey, setShowKey] = useState(false);
   const [inputTtsKey, setInputTtsKey] = useState(ttsApiKey || AZURE_TTS_KEY || '');
   const [showTtsKey, setShowTtsKey] = useState(false);
+  const { theme } = useTheme();
   const cloudSync = React.useMemo(() => {
     try {
       return new CloudSyncService();
@@ -196,13 +199,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-      bounces
-      keyboardShouldPersistTaps="handled"
-    >
+    <Screen scrollable style={{ backgroundColor: theme.colors.background.primary }} scrollViewProps={{ contentContainerStyle: { padding: theme.layout.lg, paddingBottom: theme.layout['2xl'] } }}>
         <SettingsSection title="Together API Configuration">
           <Text className="text-gray-600 mb-4">
             Enter your Together API key to enable example sentence generation.
@@ -403,7 +400,7 @@ export default function SettingsScreen() {
           <Text className="text-gray-600 mb-1">Version 1.0.0</Text>
           <Text className="text-gray-600">Spaced repetition for Chinese learning</Text>
         </SettingsSection>
-      </ScrollView>
+      </Screen>
   );
 }
 
