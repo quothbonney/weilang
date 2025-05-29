@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
-import { Screen } from "../src/ui/components/themed";
+import { View, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { Screen, Text, Button } from '../src/ui/components/themed';
+
 import { useTheme } from "../src/ui/theme";
 import {
   Select,
@@ -201,16 +202,26 @@ export default function SettingsScreen() {
   return (
     <Screen scrollable style={{ backgroundColor: theme.colors.background.primary }} scrollViewProps={{ contentContainerStyle: { padding: theme.layout.lg, paddingBottom: theme.layout['2xl'] } }}>
         <SettingsSection title="Together API Configuration">
-          <Text className="text-gray-600 mb-4">
+          <Text color="secondary" style={{ marginBottom: theme.layout.md }}>
             Enter your Together API key to enable example sentence generation.
             {apiKey && !inputKey.startsWith('sk-') && (
-              <Text className="text-green-600 italic"> (Loaded from .env file)</Text>
+              <Text
+                style={{ color: theme.colors.status.success, fontStyle: 'italic' }}
+              >
+                {' '} (Loaded from .env file)
+              </Text>
             )}
           </Text>
 
-          <View className="flex-row items-center mb-4">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: theme.layout.md,
+            }}
+          >
             <TextInput
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base"
+              style={[theme.styles.input, { flex: 1 }]}
               value={inputKey}
               onChangeText={setInputKey}
               placeholder="Enter your API key"
@@ -219,36 +230,51 @@ export default function SettingsScreen() {
               autoCorrect={false}
             />
             <TouchableOpacity
-              className="ml-2 px-3 py-2"
               onPress={() => setShowKey(!showKey)}
+              style={{
+                marginLeft: theme.layout.sm,
+                paddingHorizontal: theme.layout.sm,
+                paddingVertical: theme.layout.xs,
+              }}
             >
-              <Text className="text-blue-500 font-medium">{showKey ? 'Hide' : 'Show'}</Text>
+              <Text style={{ color: theme.colors.interactive.primary, fontWeight: '500' }}>
+                {showKey ? 'Hide' : 'Show'}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            className="bg-blue-500 rounded-lg px-6 py-3 items-center"
-            onPress={saveApiKey}
-          >
-            <Text className="text-white font-semibold text-base">Save API Key</Text>
-          </TouchableOpacity>
+          <Button title="Save API Key" onPress={saveApiKey} />
 
-          <Text className="text-xs text-gray-500 mt-2 italic">
+          <Text
+            variant="caption"
+            color="secondary"
+            style={{ marginTop: theme.layout.sm, fontStyle: 'italic' }}
+          >
             Get your API key from https://api.together.xyz
           </Text>
         </SettingsSection>
 
         <SettingsSection title="Azure TTS Configuration">
-          <Text className="text-gray-600 mb-4">
+          <Text color="secondary" style={{ marginBottom: theme.layout.md }}>
             Provide an Azure TTS key for high quality speech synthesis.
             {AZURE_TTS_KEY ? (
-              <Text className="text-green-600 italic"> (Loaded from .env file)</Text>
+              <Text
+                style={{ color: theme.colors.status.success, fontStyle: 'italic' }}
+              >
+                {' '} (Loaded from .env file)
+              </Text>
             ) : null}
           </Text>
 
-          <View className="flex-row items-center mb-4">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: theme.layout.md,
+            }}
+          >
             <TextInput
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base"
+              style={[theme.styles.input, { flex: 1 }]}
               value={inputTtsKey}
               onChangeText={setInputTtsKey}
               placeholder="Enter your TTS key"
@@ -257,38 +283,65 @@ export default function SettingsScreen() {
               autoCorrect={false}
             />
             <TouchableOpacity
-              className="ml-2 px-3 py-2"
               onPress={() => setShowTtsKey(!showTtsKey)}
+              style={{
+                marginLeft: theme.layout.sm,
+                paddingHorizontal: theme.layout.sm,
+                paddingVertical: theme.layout.xs,
+              }}
             >
-              <Text className="text-blue-500 font-medium">{showTtsKey ? 'Hide' : 'Show'}</Text>
+              <Text style={{ color: theme.colors.interactive.primary, fontWeight: '500' }}>
+                {showTtsKey ? 'Hide' : 'Show'}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            className="bg-blue-500 rounded-lg px-6 py-3 items-center"
-            onPress={saveTtsKey}
-          >
-            <Text className="text-white font-semibold text-base">Save TTS Key</Text>
-          </TouchableOpacity>
+          <Button title="Save TTS Key" onPress={saveTtsKey} />
 
-          <Text className="text-xs text-gray-500 mt-2 italic">
+          <Text
+            variant="caption"
+            color="secondary"
+            style={{ marginTop: theme.layout.sm, fontStyle: 'italic' }}
+          >
             Azure portal &gt; Cognitive Services &gt; Speech
           </Text>
         </SettingsSection>
 
         <SettingsSection title="Flashcard Settings" description="Customize your flashcard learning experience.">
-          <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
-            <View className="flex-1 mr-4">
-              <Text className="text-base font-semibold text-gray-900 mb-1">Show Pinyin</Text>
-              <Text className="text-sm text-gray-600">Display pinyin pronunciation guide on flashcards</Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingVertical: theme.layout.md,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.border.subtle,
+            }}
+          >
+            <View style={{ flex: 1, marginRight: theme.layout.md }}>
+              <Text variant="bodyLarge" style={{ fontWeight: '600', marginBottom: theme.layout.xs }}>
+                Show Pinyin
+              </Text>
+              <Text color="secondary">Display pinyin pronunciation guide on flashcards</Text>
             </View>
             <ToggleSwitch value={flashcardSettings.showPinyin} onChange={togglePinyin} />
           </View>
 
-          <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
-            <View className="flex-1 mr-4">
-              <Text className="text-base font-semibold text-gray-900 mb-1">Flip Deck Direction</Text>
-              <Text className="text-sm text-gray-600">
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingVertical: theme.layout.md,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.border.subtle,
+            }}
+          >
+            <View style={{ flex: 1, marginRight: theme.layout.md }}>
+              <Text variant="bodyLarge" style={{ fontWeight: '600', marginBottom: theme.layout.xs }}>
+                Flip Deck Direction
+              </Text>
+              <Text color="secondary">
                 {flashcardSettings.deckFlipped
                   ? 'Show English → Write Chinese characters'
                   : 'Show Chinese → Recall English meaning'}
@@ -297,10 +350,19 @@ export default function SettingsScreen() {
             <ToggleSwitch value={flashcardSettings.deckFlipped} onChange={toggleDeckFlip} />
           </View>
 
-          <View className="flex-row justify-between items-center py-3">
-            <View className="flex-1 mr-4">
-              <Text className="text-base font-semibold text-gray-900 mb-1">Auto-play TTS</Text>
-              <Text className="text-sm text-gray-600">
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingVertical: theme.layout.md,
+            }}
+          >
+            <View style={{ flex: 1, marginRight: theme.layout.md }}>
+              <Text variant="bodyLarge" style={{ fontWeight: '600', marginBottom: theme.layout.xs }}>
+                Auto-play TTS
+              </Text>
+              <Text color="secondary">
                 {flashcardSettings.autoPlayTTS
                   ? 'Automatically speak Chinese when answer is revealed'
                   : 'Manual audio playback only'}
@@ -309,42 +371,109 @@ export default function SettingsScreen() {
             <ToggleSwitch value={flashcardSettings.autoPlayTTS} onChange={toggleAutoPlayTTS} />
           </View>
 
-          <View className="bg-gray-50 p-3 rounded-lg mt-4">
-            <Text className="text-sm font-semibold text-gray-900 mb-2">Current Configuration:</Text>
-            <Text className="text-sm text-gray-600 mb-1">• Pinyin: {flashcardSettings.showPinyin ? 'Shown' : 'Hidden'}</Text>
-            <Text className="text-sm text-gray-600 mb-1">• Direction: {flashcardSettings.deckFlipped ? 'English → Chinese' : 'Chinese → English'}</Text>
-            <Text className="text-sm text-gray-600">• Auto-play TTS: {flashcardSettings.autoPlayTTS ? 'Enabled' : 'Disabled'}</Text>
+          <View
+            style={{
+              backgroundColor: theme.colors.surface.primary,
+              padding: theme.layout.md,
+              borderRadius: theme.borderRadius.md,
+              marginTop: theme.layout.md,
+            }}
+          >
+            <Text variant="bodySmall" style={{ fontWeight: '600', marginBottom: theme.layout.xs }}>
+              Current Configuration:
+            </Text>
+            <Text color="secondary" style={{ marginBottom: theme.layout.xs }}>
+              • Pinyin: {flashcardSettings.showPinyin ? 'Shown' : 'Hidden'}
+            </Text>
+            <Text color="secondary" style={{ marginBottom: theme.layout.xs }}>
+              • Direction: {flashcardSettings.deckFlipped ? 'English → Chinese' : 'Chinese → English'}
+            </Text>
+            <Text color="secondary">
+              • Auto-play TTS: {flashcardSettings.autoPlayTTS ? 'Enabled' : 'Disabled'}
+            </Text>
           </View>
         </SettingsSection>
 
         <SettingsSection title="Example Generation Mode" description="Choose how examples are generated when you have few or no learned words.">
-          <View className="bg-gray-100 p-4 rounded-lg mb-4">
-            <Text className="text-base font-semibold text-gray-900 mb-1">
+          <View
+            style={{
+              backgroundColor: theme.colors.surface.primary,
+              padding: theme.layout.md,
+              borderRadius: theme.borderRadius.md,
+              marginBottom: theme.layout.md,
+            }}
+          >
+            <Text variant="bodyLarge" style={{ fontWeight: '600', marginBottom: theme.layout.xs }}>
               Current: {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.label}
             </Text>
-            <Text className="text-sm text-gray-600">
+            <Text color="secondary">
               {GENERATION_MODES.find(m => m.key === exampleGenerationMode)?.description}
             </Text>
           </View>
 
-          <View className="gap-3">
+          <View style={{ gap: theme.layout.sm }}>
             {GENERATION_MODES.map((mode) => (
               <TouchableOpacity
                 key={mode.key}
-                className={`p-4 rounded-xl border-2 ${exampleGenerationMode === mode.key ? 'bg-blue-500 border-blue-500' : 'border-gray-200 bg-white'}`}
                 onPress={() => changeGenerationMode(mode.key)}
+                style={{
+                  padding: theme.layout.md,
+                  borderRadius: theme.borderRadius.xl,
+                  borderWidth: 2,
+                  borderColor:
+                    exampleGenerationMode === mode.key
+                      ? theme.colors.interactive.primary
+                      : theme.colors.border.primary,
+                  backgroundColor:
+                    exampleGenerationMode === mode.key
+                      ? theme.colors.interactive.primary
+                      : theme.colors.surface.primary,
+                }}
               >
-                <Text className={`text-base font-semibold mb-1 ${exampleGenerationMode === mode.key ? 'text-white' : 'text-gray-900'}`}>{mode.label}</Text>
-                <Text className={`text-sm ${exampleGenerationMode === mode.key ? 'text-indigo-100' : 'text-gray-600'}`}>{mode.description}</Text>
+                <Text
+                  variant="bodyLarge"
+                  style={{
+                    fontWeight: '600',
+                    marginBottom: theme.layout.xs,
+                    color:
+                      exampleGenerationMode === mode.key
+                        ? theme.colors.text.inverse
+                        : theme.colors.text.primary,
+                  }}
+                >
+                  {mode.label}
+                </Text>
+                <Text
+                  style={{
+                    color:
+                      exampleGenerationMode === mode.key
+                        ? theme.colors.text.inverse
+                        : theme.colors.text.secondary,
+                  }}
+                >
+                  {mode.description}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
         </SettingsSection>
 
         <SettingsSection title="AI Model Selection" description="Choose which AI model to use for generating examples and character meanings.">
-          <View className="bg-blue-50 p-4 rounded-lg mb-4">
-            <Text className="text-sm font-semibold text-blue-900 mb-2">Enhanced Character Analysis</Text>
-            <Text className="text-sm text-blue-700">
+          <View
+            style={{
+              backgroundColor: theme.colors.info.background,
+              padding: theme.layout.md,
+              borderRadius: theme.borderRadius.md,
+              marginBottom: theme.layout.md,
+            }}
+          >
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.info.border, fontWeight: '600', marginBottom: theme.layout.xs }}
+            >
+              Enhanced Character Analysis
+            </Text>
+            <Text style={{ color: theme.colors.info.border }}>
               Character meanings are now generated using AI when database lookup fails, providing more comprehensive definitions.
             </Text>
           </View>
@@ -364,41 +493,48 @@ export default function SettingsScreen() {
             </SelectPortal>
           </Select>
           
-          <View className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <Text className="text-sm font-semibold text-gray-900 mb-2">Current Model:</Text>
-            <Text className="text-sm text-gray-700 font-medium">
+          <View
+            style={{
+              marginTop: theme.layout.md,
+              padding: theme.layout.md,
+              backgroundColor: theme.colors.surface.primary,
+              borderRadius: theme.borderRadius.md,
+            }}
+          >
+            <Text variant="bodySmall" style={{ fontWeight: '600', marginBottom: theme.layout.xs }}>
+              Current Model:
+            </Text>
+            <Text style={{ fontWeight: '500', color: theme.colors.text.primary }}>
               {MODEL_OPTIONS.find(m => m.key === selectedModel)?.label}
             </Text>
-            <Text className="text-xs text-gray-600 mt-1">
+            <Text variant="caption" color="secondary" style={{ marginTop: theme.layout.xs }}>
               {MODEL_OPTIONS.find(m => m.key === selectedModel)?.description}
             </Text>
           </View>
         </SettingsSection>
 
         <SettingsSection title="Cloud Sync" description="Backup your data to Cloudflare R2">
-          <View className="flex-row mb-3">
-            <TouchableOpacity
-              className="flex-1 bg-blue-500 rounded-lg px-4 py-3 items-center mr-2"
-              onPress={handleBackup}
-            >
-              <Text className="text-white font-semibold text-base">Upload Backup</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 bg-blue-500 rounded-lg px-4 py-3 items-center"
-              onPress={handleRestore}
-            >
-              <Text className="text-white font-semibold text-base">Sync From Cloud</Text>
-            </TouchableOpacity>
+          <View style={{ flexDirection: 'row', marginBottom: theme.layout.md }}>
+            <View style={{ flex: 1, marginRight: theme.layout.sm }}>
+              <Button title="Upload Backup" onPress={handleBackup} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button title="Sync From Cloud" onPress={handleRestore} />
+            </View>
           </View>
           {syncMessage ? (
-            <Text className="text-sm text-gray-700">{syncMessage}</Text>
+            <Text color="secondary">{syncMessage}</Text>
           ) : null}
         </SettingsSection>
 
         <SettingsSection title="About">
-          <Text className="text-gray-600 mb-1">魏Lang</Text>
-          <Text className="text-gray-600 mb-1">Version 1.0.0</Text>
-          <Text className="text-gray-600">Spaced repetition for Chinese learning</Text>
+          <Text color="secondary" style={{ marginBottom: theme.layout.xs }}>
+            魏Lang
+          </Text>
+          <Text color="secondary" style={{ marginBottom: theme.layout.xs }}>
+            Version 1.0.0
+          </Text>
+          <Text color="secondary">Spaced repetition for Chinese learning</Text>
         </SettingsSection>
       </Screen>
   );
