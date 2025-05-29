@@ -17,6 +17,22 @@ export class CloudSyncService {
   private bucket: string;
 
   constructor() {
+    console.log('🔧 CloudSyncService Debug Info:');
+    console.log('  CLOUDFLARE_R2_ENDPOINT:', CLOUDFLARE_R2_ENDPOINT);
+    console.log('  CLOUDFLARE_R2_BUCKET:', CLOUDFLARE_R2_BUCKET);
+    console.log('  S3_CLIENT_ACCESS_KEY:', S3_CLIENT_ACCESS_KEY ? `${S3_CLIENT_ACCESS_KEY.substring(0, 8)}...` : '(empty)');
+    console.log('  S3_CLIENT_SECRET_ACCESS_KEY:', S3_CLIENT_SECRET_ACCESS_KEY ? `${S3_CLIENT_SECRET_ACCESS_KEY.substring(0, 8)}...` : '(empty)');
+
+    if (!CLOUDFLARE_R2_ENDPOINT) {
+      throw new Error('CLOUDFLARE_R2_ENDPOINT is required but not set');
+    }
+    if (!S3_CLIENT_ACCESS_KEY) {
+      throw new Error('S3_CLIENT_ACCESS_KEY is required but not set');
+    }
+    if (!S3_CLIENT_SECRET_ACCESS_KEY) {
+      throw new Error('S3_CLIENT_SECRET_ACCESS_KEY is required but not set');
+    }
+
     this.bucket = CLOUDFLARE_R2_BUCKET;
     this.s3 = new S3Client({
       region: "auto",

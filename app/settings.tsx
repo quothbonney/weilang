@@ -13,14 +13,12 @@ import {
 import { ChevronDown } from "lucide-react-native";
 import { useStore } from "../src/ui/hooks/useStore";
 import { getWordRepository } from "../src/platform/storageProvider";
-import { CloudSyncService } from "../src/infra/services/cloudSyncService";
 import { storage } from "../src/platform/storageUtils";
 import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
 import SettingsSection from "../src/ui/components/settings/SettingsSection";
 import ToggleSwitch from "../src/ui/components/settings/ToggleSwitch";
 import { AZURE_TTS_KEY } from "../env";
 import { CloudSyncService } from "../src/infra/services/cloudSyncService";
-import { getWordRepository } from "../src/platform/storageProvider";
 
 const API_KEY_STORAGE_KEY = 'weilang_api_key';
 const TTS_KEY_STORAGE_KEY = 'weilang_tts_key';
@@ -86,7 +84,14 @@ export default function SettingsScreen() {
   const [showKey, setShowKey] = useState(false);
   const [inputTtsKey, setInputTtsKey] = useState(ttsApiKey || AZURE_TTS_KEY || '');
   const [showTtsKey, setShowTtsKey] = useState(false);
-  const cloudSync = React.useMemo(() => new CloudSyncService(), []);
+  const cloudSync = React.useMemo(() => {
+    try {
+      return new CloudSyncService();
+    } catch (error) {
+      console.error('Failed to initialize CloudSyncService:', error);
+      return null;
+    }
+  }, []);
   const [syncMessage, setSyncMessage] = useState('');
 
   useEffect(() => {
@@ -158,23 +163,35 @@ export default function SettingsScreen() {
   };
 
   const handleBackup = async () => {
+    if (!cloudSync) {
+      setSyncMessage('Cloud sync not available - check environment configuration');
+      return;
+    }
     try {
+      setSyncMessage('Uploading backup...');
       await cloudSync.backupWords(getWordRepository());
       setSyncMessage('Backup uploaded to Cloudflare R2');
     } catch (error) {
       console.error('Backup failed', error);
-      setSyncMessage('Failed to upload backup');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setSyncMessage(`Failed to upload backup: ${errorMessage}`);
     }
   };
 
   const handleRestore = async () => {
+    if (!cloudSync) {
+      setSyncMessage('Cloud sync not available - check environment configuration');
+      return;
+    }
     try {
+      setSyncMessage('Syncing from cloud...');
       await cloudSync.restoreWords(getWordRepository());
       await loadWords();
       setSyncMessage('Data synced from Cloudflare R2');
     } catch (error) {
       console.error('Restore failed', error);
-      setSyncMessage('Failed to sync from cloud');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setSyncMessage(`Failed to sync from cloud: ${errorMessage}`);
     }
   };
 
