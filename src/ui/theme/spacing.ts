@@ -60,11 +60,11 @@ export const layout = {
 // Border radius values
 export const borderRadius = {
   none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  '2xl': 20,
+  sm: 2,
+  md: 4,
+  lg: 6,
+  xl: 8,
+  '2xl': 10,
   full: 9999,
 } as const;
 

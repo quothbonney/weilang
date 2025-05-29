@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, PanResponder, TouchableOpacity, Text } from 'react-native';
+import { View, PanResponder, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../../theme';
 import Svg, { Path } from 'react-native-svg';
 
 import { StrokeOrderOverlay } from './StrokeOrderOverlay';
@@ -12,6 +13,7 @@ interface HandwritingInputProps {
 interface Point { x: number; y: number; }
 
 export const HandwritingInput: React.FC<HandwritingInputProps> = ({ onComplete, character }) => {
+  const { theme } = useTheme();
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
 
@@ -46,6 +48,38 @@ export const HandwritingInput: React.FC<HandwritingInputProps> = ({ onComplete, 
     setCurrentStroke([]);
   };
 
+  const styles = {
+    canvasContainer: {
+      width: 300,
+      height: 300,
+      position: 'relative' as const,
+      marginBottom: theme.layout.sm,
+    },
+    canvas: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: theme.colors.border.primary,
+      borderRadius: theme.borderRadius.lg,
+      backgroundColor: theme.colors.surface.primary,
+    },
+    controls: {
+      flexDirection: 'row' as const,
+      justifyContent: 'center' as const,
+      marginTop: theme.layout.sm,
+      gap: theme.layout.md,
+    },
+    controlButton: {
+      backgroundColor: theme.colors.surface.secondary,
+      paddingHorizontal: theme.layout.lg,
+      paddingVertical: theme.layout.sm,
+      borderRadius: theme.borderRadius.md,
+    },
+    controlText: {
+      color: theme.colors.text.primary,
+      fontWeight: '600' as const,
+    },
+  } as const;
+
   return (
     <View>
       <View style={styles.canvasContainer}>
@@ -75,34 +109,3 @@ export const HandwritingInput: React.FC<HandwritingInputProps> = ({ onComplete, 
   );
 };
 
-const styles = StyleSheet.create({
-  canvasContainer: {
-    width: 300,
-    height: 300,
-    position: 'relative',
-    marginBottom: 8,
-  },
-  canvas: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    backgroundColor: 'white'
-  },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 8,
-    gap: 16,
-  },
-  controlButton: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  controlText: {
-    color: '#374151',
-    fontWeight: '600'
-  }
-});
