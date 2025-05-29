@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import { View, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { Screen, Text, Button } from '../src/ui/components/themed';
 
@@ -87,6 +88,7 @@ export default function SettingsScreen() {
   const [showKey, setShowKey] = useState(false);
   const [inputTtsKey, setInputTtsKey] = useState(ttsApiKey || AZURE_TTS_KEY || '');
   const [showTtsKey, setShowTtsKey] = useState(false);
+
   const { theme, styles } = useTheme();
   const cloudSync = React.useMemo(() => {
     try {

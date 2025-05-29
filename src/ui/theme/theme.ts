@@ -37,18 +37,17 @@ export const createStyle = (theme: Theme) => ({
   // Common style patterns
   card: {
     backgroundColor: theme.colors.surface.primary,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     padding: theme.layout.cardPadding,
-    ...theme.shadows.md,
     borderWidth: 1,
     borderColor: theme.colors.border.subtle,
   },
   
   cardElevated: {
     backgroundColor: theme.colors.surface.elevated,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.lg,
     padding: theme.layout.cardPaddingLarge,
-    ...theme.shadows.lg,
+    ...theme.shadows.sm,
   },
   
   button: {

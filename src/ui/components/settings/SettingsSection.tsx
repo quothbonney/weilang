@@ -11,6 +11,7 @@ interface Props {
 export const SettingsSection: React.FC<Props> = ({ title, description, children }) => {
   const { theme } = useTheme();
 
+
   const cardStyle = {
     marginBottom: theme.layout.sectionGap,
     backgroundColor: theme.colors.surface.secondary,
@@ -18,6 +19,7 @@ export const SettingsSection: React.FC<Props> = ({ title, description, children 
 
   return (
     <Card style={cardStyle}>
+
       <Text variant="h5" style={{ marginBottom: theme.layout.cardGap }}>
         {title}
       </Text>
