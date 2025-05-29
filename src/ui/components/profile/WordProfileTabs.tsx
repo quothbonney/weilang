@@ -7,6 +7,7 @@ import { RadicalsTab } from "./tabs/RadicalsTab";
 import { ExamplesTab } from "./tabs/ExamplesTab";
 import { GrammarTab } from "./tabs/GrammarTab";
 import { NotesTab } from "./tabs/NotesTab";
+import { useProfileStyles, useTheme } from "../../theme";
 
 type TabType = 'breakdown' | 'radicals' | 'examples' | 'grammar' | 'notes';
 
@@ -31,6 +32,8 @@ export function WordProfileTabs() {
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { profile } = useWordProfile();
+  const styles = useProfileStyles();
+  const { theme } = useTheme();
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || BreakdownTab;
 
@@ -63,54 +66,58 @@ export function WordProfileTabs() {
   });
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={styles.container}>
       {/* Collapsed Header Bar - floating overlay */}
       <Animated.View 
-        className="absolute top-0 left-0 right-0 z-30"
-        style={{
-          opacity: headerOpacity,
-          transform: [{ translateY: headerTranslateY }],
-        }}
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 30,
+            opacity: headerOpacity,
+            transform: [{ translateY: headerTranslateY }],
+          }
+        ]}
         pointerEvents={isHeaderCollapsed ? 'auto' : 'none'}
       >
         <WordProfileHeader isCollapsed={true} />
       </Animated.View>
 
       <ScrollView 
-        className="flex-1"
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: theme.layout.xl * 2 }}
       >
         {/* Header - part of scroll content */}
         <WordProfileHeader isCollapsed={false} />
 
         {/* Tab Navigation - sticky */}
-        <View className="bg-white border-b border-gray-200">
+        <View style={styles.tabContainer}>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
-            className="px-6"
-            contentContainerStyle={{ paddingVertical: 16 }}
+            style={styles.tabScrollView}
+            contentContainerStyle={{ paddingVertical: theme.layout.lg }}
           >
-            <View className="flex-row space-x-2">
+            <View style={styles.tabRow}>
               {tabs.map((tab) => (
                 <TouchableOpacity
                   key={tab.id}
                   onPress={() => setActiveTab(tab.id)}
-                  className={`px-6 py-3 rounded-full ${
-                    activeTab === tab.id
-                      ? 'bg-blue-600'
-                      : 'bg-transparent'
-                  }`}
+                  style={[
+                    styles.tabButton,
+                    activeTab === tab.id ? styles.tabButtonActive : styles.tabButtonInactive
+                  ]}
                 >
                   <Text 
-                    className={`font-medium text-base ${
-                      activeTab === tab.id 
-                        ? 'text-white' 
-                        : 'text-gray-600'
-                    }`}
+                    style={[
+                      styles.tabText,
+                      activeTab === tab.id ? styles.tabTextActive : styles.tabTextInactive
+                    ]}
                   >
                     {tab.label}
                   </Text>
@@ -120,13 +127,15 @@ export function WordProfileTabs() {
           </ScrollView>
           
           {/* Active tab indicator line */}
-          <View className="h-1 bg-gray-100">
+          <View style={styles.tabIndicatorContainer}>
             <View 
-              className="h-full bg-blue-600 transition-all duration-200"
-              style={{ 
-                width: `${100 / tabs.length}%`,
-                marginLeft: `${(tabs.findIndex(tab => tab.id === activeTab) * 100) / tabs.length}%`
-              }}
+              style={[
+                styles.tabIndicator,
+                { 
+                  width: `${100 / tabs.length}%`,
+                  marginLeft: `${(tabs.findIndex(tab => tab.id === activeTab) * 100) / tabs.length}%`
+                }
+              ]}
             />
           </View>
         </View>

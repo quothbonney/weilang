@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Languages, ArrowLeft } from 'lucide-react-native';
-import { translationStyles } from './translationStyles';
+import { useTranslationStyles, useTheme } from '../../theme';
 
 interface TranslationModeSelectorProps {
   difficulty: 'beginner' | 'intermediate' | 'advanced';
@@ -28,34 +28,37 @@ export function TranslationModeSelector({
   onStartSession,
   onBack,
 }: TranslationModeSelectorProps) {
+  const styles = useTranslationStyles();
+  const { theme } = useTheme();
+
   return (
-    <ScrollView style={translationStyles.container} contentContainerStyle={translationStyles.scrollContent}>
-      <View style={translationStyles.header}>
-        <TouchableOpacity style={translationStyles.backButton} onPress={onBack}>
-          <ArrowLeft size={24} color="#6b7280" />
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <ArrowLeft size={24} color={theme.colors.text.secondary} />
         </TouchableOpacity>
-        <Text style={translationStyles.title}>Sentence Translation</Text>
+        <Text style={styles.title}>Sentence Translation</Text>
       </View>
 
-      <View style={translationStyles.card}>
-        <View style={translationStyles.cardHeader}>
-          <Languages size={32} color="#3b82f6" />
-          <Text style={translationStyles.cardTitle}>Start Translation Practice</Text>
-          <Text style={translationStyles.cardDescription}>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Languages size={32} color={theme.colors.interactive.primary} />
+          <Text style={styles.cardTitle}>Start Translation Practice</Text>
+          <Text style={styles.cardDescription}>
             Practice translating sentences using words you've learned
           </Text>
         </View>
 
-        <View style={translationStyles.settingsSection}>
-          <Text style={translationStyles.settingsTitle}>Difficulty</Text>
-          <View style={translationStyles.optionGroup}>
+        <View style={styles.settingsSection}>
+          <Text style={styles.settingsTitle}>Difficulty</Text>
+          <View style={styles.optionGroup}>
             {(['beginner', 'intermediate', 'advanced'] as const).map((level) => (
               <TouchableOpacity
                 key={level}
-                style={[translationStyles.optionButton, difficulty === level && translationStyles.optionButtonActive]}
+                style={[styles.optionButton, difficulty === level && styles.optionButtonActive]}
                 onPress={() => onDifficultyChange(level)}
               >
-                <Text style={[translationStyles.optionText, difficulty === level && translationStyles.optionTextActive]}>
+                <Text style={[styles.optionText, difficulty === level && styles.optionTextActive]}>
                   {level.charAt(0).toUpperCase() + level.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -63,38 +66,38 @@ export function TranslationModeSelector({
           </View>
         </View>
 
-        <View style={translationStyles.settingsSection}>
-          <Text style={translationStyles.settingsTitle}>Direction</Text>
-          <View style={translationStyles.optionGroup}>
+        <View style={styles.settingsSection}>
+          <Text style={styles.settingsTitle}>Direction</Text>
+          <View style={styles.optionGroup}>
             <TouchableOpacity
-              style={[translationStyles.optionButton, direction === 'zh-to-en' && translationStyles.optionButtonActive]}
+              style={[styles.optionButton, direction === 'zh-to-en' && styles.optionButtonActive]}
               onPress={() => onDirectionChange('zh-to-en')}
             >
-              <Text style={[translationStyles.optionText, direction === 'zh-to-en' && translationStyles.optionTextActive]}>
+              <Text style={[styles.optionText, direction === 'zh-to-en' && styles.optionTextActive]}>
                 Chinese → English
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[translationStyles.optionButton, direction === 'en-to-zh' && translationStyles.optionButtonActive]}
+              style={[styles.optionButton, direction === 'en-to-zh' && styles.optionButtonActive]}
               onPress={() => onDirectionChange('en-to-zh')}
             >
-              <Text style={[translationStyles.optionText, direction === 'en-to-zh' && translationStyles.optionTextActive]}>
+              <Text style={[styles.optionText, direction === 'en-to-zh' && styles.optionTextActive]}>
                 English → Chinese
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={translationStyles.settingsSection}>
-          <Text style={translationStyles.settingsTitle}>Number of Exercises</Text>
-          <View style={translationStyles.optionGroup}>
+        <View style={styles.settingsSection}>
+          <Text style={styles.settingsTitle}>Number of Exercises</Text>
+          <View style={styles.optionGroup}>
             {[3, 5, 10].map((count) => (
               <TouchableOpacity
                 key={count}
-                style={[translationStyles.optionButton, exerciseCount === count && translationStyles.optionButtonActive]}
+                style={[styles.optionButton, exerciseCount === count && styles.optionButtonActive]}
                 onPress={() => onExerciseCountChange(count)}
               >
-                <Text style={[translationStyles.optionText, exerciseCount === count && translationStyles.optionTextActive]}>
+                <Text style={[styles.optionText, exerciseCount === count && styles.optionTextActive]}>
                   {count}
                 </Text>
               </TouchableOpacity>
@@ -103,18 +106,18 @@ export function TranslationModeSelector({
         </View>
 
         <TouchableOpacity
-          style={translationStyles.startButton}
+          style={styles.startButton}
           onPress={onStartSession}
           disabled={isLoading}
         >
-          <Text style={translationStyles.startButtonText}>
+          <Text style={styles.startButtonText}>
             {isLoading ? 'Generating Exercises...' : 'Start Practice'}
           </Text>
         </TouchableOpacity>
 
         {error && (
-          <View style={translationStyles.errorContainer}>
-            <Text style={translationStyles.errorText}>{error}</Text>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
       </View>

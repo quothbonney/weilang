@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { SentenceExercise, TranslationEvaluation, TranslationSession } from '../../../domain/entities';
-import { translationStyles } from './translationStyles';
+import { useTranslationStyles, useTheme } from '../../theme';
 import { useStore } from '../../hooks/useStore';
 
 interface CharacterMeaning {
@@ -32,6 +32,8 @@ export function TranslationEvaluationComponent({
   onBack,
 }: TranslationEvaluationProps) {
   const router = useRouter();
+  const styles = useTranslationStyles();
+  const { theme } = useTheme();
   const { sentenceTranslationService, words, reviewWord } = useStore();
   const [characterMeanings, setCharacterMeanings] = useState<CharacterMeaning[]>([]);
   const [loadingCharacterMeanings, setLoadingCharacterMeanings] = useState(false);
@@ -69,9 +71,9 @@ export function TranslationEvaluationComponent({
   }, [submittedExercise.chinese.hanzi, direction, sentenceTranslationService]);
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return '#10b981'; // green
-    if (score >= 60) return '#f59e0b'; // yellow
-    return '#ef4444'; // red
+    if (score >= 80) return theme.colors.status.success;
+    if (score >= 60) return theme.colors.status.warning;
+    return theme.colors.status.error;
   };
 
   const handleCharacterClick = (character: string) => {
@@ -246,18 +248,31 @@ export function TranslationEvaluationComponent({
     }
   }, [evaluation, submittedExercise, userTranslation, characterMeanings, expectedText]);
 
-  const renderHighlightedTranslation = (text: string, characterDiff: any[] = []) => {
-    if (!characterDiff || characterDiff.length === 0) return <Text>{text}</Text>;
-    const chars = text.split('');
+  const renderHighlightedTranslation = (text: any, characterDiff: any[] = []) => {
+    // Safety check: ensure text is a string
+    let textStr: string;
+    if (typeof text === 'object' && text !== null) {
+      if ('hanzi' in text) {
+        textStr = text.hanzi;
+      } else {
+        console.warn('Unexpected object passed to renderHighlightedTranslation:', text);
+        textStr = JSON.stringify(text);
+      }
+    } else {
+      textStr = String(text || '');
+    }
+    
+    if (!characterDiff || characterDiff.length === 0) return <Text>{textStr}</Text>;
+    const chars = textStr.split('');
     return (
       <Text>
         {chars.map((char, idx) => {
           const diff = characterDiff.find((d: any) => d.position === idx);
           if (diff) {
             return (
-              <Text key={idx} style={diff.type === 'incorrect' ? translationStyles.incorrectChar : translationStyles.correctChar}>
+              <Text key={idx} style={diff.type === 'incorrect' ? styles.incorrectChar : styles.correctChar}>
                 {char}
-                <Text style={translationStyles.feedbackBadge}>
+                <Text style={styles.feedbackBadge}>
                   {diff.type !== 'correct' && diff.expectedChar && ` (${diff.expectedChar})`}
                   {typeof diff.score === 'number' && ` ${diff.score}%`}
                 </Text>
@@ -276,12 +291,12 @@ export function TranslationEvaluationComponent({
     const wordGroups = groupCharactersIntoWords(submittedExercise.chinese.hanzi);
 
     return (
-      <View style={translationStyles.characterBreakdownSection}>
-        <View style={translationStyles.characterGrid}>
+      <View style={styles.characterBreakdownSection}>
+        <View style={styles.characterGrid}>
           {wordGroups.map((group, groupIndex) => {
             if (group.type === 'punctuation') {
               return (
-                <Text key={groupIndex} style={translationStyles.punctuationChar}>
+                <Text key={groupIndex} style={styles.punctuationChar}>
                   {group.content}
                 </Text>
               );
@@ -289,8 +304,8 @@ export function TranslationEvaluationComponent({
 
             // For word groups, render characters together with group meaning
             return (
-              <View key={groupIndex} style={translationStyles.wordGroup}>
-                <View style={translationStyles.wordGroupCharacters}>
+              <View key={groupIndex} style={styles.wordGroup}>
+                <View style={styles.wordGroupCharacters}>
                   {group.characters.map((char, charIndex) => {
                     const charMeaning = characterMeanings.find(cm => cm.character === char);
                     const hasData = charMeaning && !loadingCharacterMeanings;
@@ -299,26 +314,26 @@ export function TranslationEvaluationComponent({
                       <TouchableOpacity
                         key={`${groupIndex}-${charIndex}`}
                         style={[
-                          translationStyles.characterCard,
-                          hasData && translationStyles.characterCardActive
+                          styles.characterCard,
+                          hasData && styles.characterCardActive
                         ]}
                         onPress={() => handleCharacterClick(char)}
                         activeOpacity={0.8}
                       >
-                        <Text style={translationStyles.characterCardHanzi}>{char}</Text>
+                        <Text style={styles.characterCardHanzi}>{char}</Text>
                         {charMeaning ? (
-                          <Text style={translationStyles.characterCardPinyin}>{charMeaning.pinyin}</Text>
+                          <Text style={styles.characterCardPinyin}>{charMeaning.pinyin}</Text>
                         ) : loadingCharacterMeanings ? (
-                          <Text style={translationStyles.characterCardLoading}>...</Text>
+                          <Text style={styles.characterCardLoading}>...</Text>
                         ) : (
-                          <Text style={translationStyles.characterCardError}>?</Text>
+                          <Text style={styles.characterCardError}>?</Text>
                         )}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
                 {group.groupMeaning && (
-                  <Text style={translationStyles.wordGroupMeaning}>
+                  <Text style={styles.wordGroupMeaning}>
                     {group.groupMeaning}
                   </Text>
                 )}
@@ -331,43 +346,43 @@ export function TranslationEvaluationComponent({
   };
 
   return (
-    <ScrollView style={translationStyles.container} contentContainerStyle={translationStyles.scrollContent}>
-      <View style={translationStyles.header}>
-        <TouchableOpacity style={translationStyles.backButton} onPress={onBack}>
-          <ArrowLeft size={24} color="#6b7280" />
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <ArrowLeft size={24} color={theme.colors.text.secondary} />
         </TouchableOpacity>
-        <Text style={translationStyles.title}>Translation Feedback</Text>
+        <Text style={styles.title}>Translation Feedback</Text>
       </View>
 
-      <View style={translationStyles.evaluationCard}>
+      <View style={styles.evaluationCard}>
         {/* Overall Score */}
-        <View style={translationStyles.scoreSection}>
-          <View style={[translationStyles.scoreCircle, { borderColor: getScoreColor(evaluation.overallScore) }]}>
-            <Text style={[translationStyles.scoreText, { color: getScoreColor(evaluation.overallScore) }]}>
+        <View style={styles.scoreSection}>
+          <View style={[styles.scoreCircle, { borderColor: getScoreColor(evaluation.overallScore) }]}>
+            <Text style={[styles.scoreText, { color: getScoreColor(evaluation.overallScore) }]}>
               {evaluation.overallScore}
             </Text>
           </View>
-          <Text style={translationStyles.scoreLabel}>Overall Score</Text>
+          <Text style={styles.scoreLabel}>Overall Score</Text>
         </View>
 
         {/* Original Sentence */}
-        <View style={translationStyles.comparisonSection}>
-          <View style={translationStyles.translationItem}>
-            <Text style={translationStyles.translationLabel}>Original Sentence:</Text>
-            <Text style={translationStyles.originalSentenceText}>
+        <View style={styles.comparisonSection}>
+          <View style={styles.translationItem}>
+            <Text style={styles.translationLabel}>Original Sentence:</Text>
+            <Text style={styles.originalSentenceText}>
               {sourceText}
             </Text>
             {direction === 'zh-to-en' && (
-              <Text style={translationStyles.pinyinText}>{submittedExercise.chinese.pinyin}</Text>
+              <Text style={styles.pinyinText}>{submittedExercise.chinese.pinyin}</Text>
             )}
           </View>
-          <View style={translationStyles.translationItem}>
-            <Text style={translationStyles.translationLabel}>Your Translation:</Text>
+          <View style={styles.translationItem}>
+            <Text style={styles.translationLabel}>Your Translation:</Text>
             {renderHighlightedTranslation(userTranslation, evaluation.characterDiff)}
           </View>
-          <View style={translationStyles.translationItem}>
-            <Text style={translationStyles.translationLabel}>Expected Translation:</Text>
-            <Text style={translationStyles.expectedTranslationText}>{expectedText}</Text>
+          <View style={styles.translationItem}>
+            <Text style={styles.translationLabel}>Expected Translation:</Text>
+            <Text style={styles.expectedTranslationText}>{expectedText}</Text>
           </View>
         </View>
 
@@ -375,15 +390,15 @@ export function TranslationEvaluationComponent({
         {renderCharacterBreakdown()}
 
         {/* Detailed Feedback */}
-        <View style={translationStyles.feedbackSection}>
-          <Text style={translationStyles.feedbackTitle}>Detailed Feedback</Text>
+        <View style={styles.feedbackSection}>
+          <Text style={styles.feedbackTitle}>Detailed Feedback</Text>
           
           {/* Category Scores */}
-          <View style={translationStyles.categoryScores}>
+          <View style={styles.categoryScores}>
             {Object.entries(evaluation.detailedFeedback).map(([category, feedback]) => (
-              <View key={category} style={translationStyles.categoryItem}>
-                <Text style={translationStyles.categoryName}>{category.charAt(0).toUpperCase() + category.slice(1)}</Text>
-                <Text style={[translationStyles.categoryScore, { color: getScoreColor(feedback.score) }]}>
+              <View key={category} style={styles.categoryItem}>
+                <Text style={styles.categoryName}>{category.charAt(0).toUpperCase() + category.slice(1)}</Text>
+                <Text style={[styles.categoryScore, { color: getScoreColor(feedback.score) }]}>
                   {feedback.score}%
                 </Text>
               </View>
@@ -391,31 +406,31 @@ export function TranslationEvaluationComponent({
           </View>
 
           {/* Overall Feedback */}
-          <View style={translationStyles.feedbackItem}>
-            <Text style={translationStyles.feedbackItemTitle}>Overall Assessment</Text>
-            <Text style={translationStyles.feedbackItemText}>{evaluation.overallFeedback}</Text>
+          <View style={styles.feedbackItem}>
+            <Text style={styles.feedbackItemTitle}>Overall Assessment</Text>
+            <Text style={styles.feedbackItemText}>{evaluation.overallFeedback}</Text>
           </View>
 
           {/* Encouragement */}
-          <View style={translationStyles.feedbackItem}>
-            <Text style={translationStyles.feedbackItemTitle}>What You Did Well</Text>
-            <Text style={translationStyles.encouragementText}>{evaluation.encouragement}</Text>
+          <View style={styles.feedbackItem}>
+            <Text style={styles.feedbackItemTitle}>What You Did Well</Text>
+            <Text style={styles.encouragementText}>{evaluation.encouragement}</Text>
           </View>
 
           {/* Next Steps */}
-          <View style={translationStyles.feedbackItem}>
-            <Text style={translationStyles.feedbackItemTitle}>Next Steps</Text>
+          <View style={styles.feedbackItem}>
+            <Text style={styles.feedbackItemTitle}>Next Steps</Text>
             {evaluation.nextSteps.map((step, index) => (
-              <Text key={index} style={translationStyles.nextStepText}>• {step}</Text>
+              <Text key={index} style={styles.nextStepText}>• {step}</Text>
             ))}
           </View>
         </View>
 
         <TouchableOpacity
-          style={translationStyles.nextButton}
+          style={styles.nextButton}
           onPress={onNextExercise}
         >
-          <Text style={translationStyles.nextButtonText}>
+          <Text style={styles.nextButtonText}>
             {currentTranslationSession && currentTranslationSession.currentExerciseIndex < currentTranslationSession.exercises.length ? 'Next Exercise' : 'View Results'}
           </Text>
         </TouchableOpacity>

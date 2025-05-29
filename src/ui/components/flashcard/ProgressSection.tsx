@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Word } from '../../../domain/entities';
+import { useFlashcardStyles, useTheme } from '../../theme';
 
 interface ProgressSectionProps {
   currentCard: Word;
@@ -15,6 +16,9 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
   currentCard,
   currentSession,
 }) => {
+  const styles = useFlashcardStyles();
+  const { theme } = useTheme();
+  
   const getCardTypeLabel = (card: Word): string => {
     if (card.learningStep > 0) return "Learning";
     if (card.status === "new") return "New";
@@ -22,9 +26,9 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
   };
 
   const getCardTypeColor = (card: Word): string => {
-    if (card.learningStep > 0) return "#f59e0b";
-    if (card.status === "new") return "#3b82f6";
-    return "#10b981";
+    if (card.learningStep > 0) return styles.cardTypeColors.learning;
+    if (card.status === "new") return styles.cardTypeColors.new;
+    return styles.cardTypeColors.review;
   };
 
   const totalCards =
@@ -55,42 +59,4 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
       </View>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  progressSection: {
-    padding: 16,
-    backgroundColor: 'white',
-  },
-  cardTypeIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTypeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  cardTypeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  learningStepText: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#3b82f6',
-    borderRadius: 3,
-  },
-}); 
+}; 

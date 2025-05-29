@@ -1,18 +1,17 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { ArrowLeft, Volume2 } from 'lucide-react-native';
-import { SentenceExercise, TranslationSession } from '../../../domain/entities';
-import { translationStyles } from './translationStyles';
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { Volume2, ArrowLeft } from 'lucide-react-native';
+import { useTranslationStyles, useTheme } from '../../theme';
 
 interface TranslationExerciseProps {
-  currentExercise: SentenceExercise;
-  currentTranslationSession: TranslationSession;
+  currentExercise: any;
+  currentTranslationSession: any;
   direction: 'en-to-zh' | 'zh-to-en';
   userTranslation: string;
   isLoading: boolean;
   onUserTranslationChange: (text: string) => void;
   onSubmitTranslation: () => void;
-  onPlayTTS: (text: string) => void;
+  onPlayTTS: () => void;
   onBack: () => void;
 }
 
@@ -27,72 +26,79 @@ export function TranslationExercise({
   onPlayTTS,
   onBack,
 }: TranslationExerciseProps) {
-  const sourceText = direction === 'zh-to-en' ? currentExercise.chinese.hanzi : currentExercise.english;
-  const targetLanguage = direction === 'zh-to-en' ? 'English' : 'Chinese';
+  const styles = useTranslationStyles();
+  const { theme } = useTheme();
+
+  const isChineseToEnglish = direction === 'zh-to-en';
+  const sourceSentence = isChineseToEnglish 
+    ? currentExercise.chinese.hanzi 
+    : currentExercise.english;
+  const targetLanguage = isChineseToEnglish ? 'English' : 'Chinese';
+
+  const currentIndex = currentTranslationSession.exercises.indexOf(currentExercise) + 1;
+  const totalExercises = currentTranslationSession.exercises.length;
+  const progress = currentIndex / totalExercises;
 
   return (
-    <ScrollView style={translationStyles.container} contentContainerStyle={translationStyles.scrollContent}>
-      <View style={translationStyles.header}>
-        <TouchableOpacity style={translationStyles.backButton} onPress={onBack}>
-          <ArrowLeft size={24} color="#6b7280" />
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <ArrowLeft size={24} color={theme.colors.text.secondary} />
         </TouchableOpacity>
-        <Text style={translationStyles.title}>Translation Exercise</Text>
+        <Text style={styles.title}>Translate</Text>
       </View>
 
-      {/* Progress indicator */}
-      <View style={translationStyles.progressContainer}>
-        <Text style={translationStyles.progressText}>
-          Exercise {currentTranslationSession.currentExerciseIndex + 1} of {currentTranslationSession.exercises.length}
+      {/* Progress */}
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressText}>
+          Exercise {currentIndex} of {totalExercises}
         </Text>
-        <View style={translationStyles.progressBar}>
-          <View 
-            style={[
-              translationStyles.progressFill, 
-              { width: `${((currentTranslationSession.currentExerciseIndex + 1) / currentTranslationSession.exercises.length) * 100}%` }
-            ]} 
-          />
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
         </View>
       </View>
 
-      <View style={translationStyles.exerciseCard}>
-        <View style={translationStyles.sourceSection}>
-          <Text style={translationStyles.sourceLabel}>Translate this to {targetLanguage}:</Text>
-          <View style={translationStyles.sourceTextContainer}>
-            <Text style={translationStyles.sourceText}>{sourceText}</Text>
-            {direction === 'zh-to-en' && (
+      <View style={styles.exerciseCard}>
+        <View style={styles.sourceSection}>
+          <Text style={styles.sourceLabel}>Translate this sentence:</Text>
+          
+          <View style={styles.sourceTextContainer}>
+            <Text style={styles.sourceText}>{sourceSentence}</Text>
+            {isChineseToEnglish && (
               <TouchableOpacity 
-                style={translationStyles.speakerButton}
-                onPress={() => onPlayTTS(currentExercise.chinese.hanzi)}
+                style={styles.speakerButton}
+                onPress={onPlayTTS}
               >
-                <Volume2 size={20} color="#6b7280" />
+                <Volume2 size={20} color={theme.colors.text.secondary} />
               </TouchableOpacity>
             )}
           </View>
-          {direction === 'zh-to-en' && (
-            <Text style={translationStyles.pinyinText}>{currentExercise.chinese.pinyin}</Text>
+          
+          {isChineseToEnglish && currentExercise.chinese.pinyin && (
+            <Text style={styles.pinyinText}>{currentExercise.chinese.pinyin}</Text>
           )}
         </View>
 
-        <View style={translationStyles.inputSection}>
-          <Text style={translationStyles.inputLabel}>Your translation:</Text>
+        <View style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Your {targetLanguage} translation:</Text>
           <TextInput
-            style={translationStyles.translationInput}
+            style={styles.translationInput}
             value={userTranslation}
             onChangeText={onUserTranslationChange}
-            placeholder={`Enter your ${targetLanguage} translation...`}
+            placeholder={`Type your ${targetLanguage} translation here...`}
+            placeholderTextColor={theme.colors.text.tertiary}
             multiline
-            textAlignVertical="top"
             autoFocus
           />
         </View>
 
         <TouchableOpacity
-          style={[translationStyles.submitButton, !userTranslation.trim() && translationStyles.submitButtonDisabled]}
+          style={[styles.submitButton, (!userTranslation.trim() || isLoading) && styles.submitButtonDisabled]}
           onPress={onSubmitTranslation}
           disabled={!userTranslation.trim() || isLoading}
         >
-          <Text style={translationStyles.submitButtonText}>
-            {isLoading ? 'Evaluating...' : 'Submit Translation'}
+          <Text style={styles.submitButtonText}>
+            {isLoading ? 'Evaluating...' : 'Submit'}
           </Text>
         </TouchableOpacity>
       </View>

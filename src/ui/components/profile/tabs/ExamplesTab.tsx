@@ -4,9 +4,12 @@ import { FileText, Volume2 } from "lucide-react-native";
 import { useWordProfile } from "../WordProfileProvider";
 import { speakWithAzure } from "../../../../infra/tts/azureTts";
 import * as Speech from "expo-speech";
+import { useProfileStyles, useTheme } from "../../../theme";
 
 export function ExamplesTab() {
   const { profile, word } = useWordProfile();
+  const styles = useProfileStyles();
+  const { theme } = useTheme();
 
   const speakExample = async (text: string) => {
     const success = await speakWithAzure(text);
@@ -16,47 +19,47 @@ export function ExamplesTab() {
   };
 
   return (
-    <View className="p-4 space-y-6">
+    <View style={styles.tabContent}>
       {/* Example Sentences Section */}
       {profile?.examples && profile.examples.length > 0 ? (
-        <View className="space-y-4">
+        <View>
           {profile.examples.map((example, index) => (
             <TouchableOpacity
               key={index}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+              style={styles.exampleCard}
               onPress={() => speakExample(example.hanzi)}
               activeOpacity={0.7}
             >
               {/* HSK Level and Tags */}
-              <View className="flex-row items-center mb-4">
-                <View className="bg-purple-100 px-3 py-1 rounded-full mr-3">
-                  <Text className="text-purple-700 font-semibold text-sm">HSK 5</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.layout.lg }}>
+                <View style={[styles.difficultyBadge, { backgroundColor: theme.colors.chinese.accent + '20', marginRight: theme.layout.cardGap }]}>
+                  <Text style={[styles.badgeText, { color: theme.colors.chinese.accent }]}>HSK 5</Text>
                 </View>
-                <View className="bg-blue-100 px-3 py-1 rounded-full">
-                  <Text className="text-blue-700 font-medium text-sm">考</Text>
+                <View style={[styles.frequencyBadge]}>
+                  <Text style={styles.frequencyText}>考</Text>
                 </View>
               </View>
               
               {/* Example sentence content */}
-              <View className="mb-4">
-                <Text className="text-xl font-medium text-gray-900 mb-3 leading-relaxed">
+              <View style={{ marginBottom: theme.layout.lg }}>
+                <Text style={styles.exampleHanzi}>
                   {example.hanzi}
                 </Text>
-                <Text className="text-lg text-gray-600 mb-3 leading-relaxed">
+                <Text style={styles.examplePinyin}>
                   {example.pinyin}
                 </Text>
-                <Text className="text-lg text-gray-700 italic leading-relaxed">
+                <Text style={styles.exampleTranslation}>
                   {example.gloss}
                 </Text>
               </View>
 
               {/* Audio button */}
-              <View className="flex-row justify-end">
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
                 <TouchableOpacity 
-                  className="bg-purple-50 p-3 rounded-full"
+                  style={[styles.speakerButton, { backgroundColor: theme.colors.chinese.accent + '10' }]}
                   onPress={() => speakExample(example.hanzi)}
                 >
-                  <Volume2 size={20} color="#8b5cf6" />
+                  <Volume2 size={20} color={theme.colors.chinese.accent} />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -64,24 +67,23 @@ export function ExamplesTab() {
         </View>
       ) : (
         /* Placeholder matching the design */
-        <View className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-          {/* Show a sample example like in the design */}
-          <View className="flex-row items-center mb-4">
-            <View className="bg-purple-100 px-3 py-1 rounded-full mr-3">
-              <Text className="text-purple-700 font-semibold text-sm">HSK 5</Text>
+        <View style={styles.exampleCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.layout.lg }}>
+            <View style={[styles.difficultyBadge, { backgroundColor: theme.colors.chinese.accent + '20', marginRight: theme.layout.cardGap }]}>
+              <Text style={[styles.badgeText, { color: theme.colors.chinese.accent }]}>HSK 5</Text>
             </View>
-            <View className="bg-blue-100 px-3 py-1 rounded-full">
-              <Text className="text-blue-700 font-medium text-sm">考</Text>
+            <View style={[styles.frequencyBadge]}>
+              <Text style={styles.frequencyText}>考</Text>
             </View>
           </View>
           
-          <Text className="text-xl font-medium text-gray-900 mb-3 leading-relaxed">
+          <Text style={styles.exampleHanzi}>
             他是该大学的优秀科研人员。
           </Text>
-          <Text className="text-lg text-gray-600 mb-3 leading-relaxed">
+          <Text style={styles.examplePinyin}>
             Tā shì gāi dàxué de yōuxiù kēyán rényuán.
           </Text>
-          <Text className="text-lg text-gray-700 italic leading-relaxed">
+          <Text style={styles.exampleTranslation}>
             He is an outstanding scientific researcher of the university.
           </Text>
         </View>
@@ -89,30 +91,30 @@ export function ExamplesTab() {
 
       {/* Usage Notes */}
       {profile?.usage && (
-        <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <Text className="text-xl font-semibold text-gray-900 mb-4">Usage Notes</Text>
-          <View className="bg-amber-50 rounded-xl p-4">
-            <Text className="text-lg text-amber-800 leading-relaxed">{profile.usage}</Text>
+        <View style={[styles.exampleCard, { marginTop: theme.layout.xl }]}>
+          <Text style={styles.tabSectionTitle}>Usage Notes</Text>
+          <View style={{ backgroundColor: theme.colors.status.warningBackground, borderRadius: theme.borderRadius.lg, padding: theme.layout.lg }}>
+            <Text style={[theme.typography.bodyLarge, { color: theme.colors.status.warning, lineHeight: 26 }]}>{profile.usage}</Text>
           </View>
         </View>
       )}
 
       {/* Cultural Context */}
       {profile?.culturalNotes && (
-        <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <Text className="text-xl font-semibold text-gray-900 mb-4">Cultural Context</Text>
-          <View className="bg-green-50 rounded-xl p-4">
-            <Text className="text-lg text-green-800 leading-relaxed">{profile.culturalNotes}</Text>
+        <View style={[styles.exampleCard, { marginTop: theme.layout.xl }]}>
+          <Text style={styles.tabSectionTitle}>Cultural Context</Text>
+          <View style={{ backgroundColor: theme.colors.status.successBackground, borderRadius: theme.borderRadius.lg, padding: theme.layout.lg }}>
+            <Text style={[theme.typography.bodyLarge, { color: theme.colors.status.success, lineHeight: 26 }]}>{profile.culturalNotes}</Text>
           </View>
         </View>
       )}
 
       {/* Empty state if no examples or notes */}
       {!profile?.examples?.length && !profile?.usage && !profile?.culturalNotes && (
-        <View className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-          <View className="items-center">
-            <FileText size={48} color="#d1d5db" />
-            <Text className="text-gray-500 text-center mt-4 text-lg">
+        <View style={styles.emptyStateCard}>
+          <View style={{ alignItems: 'center' }}>
+            <FileText size={48} color={theme.colors.text.tertiary} />
+            <Text style={[styles.emptyStateText, { marginTop: theme.layout.lg, fontSize: theme.typography.bodyLarge.fontSize }]}>
               Examples and usage notes will appear here once the profile is generated.
             </Text>
           </View>

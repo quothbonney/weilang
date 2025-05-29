@@ -1,7 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { useFlashcardLogic } from "../src/ui/hooks/useFlashcardLogic";
+import { useThemedStyles } from "../src/ui/theme";
+import { Screen, Button } from "../src/ui/components/themed";
 import {
   FlashcardHeader,
   ProgressSection,
@@ -44,13 +46,21 @@ export default function FlashcardsScreen() {
     setFlashcardSettings,
   } = useFlashcardLogic();
 
+  const styles = useThemedStyles((theme) => ({
+    cardContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      padding: theme.layout.md,
+    },
+  }));
+
   // Loading state
   if (isLoading) {
     return <LoadingState />;
   }
 
   return (
-    <View style={styles.container}>
+    <Screen>
       {isSessionComplete ? (
         <CompletionState
           onStartNewSession={() => setShowModeSelector(true)}
@@ -89,14 +99,13 @@ export default function FlashcardsScreen() {
             />
 
             {!showAnswer ? (
-              <TouchableOpacity
-                style={styles.showButton}
+              <Button
+                title={flashcardSettings.deckFlipped ? 'Check Answer' : 'Show Answer'}
+                variant="primary"
+                size="large"
                 onPress={handleShowAnswer}
-              >
-                <Text style={styles.showButtonText}>
-                  {flashcardSettings.deckFlipped ? 'Check Answer' : 'Show Answer'}
-                </Text>
-              </TouchableOpacity>
+                style={{ alignSelf: 'center' as const }}
+              />
             ) : (
               <ReviewButtons
                 onReview={handleReview}
@@ -123,30 +132,6 @@ export default function FlashcardsScreen() {
         onClose={() => setShowSettings(false)}
         onUpdateSettings={updateReviewSettings}
       />
-    </View>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  cardContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  showButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignSelf: 'center',
-  },
-  showButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 18,
-  },
-});

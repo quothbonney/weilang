@@ -107,6 +107,34 @@ export const useThemedStyles = <T extends Record<string, any>>(
   return createStylesFn(theme, styles);
 };
 
+// Hook for flashcard-specific styles
+export const useFlashcardStyles = () => {
+  const { theme, styles } = useTheme();
+  const { createFlashcardStyles } = require('./flashcardStyles');
+  return createFlashcardStyles(theme, styles);
+};
+
+// Hook for deck/word list styles
+export const useDeckStyles = () => {
+  const { theme, styles } = useTheme();
+  const { createDeckStyles } = require('./deckStyles');
+  return createDeckStyles(theme, styles);
+};
+
+// Hook for profile page styles
+export const useProfileStyles = () => {
+  const { theme, styles } = useTheme();
+  const { createProfileStyles } = require('./profileStyles');
+  return createProfileStyles(theme, styles);
+};
+
+// Hook for translation page styles
+export const useTranslationStyles = () => {
+  const { theme } = useTheme();
+  const { createTranslationStyles } = require('./translationStyles');
+  return createTranslationStyles(theme);
+};
+
 // Hook for accessing theme colors directly
 export const useColors = () => {
   const { theme } = useTheme();

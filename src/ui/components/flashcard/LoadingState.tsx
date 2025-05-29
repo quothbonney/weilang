@@ -1,25 +1,18 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
+import { useFlashcardStyles, useTheme } from '../../theme';
+import { Text } from '../themed';
 
 export const LoadingState: React.FC = () => {
+  const styles = useFlashcardStyles();
+  const { theme } = useTheme();
+  
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#3b82f6" />
-      <Text style={styles.loadingText}>Loading review session...</Text>
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={theme.colors.interactive.primary} />
+      <Text variant="body" color="secondary" style={{ marginTop: theme.layout.lg }}>
+        Loading review session...
+      </Text>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#6b7280',
-    fontSize: 16,
-  },
-}); 
+}; 

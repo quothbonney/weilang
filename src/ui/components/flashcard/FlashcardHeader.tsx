@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { Settings, Target, EyeOff, Shuffle } from 'lucide-react-native';
 import { ReviewMode } from '../../../domain/entities';
+import { useThemedStyles, useTheme } from '../../theme';
+import { Text } from '../themed';
 
 interface FlashcardHeaderProps {
   reviewMode: ReviewMode;
@@ -24,13 +26,45 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
   onOpenModeSelector,
   onOpenSettings,
 }) => {
+  const { theme } = useTheme();
+  
+  const styles = useThemedStyles((theme) => ({
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: theme.layout.md,
+      backgroundColor: theme.colors.surface.primary,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.primary,
+    },
+    sessionInfo: {
+      flex: 1,
+    },
+    headerControls: {
+      flexDirection: 'row' as const,
+      gap: theme.layout.sm,
+    },
+    settingsIndicator: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: theme.layout.xs,
+      paddingHorizontal: theme.layout.sm,
+    },
+    headerButton: {
+      padding: theme.layout.sm,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.secondary,
+    },
+  }));
+
   return (
     <View style={styles.header}>
       <View style={styles.sessionInfo}>
-        <Text style={styles.sessionMode}>
+        <Text variant="body" style={{ fontWeight: 'bold' }}>
           {reviewMode.replace('-', ' ').toUpperCase()}
         </Text>
-        <Text style={styles.sessionStats}>
+        <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>
           Batch {currentSession.batchIndex + 1} • {currentSession.reviewed} reviewed
         </Text>
       </View>
@@ -38,10 +72,10 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
       <View style={styles.headerControls}>
         <View style={styles.settingsIndicator}>
           {!flashcardSettings.showPinyin && (
-            <EyeOff size={16} color="#6b7280" />
+            <EyeOff size={theme.dimensions.iconSize.sm} color={theme.colors.text.secondary} />
           )}
           {flashcardSettings.deckFlipped && (
-            <Shuffle size={16} color="#8b5cf6" />
+            <Shuffle size={theme.dimensions.iconSize.sm} color={theme.colors.chinese.accent} />
           )}
         </View>
         
@@ -49,56 +83,16 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
           style={styles.headerButton}
           onPress={onOpenModeSelector}
         >
-          <Target size={20} color="#6b7280" />
+          <Target size={theme.dimensions.iconSize.md} color={theme.colors.text.secondary} />
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={onOpenSettings}
         >
-          <Settings size={20} color="#6b7280" />
+          <Settings size={theme.dimensions.iconSize.md} color={theme.colors.text.secondary} />
         </TouchableOpacity>
       </View>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  sessionInfo: {
-    flex: 1,
-  },
-  sessionMode: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  sessionStats: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  headerControls: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  settingsIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-  },
-  headerButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-  },
-}); 
+}; 

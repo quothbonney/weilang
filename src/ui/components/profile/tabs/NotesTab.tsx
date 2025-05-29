@@ -3,21 +3,24 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { Lightbulb, TrendingUp, RotateCcw, RefreshCw, Play } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useWordProfile } from "../WordProfileProvider";
+import { useProfileStyles, useTheme } from "../../../theme";
 
 export function NotesTab() {
   const router = useRouter();
   const { word, profile, refreshProfile, clearCache, isLoading } = useWordProfile();
+  const styles = useProfileStyles();
+  const { theme } = useTheme();
 
   const getMasteryPercentage = () => {
     return Math.min(Math.round((word.repetitions / 10) * 100), 100);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-700';
-      case 'learning': return 'bg-yellow-100 text-yellow-700';
-      case 'mature': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'new': return styles.difficultyColors.medium;
+      case 'learning': return styles.difficultyColors.medium;
+      case 'mature': return styles.difficultyColors.easy;
+      default: return styles.difficultyColors.medium;
     }
   };
 
@@ -28,128 +31,150 @@ export function NotesTab() {
   };
 
   return (
-    <View className="p-4 space-y-6">
+    <View style={styles.tabContent}>
       {/* Memory Aids */}
       {profile?.memoryAids && (
-        <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <View className="flex-row items-center mb-4">
-            <Lightbulb size={24} color="#f59e0b" />
-            <Text className="text-xl font-semibold text-gray-900 ml-3">Memory Aids</Text>
+        <View style={styles.exampleCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.layout.lg }}>
+            <Lightbulb size={24} color={theme.colors.status.warning} />
+            <Text style={[styles.tabSectionTitle, { marginBottom: 0, marginLeft: theme.layout.cardGap }]}>Memory Aids</Text>
           </View>
           
-          <View className="bg-amber-50 rounded-xl p-4">
-            <Text className="text-lg text-amber-800 leading-relaxed">{profile.memoryAids}</Text>
+          <View style={{ backgroundColor: theme.colors.status.warningBackground, borderRadius: theme.borderRadius.lg, padding: theme.layout.lg }}>
+            <Text style={[theme.typography.bodyLarge, { color: theme.colors.status.warning, lineHeight: 26 }]}>{profile.memoryAids}</Text>
           </View>
         </View>
       )}
 
       {/* Cultural Context */}
       {profile?.culturalNotes && (
-        <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <Text className="text-xl font-semibold text-gray-900 mb-4">Cultural Context</Text>
-          <View className="bg-green-50 rounded-xl p-4">
-            <Text className="text-lg text-green-800 leading-relaxed">{profile.culturalNotes}</Text>
+        <View style={[styles.exampleCard, { marginTop: theme.layout.lg }]}>
+          <Text style={styles.tabSectionTitle}>Cultural Context</Text>
+          <View style={{ backgroundColor: theme.colors.status.successBackground, borderRadius: theme.borderRadius.lg, padding: theme.layout.lg }}>
+            <Text style={[theme.typography.bodyLarge, { color: theme.colors.status.success, lineHeight: 26 }]}>{profile.culturalNotes}</Text>
           </View>
         </View>
       )}
 
       {/* Learning Progress */}
-      <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <View className="flex-row items-center mb-6">
-          <TrendingUp size={24} color="#10b981" />
-          <Text className="text-xl font-semibold text-gray-900 ml-3">Learning Progress</Text>
+      <View style={[styles.exampleCard, { marginTop: theme.layout.lg }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.layout.xl }}>
+          <TrendingUp size={24} color={theme.colors.status.success} />
+          <Text style={[styles.tabSectionTitle, { marginBottom: 0, marginLeft: theme.layout.cardGap }]}>Learning Progress</Text>
         </View>
         
-        <View className="space-y-6">
+        <View>
           {/* Mastery Level with improved styling */}
-          <View>
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg text-gray-700 font-medium">Mastery Level</Text>
-              <Text className="text-3xl font-bold text-gray-900">{getMasteryPercentage()}%</Text>
+          <View style={{ marginBottom: theme.layout.xl }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.layout.lg }}>
+              <Text style={[theme.typography.bodyLarge, { fontWeight: theme.typography.label.fontWeight, color: theme.colors.text.primary }]}>Mastery Level</Text>
+              <Text style={[theme.typography.h2, { color: theme.colors.text.primary }]}>{getMasteryPercentage()}%</Text>
             </View>
-            <View className="bg-gray-200 h-4 rounded-full overflow-hidden">
+            <View style={{ backgroundColor: theme.colors.border.primary, height: 16, borderRadius: theme.borderRadius.full, overflow: 'hidden' }}>
               <View 
-                className="bg-gradient-to-r from-green-400 to-green-500 h-4 rounded-full transition-all duration-300" 
-                style={{ width: `${getMasteryPercentage()}%` }} 
+                style={{
+                  backgroundColor: theme.colors.status.success,
+                  height: '100%',
+                  borderRadius: theme.borderRadius.full,
+                  width: `${getMasteryPercentage()}%`
+                }} 
               />
             </View>
           </View>
           
           {/* Status and Stats Grid */}
-          <View className="bg-gray-50 rounded-xl p-4">
-            <View className="flex-row justify-between items-center">
-              <View className="items-center flex-1">
-                <Text className="text-2xl font-bold text-gray-900 mb-1">{word.repetitions}</Text>
-                <Text className="text-xs text-gray-600 font-medium">Reviews</Text>
+          <View style={{ backgroundColor: theme.colors.surface.secondary, borderRadius: theme.borderRadius.lg, padding: theme.layout.lg, marginBottom: theme.layout.xl }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ alignItems: 'center', flex: 1 }}>
+                <Text style={[theme.typography.h3, { color: theme.colors.text.primary, marginBottom: theme.layout.xs }]}>{word.repetitions}</Text>
+                <Text style={[theme.typography.caption, { color: theme.colors.text.secondary, fontWeight: theme.typography.label.fontWeight }]}>Reviews</Text>
               </View>
-              <View className="w-px h-8 bg-gray-300" />
-              <View className="items-center flex-1">
-                <Text className="text-2xl font-bold text-gray-900 mb-1">{Math.round(word.ease * 10) / 10}</Text>
-                <Text className="text-xs text-gray-600 font-medium">Ease</Text>
+              <View style={{ width: 1, height: 32, backgroundColor: theme.colors.border.primary }} />
+              <View style={{ alignItems: 'center', flex: 1 }}>
+                <Text style={[theme.typography.h3, { color: theme.colors.text.primary, marginBottom: theme.layout.xs }]}>{Math.round(word.ease * 10) / 10}</Text>
+                <Text style={[theme.typography.caption, { color: theme.colors.text.secondary, fontWeight: theme.typography.label.fontWeight }]}>Ease</Text>
               </View>
-              <View className="w-px h-8 bg-gray-300" />
-              <View className="items-center flex-1">
-                <Text className="text-2xl font-bold text-gray-900 mb-1">{word.interval}</Text>
-                <Text className="text-xs text-gray-600 font-medium">Interval</Text>
+              <View style={{ width: 1, height: 32, backgroundColor: theme.colors.border.primary }} />
+              <View style={{ alignItems: 'center', flex: 1 }}>
+                <Text style={[theme.typography.h3, { color: theme.colors.text.primary, marginBottom: theme.layout.xs }]}>{word.interval}</Text>
+                <Text style={[theme.typography.caption, { color: theme.colors.text.secondary, fontWeight: theme.typography.label.fontWeight }]}>Interval</Text>
               </View>
             </View>
           </View>
           
           {/* Status and Next Review */}
-          <View className="flex-row justify-between items-center pt-4 border-t border-gray-100">
-            <View className="items-center">
-              <Text className="text-sm text-gray-600 font-medium mb-2">Status</Text>
-              <View className={`px-4 py-2 rounded-full ${getStatusColor(word.status)}`}>
-                <Text className="capitalize font-semibold">{word.status}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: theme.layout.lg, borderTopWidth: 1, borderTopColor: theme.colors.border.subtle }}>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={[theme.typography.bodySmall, { color: theme.colors.text.secondary, fontWeight: theme.typography.label.fontWeight, marginBottom: theme.layout.sm }]}>Status</Text>
+              <View style={[styles.difficultyBadge, getStatusStyle(word.status)]}>
+                <Text style={[styles.badgeText, { color: getStatusStyle(word.status).color, textTransform: 'capitalize' }]}>{word.status}</Text>
               </View>
             </View>
-            <View className="items-center">
-              <Text className="text-sm text-gray-600 font-medium mb-2">Next Review</Text>
-              <Text className="text-lg font-bold text-gray-900">{getNextReviewText()}</Text>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={[theme.typography.bodySmall, { color: theme.colors.text.secondary, fontWeight: theme.typography.label.fontWeight, marginBottom: theme.layout.sm }]}>Next Review</Text>
+              <Text style={[theme.typography.bodyLarge, { fontWeight: 'bold', color: theme.colors.text.primary }]}>{getNextReviewText()}</Text>
             </View>
           </View>
         </View>
       </View>
 
       {/* Action Buttons - improved styling */}
-      <View className="space-y-4">
+      <View style={{ marginTop: theme.layout.xl }}>
         <TouchableOpacity 
-          className="bg-blue-600 py-4 rounded-2xl flex-row items-center justify-center shadow-lg"
+          style={[styles.practiceButton, { paddingVertical: theme.layout.lg, flexDirection: 'row' }]}
           onPress={() => router.push(`/review/${word.id}`)}
         >
-          <Play size={22} color="white" />
-          <Text className="text-white font-bold text-xl ml-3">Practice</Text>
+          <Play size={22} color={theme.colors.text.inverse} />
+          <Text style={[styles.practiceButtonText, { marginLeft: theme.layout.cardGap }]}>Practice</Text>
         </TouchableOpacity>
 
-        <View className="flex-row space-x-4">
+        <View style={{ flexDirection: 'row', gap: theme.layout.lg, marginTop: theme.layout.lg }}>
           <TouchableOpacity 
-            className="flex-1 bg-purple-600 py-3 rounded-xl flex-row items-center justify-center shadow-sm"
+            style={{
+              flex: 1,
+              backgroundColor: theme.colors.chinese.accent,
+              paddingVertical: theme.layout.cardGap,
+              borderRadius: theme.borderRadius.lg,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              ...theme.shadows.sm,
+            }}
             onPress={refreshProfile}
             disabled={isLoading}
           >
-            <RefreshCw size={18} color="white" />
-            <Text className="text-white font-semibold ml-2">
+            <RefreshCw size={18} color={theme.colors.text.inverse} />
+            <Text style={[theme.typography.label, { color: theme.colors.text.inverse, marginLeft: theme.layout.sm }]}>
               {isLoading ? 'Loading...' : 'Refresh'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            className="flex-1 bg-red-600 py-3 rounded-xl flex-row items-center justify-center shadow-sm"
+            style={{
+              flex: 1,
+              backgroundColor: theme.colors.status.error,
+              paddingVertical: theme.layout.cardGap,
+              borderRadius: theme.borderRadius.lg,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              ...theme.shadows.sm,
+            }}
             onPress={clearCache}
             disabled={isLoading}
           >
-            <RotateCcw size={18} color="white" />
-            <Text className="text-white font-semibold ml-2">Clear Cache</Text>
+            <RotateCcw size={18} color={theme.colors.text.inverse} />
+            <Text style={[theme.typography.label, { color: theme.colors.text.inverse, marginLeft: theme.layout.sm }]}>Clear Cache</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Empty State for Memory Aids */}
       {!profile?.memoryAids && !profile?.culturalNotes && (
-        <View className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-          <View className="items-center">
-            <Lightbulb size={48} color="#d1d5db" />
-            <Text className="text-gray-500 text-center mt-4 text-lg">
+        <View style={[styles.emptyStateCard, { marginTop: theme.layout.lg }]}>
+          <View style={{ alignItems: 'center' }}>
+            <Lightbulb size={48} color={theme.colors.text.tertiary} />
+            <Text style={[styles.emptyStateText, { marginTop: theme.layout.lg, fontSize: theme.typography.bodyLarge.fontSize }]}>
               Memory aids and cultural notes will appear here once the profile is generated.
             </Text>
           </View>

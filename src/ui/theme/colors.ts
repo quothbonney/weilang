@@ -167,6 +167,14 @@ export const lightTheme = {
     infoBorder: colors.info[200],
   },
   
+  // Chinese learning colors
+  chinese: {
+    accent: colors.chinese.accent,
+    pinyin: colors.chinese.pinyin,
+    character: colors.chinese.character,
+    translation: colors.chinese.translation,
+  },
+  
   // Shadow
   shadow: {
     color: colors.black,
@@ -241,6 +249,14 @@ export const darkTheme = {
     infoBorder: colors.info[700],
   },
   
+  // Chinese learning colors
+  chinese: {
+    accent: colors.chinese.accent,
+    pinyin: colors.warning[400],
+    character: colors.gray[50],
+    translation: colors.success[400],
+  },
+  
   // Shadow
   shadow: {
     color: colors.black,
@@ -301,6 +317,12 @@ export type ThemeColors = {
     info: string;
     infoBackground: string;
     infoBorder: string;
+  };
+  chinese: {
+    accent: string;
+    pinyin: string;
+    character: string;
+    translation: string;
   };
   shadow: {
     color: string;

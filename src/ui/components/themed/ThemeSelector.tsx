@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import { useTheme, ColorScheme } from '../../theme';
+import { useTheme, useThemedStyles, ColorScheme } from '../../theme';
 import { Text } from './Text';
 import { Card } from './Card';
 import { Sun, Moon, Smartphone } from 'lucide-react-native';
@@ -15,6 +15,65 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
   description = "Choose your preferred theme or follow system settings",
 }) => {
   const { theme, colorScheme, setColorScheme, isDark } = useTheme();
+
+  const styles = useThemedStyles((theme) => ({
+    header: {
+      marginBottom: theme.layout.md,
+    },
+    title: {
+      marginBottom: theme.layout.xs,
+    },
+    optionsContainer: {
+      gap: theme.layout.sm,
+    },
+    optionButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      padding: theme.layout.md,
+      borderRadius: theme.borderRadius.lg,
+      borderWidth: 2,
+    },
+    optionButtonDefault: {
+      borderColor: theme.colors.border.primary,
+      backgroundColor: theme.colors.surface.primary,
+    },
+    optionButtonSelected: {
+      borderColor: theme.colors.interactive.primary,
+      backgroundColor: theme.colors.surface.secondary,
+    },
+    iconContainer: {
+      width: theme.dimensions.iconSize.lg,
+      height: theme.dimensions.iconSize.lg,
+      borderRadius: theme.borderRadius.full,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: theme.layout.md,
+    },
+    iconContainerDefault: {
+      backgroundColor: theme.colors.surface.secondary,
+    },
+    iconContainerSelected: {
+      backgroundColor: theme.colors.interactive.primary,
+    },
+    optionContent: {
+      flex: 1,
+    },
+    optionLabel: {
+      marginBottom: theme.layout.xs / 2,
+    },
+    selectedIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.colors.interactive.primary,
+    },
+    currentThemeContainer: {
+      marginTop: theme.layout.md,
+      padding: theme.layout.sm,
+      backgroundColor: theme.colors.surface.secondary,
+      borderRadius: theme.borderRadius.md,
+    },
+  }));
 
   const themeOptions = [
     {
@@ -48,8 +107,8 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
 
   return (
     <Card>
-      <View style={{ marginBottom: theme.layout.md }}>
-        <Text variant="h6" style={{ marginBottom: theme.layout.xs }}>
+      <View style={styles.header}>
+        <Text variant="h6" style={styles.title}>
           {title}
         </Text>
         <Text variant="bodySmall" color="secondary">
@@ -57,7 +116,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
         </Text>
       </View>
 
-      <View style={{ gap: theme.layout.sm }}>
+      <View style={styles.optionsContainer}>
         {themeOptions.map((option) => {
           const Icon = option.icon;
           const isSelected = colorScheme === option.key || 
@@ -66,33 +125,17 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
           return (
             <TouchableOpacity
               key={option.key}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: theme.layout.md,
-                borderRadius: theme.borderRadius.lg,
-                borderWidth: 2,
-                borderColor: isSelected 
-                  ? theme.colors.interactive.primary 
-                  : theme.colors.border.primary,
-                backgroundColor: isSelected 
-                  ? `${theme.colors.interactive.primary}10` 
-                  : theme.colors.surface.primary,
-              }}
+              style={[
+                styles.optionButton,
+                isSelected ? styles.optionButtonSelected : styles.optionButtonDefault
+              ]}
               onPress={() => setColorScheme(option.key)}
             >
               <View
-                style={{
-                  width: theme.dimensions.iconSize.lg,
-                  height: theme.dimensions.iconSize.lg,
-                  borderRadius: theme.borderRadius.full,
-                  backgroundColor: isSelected 
-                    ? theme.colors.interactive.primary 
-                    : theme.colors.surface.secondary,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginRight: theme.layout.md,
-                }}
+                style={[
+                  styles.iconContainer,
+                  isSelected ? styles.iconContainerSelected : styles.iconContainerDefault
+                ]}
               >
                 <Icon 
                   size={theme.dimensions.iconSize.sm} 
@@ -100,14 +143,16 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                 />
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={styles.optionContent}>
                 <Text 
                   variant="body" 
-                  style={{ 
-                    fontWeight: isSelected ? '600' : '500',
-                    color: isSelected ? theme.colors.interactive.primary : theme.colors.text.primary,
-                    marginBottom: theme.layout.xs / 2,
-                  }}
+                  style={[
+                    styles.optionLabel,
+                    {
+                      fontWeight: isSelected ? '600' : '500',
+                      color: isSelected ? theme.colors.interactive.primary : theme.colors.text.primary,
+                    }
+                  ]}
                 >
                   {option.label}
                 </Text>
@@ -116,29 +161,13 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                 </Text>
               </View>
 
-              {isSelected && (
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: theme.colors.interactive.primary,
-                  }}
-                />
-              )}
+              {isSelected && <View style={styles.selectedIndicator} />}
             </TouchableOpacity>
           );
         })}
       </View>
 
-      <View
-        style={{
-          marginTop: theme.layout.md,
-          padding: theme.layout.sm,
-          backgroundColor: theme.colors.surface.secondary,
-          borderRadius: theme.borderRadius.md,
-        }}
-      >
+      <View style={styles.currentThemeContainer}>
         <Text variant="caption" color="secondary">
           Current theme: {isDark ? 'Dark' : 'Light'}
         </Text>

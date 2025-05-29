@@ -1,12 +1,15 @@
 import React, { useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet, Platform } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useStore } from "../src/ui/hooks/useStore";
 import { Settings } from "lucide-react-native";
+import { useDeckStyles, useTheme } from "../src/ui/theme";
 
 export default function DeckScreen() {
   const { words, isLoading, error, loadWords, importWords } = useStore();
   const router = useRouter();
+  const styles = useDeckStyles();
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Import words from CSV data on first load
@@ -18,7 +21,7 @@ export default function DeckScreen() {
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={theme.colors.interactive.primary} />
       </View>
     );
   }
@@ -38,12 +41,12 @@ export default function DeckScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Words</Text>
+        <Text style={styles.headerTitle}>My Words</Text>
         <TouchableOpacity 
           style={styles.settingsButton}
           onPress={() => router.push('/settings')}
         >
-          <Settings size={24} color="#6b7280" />
+          <Settings size={24} color={theme.colors.text.secondary} />
         </TouchableOpacity>
       </View>
 
@@ -65,7 +68,7 @@ export default function DeckScreen() {
             showsVerticalScrollIndicator={false}
             bounces={true}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: theme.layout.lg }}
             renderItem={({ item }) => (
               <TouchableOpacity 
                 style={styles.wordCard}
@@ -79,8 +82,14 @@ export default function DeckScreen() {
                   </View>
                 </View>
                 <View style={styles.wordMeta}>
-                  <View style={[styles.statusBadge, styles[`status${item.status}`]]}>
-                    <Text style={styles.statusText}>{item.status}</Text>
+                  <View style={[
+                    styles.statusBadge,
+                    styles.statusColors[item.status as 'new' | 'learning' | 'review']
+                  ]}>
+                    <Text style={[
+                      styles.statusText,
+                      { color: styles.statusColors[item.status as 'new' | 'learning' | 'review'].color }
+                    ]}>{item.status}</Text>
                   </View>
                   <Text style={styles.intervalText}>
                     {item.interval}d
@@ -93,130 +102,4 @@ export default function DeckScreen() {
       )}
     </View>
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 32,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#111827',
-    letterSpacing: -0.3,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  statsBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f3f4f6',
-  },
-  statsText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  errorText: {
-    color: '#ef4444',
-    textAlign: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  emptyText: {
-    color: '#6b7280',
-    fontSize: 18,
-    marginBottom: 16,
-  },
-  wordCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  wordContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  hanzi: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginRight: 16,
-    color: '#1f2937',
-  },
-  wordDetails: {
-    flex: 1,
-  },
-  pinyin: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  meaning: {
-    fontSize: 14,
-    color: '#9ca3af',
-  },
-  wordMeta: {
-    alignItems: 'flex-end',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 4,
-  },
-  statusnew: {
-    backgroundColor: '#dbeafe',
-  },
-  statuslearning: {
-    backgroundColor: '#fef3c7',
-  },
-  statusreview: {
-    backgroundColor: '#d1fae5',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  intervalText: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-}); 
+} 

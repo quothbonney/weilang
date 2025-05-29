@@ -6,6 +6,7 @@ import { useWordProfile } from "./WordProfileProvider";
 import { useStore } from "../../hooks/useStore";
 import { speakWithAzure } from "../../../infra/tts/azureTts";
 import * as Speech from "expo-speech";
+import { useProfileStyles, useTheme } from "../../theme";
 
 interface WordProfileHeaderProps {
   isCollapsed?: boolean;
@@ -15,6 +16,8 @@ export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProp
   const router = useRouter();
   const { word, profile, isLoading, error } = useWordProfile();
   const { apiKey } = useStore();
+  const styles = useProfileStyles();
+  const { theme } = useTheme();
 
   const speakWord = async () => {
     if (word) {
@@ -25,34 +28,35 @@ export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProp
     }
   };
 
-  const getDifficultyColor = (difficulty?: string) => {
+  const getDifficultyStyle = (difficulty?: string) => {
     switch (difficulty?.toLowerCase()) {
-      case 'easy': return 'bg-green-100 text-green-700';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-700';
-      case 'hard': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'easy': return styles.difficultyColors.easy;
+      case 'intermediate': 
+      case 'medium': return styles.difficultyColors.medium;
+      case 'hard': return styles.difficultyColors.hard;
+      default: return styles.difficultyColors.medium;
     }
   };
 
   // Collapsed header - compact bar at top
   if (isCollapsed) {
     return (
-      <View className="bg-white px-6 py-3 flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1">
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
           <TouchableOpacity 
             onPress={() => router.back()}
-            className="mr-4 p-1"
+            style={styles.backButton}
           >
-            <ArrowLeft size={20} color="#374151" />
+            <ArrowLeft size={20} color={theme.colors.text.secondary} />
           </TouchableOpacity>
-          <Text className="text-2xl font-light text-gray-900 mr-3">{word.hanzi}</Text>
-          <Text className="text-base text-gray-600">{word.pinyin}</Text>
+          <Text style={styles.headerHanzi}>{word.hanzi}</Text>
+          <Text style={styles.headerPinyin}>{word.pinyin}</Text>
         </View>
         <TouchableOpacity 
-          className="bg-gray-100 p-2 rounded-full"
+          style={styles.speakerButton}
           onPress={speakWord}
         >
-          <Volume2 size={16} color="#4b5563" />
+          <Volume2 size={16} color={theme.colors.text.secondary} />
         </TouchableOpacity>
       </View>
     );
@@ -60,30 +64,30 @@ export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProp
 
   if (!apiKey) {
     return (
-      <View className="bg-white px-6 py-8">
-        <View className="flex-row items-center mb-6">
+      <View style={styles.profileContainer}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.layout.xl }}>
           <TouchableOpacity 
             onPress={() => router.back()}
-            className="mr-4 p-2 -ml-2"
+            style={styles.backButton}
           >
-            <ArrowLeft size={24} color="#374151" />
+            <ArrowLeft size={24} color={theme.colors.text.secondary} />
           </TouchableOpacity>
-          <Text className="text-xl font-semibold text-gray-900">Word Profile</Text>
+          <Text style={theme.typography.h5}>Word Profile</Text>
         </View>
         
-        <View className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <View className="flex-row items-center">
-            <Info size={20} color="#f59e0b" />
-            <Text className="text-amber-800 font-medium ml-2">API Key Required</Text>
+        <View style={styles.warningBanner}>
+          <View style={styles.warningContent}>
+            <Info size={20} color={theme.colors.status.warning} />
+            <Text style={styles.warningTitle}>API Key Required</Text>
           </View>
-          <Text className="text-amber-700 mt-2">
+          <Text style={styles.warningText}>
             Configure your API keys in settings to generate comprehensive word profiles.
           </Text>
           <TouchableOpacity 
-            className="bg-amber-600 py-2 px-4 rounded-lg mt-3 self-start"
+            style={styles.settingsButton}
             onPress={() => router.push('/settings')}
           >
-            <Text className="text-white font-medium">Go to Settings</Text>
+            <Text style={styles.settingsButtonText}>Go to Settings</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -92,71 +96,71 @@ export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProp
 
   // Expanded header - tighter version
   return (
-    <View className="bg-white">
+    <View style={styles.container}>
       {/* Navigation Header */}
-      <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-100">
+      <View style={styles.header}>
         <TouchableOpacity 
           onPress={() => router.back()}
-          className="p-2 -ml-2"
+          style={styles.backButton}
         >
-          <ArrowLeft size={24} color="#374151" />
+          <ArrowLeft size={24} color={theme.colors.text.secondary} />
         </TouchableOpacity>
-        <Text className="text-lg font-medium text-gray-900">Word Profile</Text>
-        <View className="flex-row space-x-1">
-          <TouchableOpacity className="p-2">
-            <Heart size={20} color="#6b7280" />
+        <Text style={[theme.typography.h5, { color: theme.colors.text.primary }]}>Word Profile</Text>
+        <View style={{ flexDirection: 'row', gap: theme.layout.xs }}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Heart size={20} color={theme.colors.text.secondary} />
           </TouchableOpacity>
-          <TouchableOpacity className="p-2">
-            <Share size={20} color="#6b7280" />
+          <TouchableOpacity style={styles.iconButton}>
+            <Share size={20} color={theme.colors.text.secondary} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Main Word Display - Tighter spacing */}
-      <View className="px-8 py-8 items-center">
+      <View style={styles.profileContainer}>
         {/* Character Display - smaller than before */}
-        <Text className="text-6xl font-light text-gray-900 mb-3 tracking-wider">
+        <Text style={styles.profileHanzi}>
           {word.hanzi}
         </Text>
         
         {/* Pinyin with audio */}
-        <View className="flex-row items-center mb-3">
-          <Text className="text-2xl text-gray-700 font-normal mr-3">
+        <View style={styles.profilePinyinRow}>
+          <Text style={styles.profilePinyin}>
             {word.pinyin}
           </Text>
           <TouchableOpacity 
-            className="bg-gray-100 p-2 rounded-full"
+            style={styles.speakerButton}
             onPress={speakWord}
           >
-            <Volume2 size={18} color="#4b5563" />
+            <Volume2 size={18} color={theme.colors.text.secondary} />
           </TouchableOpacity>
         </View>
         
         {/* Meaning */}
-        <Text className="text-lg text-gray-600 text-center mb-6 leading-relaxed">
+        <Text style={styles.profileMeaning}>
           {word.meaning}
         </Text>
 
         {/* Large Practice Button */}
         <TouchableOpacity 
-          className="bg-blue-600 py-3 px-12 rounded-full shadow-lg mb-4"
+          style={styles.practiceButton}
           onPress={() => router.push(`/review/${word.id}`)}
         >
-          <Text className="text-white font-semibold text-lg">Practice</Text>
+          <Text style={styles.practiceButtonText}>Practice</Text>
         </TouchableOpacity>
 
         {/* Status badges - smaller and more compact */}
-        <View className="flex-row space-x-2">
+        <View style={styles.badgeContainer}>
           {profile?.difficulty && (
-            <View className={`px-3 py-1 rounded-full ${getDifficultyColor(profile.difficulty)}`}>
-              <Text className="text-xs font-medium capitalize">
+            <View style={[styles.difficultyBadge, getDifficultyStyle(profile.difficulty)]}>
+              <Text style={[styles.badgeText, { color: getDifficultyStyle(profile.difficulty).color }]}>
                 {profile.difficulty}
               </Text>
             </View>
           )}
           {profile?.frequency && (
-            <View className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
-              <Text className="text-xs font-medium">
+            <View style={styles.frequencyBadge}>
+              <Text style={styles.frequencyText}>
                 {profile.frequency}
               </Text>
             </View>
@@ -166,10 +170,10 @@ export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProp
 
       {/* Loading State */}
       {isLoading && (
-        <View className="bg-blue-50 border-t border-blue-100 px-6 py-3">
-          <View className="flex-row items-center justify-center">
-            <ActivityIndicator size="small" color="#3b82f6" />
-            <Text className="text-blue-700 font-medium ml-3 text-sm">
+        <View style={[styles.warningBanner, { backgroundColor: theme.colors.status.infoBackground, borderColor: theme.colors.status.infoBorder }]}>
+          <View style={styles.warningContent}>
+            <ActivityIndicator size="small" color={theme.colors.status.info} />
+            <Text style={[styles.warningTitle, { color: theme.colors.status.info }]}>
               Generating profile...
             </Text>
           </View>
@@ -178,8 +182,8 @@ export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProp
 
       {/* Error State */}
       {error && (
-        <View className="bg-red-50 border-t border-red-100 px-6 py-3">
-          <Text className="text-red-700 font-medium text-center text-sm">
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>
             {error}
           </Text>
         </View>

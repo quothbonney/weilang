@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useWordProfile } from "../WordProfileProvider";
 import { useStore } from "../../../hooks/useStore";
+import { useProfileStyles } from "../../../theme";
 
 interface CharacterData {
   character: string;
@@ -22,6 +23,7 @@ interface CharacterData {
 export function BreakdownTab() {
   const { word, profile } = useWordProfile();
   const { words } = useStore();
+  const styles = useProfileStyles();
 
   // Debug logging
   console.log('🔍 BreakdownTab Debug:', {
@@ -67,21 +69,21 @@ export function BreakdownTab() {
   // const radicalsAndComponents = getAllRadicalsAndComponents();
 
   return (
-    <View className="p-4 space-y-6">
+    <View style={styles.tabContent}>
       {/* Character Section - matching the concept art design */}
-      <View>
-        <Text className="text-2xl font-bold text-gray-900 mb-4">Character</Text>
+      <View style={styles.tabSection}>
+        <Text style={styles.tabSectionTitle}>Character</Text>
         
         {/* Multi-character breakdown - like the concept art */}
-        <View className="flex-row space-x-4">
+        <View style={styles.characterRow}>
           {characterBreakdown?.map((charData, index) => (
-            <View key={index} className="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <View className="items-center">
-                <Text className="text-6xl font-light text-gray-900 mb-3">{charData.character}</Text>
-                <Text className="text-lg font-medium text-gray-600 mb-1">
+            <View key={index} style={styles.characterCard}>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.characterDisplay}>{charData.character}</Text>
+                <Text style={styles.characterPinyin}>
                   {charData.pinyin}
                 </Text>
-                <Text className="text-base text-gray-700 text-center">
+                <Text style={styles.characterMeaning}>
                   {charData.meaning}
                 </Text>
               </View>
@@ -91,31 +93,31 @@ export function BreakdownTab() {
       </View>
 
       {/* Examples Section - preserved from original */}
-      <View>
-        <Text className="text-2xl font-bold text-gray-900 mb-4">Examples</Text>
+      <View style={styles.tabSection}>
+        <Text style={styles.tabSectionTitle}>Examples</Text>
         
         {profile?.examples && profile.examples.length > 0 ? (
-          <View className="space-y-4">
+          <View>
             {profile.examples.slice(0, 1).map((example, index) => (
-              <View key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <View key={index} style={styles.exampleCard}>
                 {/* Removed HSK Level Badge and 考 tag */}
                 
                 {/* Example sentence */}
-                <Text className="text-lg font-medium text-gray-900 mb-2 leading-relaxed">
+                <Text style={styles.exampleHanzi}>
                   {example.hanzi}
                 </Text>
-                <Text className="text-base text-gray-600 mb-3 leading-relaxed">
+                <Text style={styles.examplePinyin}>
                   {example.pinyin}
                 </Text>
-                <Text className="text-base text-gray-700 italic leading-relaxed">
+                <Text style={styles.exampleTranslation}>
                   {example.gloss}
                 </Text>
               </View>
             ))}
           </View>
         ) : (
-          <View className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
-            <Text className="text-gray-500 text-center">
+          <View style={styles.emptyStateCard}>
+            <Text style={styles.emptyStateText}>
               Example sentences will appear here once generated.
             </Text>
           </View>
@@ -124,19 +126,19 @@ export function BreakdownTab() {
 
       {/* Related words - enhanced with radical connections */}
       {characterBreakdown && characterBreakdown.some(char => char.relatedWords.length > 0) && (
-        <View>
-          <Text className="text-xl font-semibold text-gray-900 mb-4">Found in your vocabulary</Text>
-          <View className="flex-row flex-wrap">
+        <View style={styles.tabSection}>
+          <Text style={styles.tabSectionTitle}>Found in your vocabulary</Text>
+          <View style={styles.relatedWordContainer}>
             {characterBreakdown
               .flatMap(char => char.relatedWords)
               .slice(0, 6)
               .map((relWord, idx) => (
                 <TouchableOpacity 
                   key={idx} 
-                  className="bg-white border border-gray-200 px-4 py-3 rounded-xl mr-3 mb-3 shadow-sm"
+                  style={styles.relatedWordChip}
                 >
-                  <Text className="text-gray-900 font-medium text-center">{relWord.hanzi}</Text>
-                  <Text className="text-gray-600 text-xs text-center mt-1">{relWord.meaning}</Text>
+                  <Text style={styles.relatedWordHanzi}>{relWord.hanzi}</Text>
+                  <Text style={styles.relatedWordMeaning}>{relWord.meaning}</Text>
                 </TouchableOpacity>
             ))}
           </View>

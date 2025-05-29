@@ -1,16 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { ArrowLeft, CheckCircle } from 'lucide-react-native';
-import { translationStyles } from './translationStyles';
-
-interface SessionStats {
-  completedExercises: number;
-  averageScore: number;
-  timeSpent: number;
-}
+import { Trophy } from 'lucide-react-native';
+import { useTranslationStyles, useTheme } from '../../theme';
 
 interface TranslationSessionCompleteProps {
-  sessionStats: SessionStats | null;
+  sessionStats: {
+    totalExercises: number;
+    completedExercises: number;
+    averageScore: number;
+  };
   onStartNewSession: () => void;
   onBackToDashboard: () => void;
 }
@@ -20,54 +18,52 @@ export function TranslationSessionComplete({
   onStartNewSession,
   onBackToDashboard,
 }: TranslationSessionCompleteProps) {
-  return (
-    <ScrollView style={translationStyles.container} contentContainerStyle={translationStyles.scrollContent}>
-      <View style={translationStyles.header}>
-        <TouchableOpacity style={translationStyles.backButton} onPress={onBackToDashboard}>
-          <ArrowLeft size={24} color="#6b7280" />
-        </TouchableOpacity>
-        <Text style={translationStyles.title}>Session Complete!</Text>
-      </View>
+  const styles = useTranslationStyles();
+  const { theme } = useTheme();
 
-      <View style={translationStyles.completionCard}>
-        <CheckCircle size={64} color="#10b981" />
-        <Text style={translationStyles.completionTitle}>Great Work!</Text>
-        <Text style={translationStyles.completionText}>
-          You've completed your translation practice session.
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.completionCard}>
+        <Trophy size={48} color={theme.colors.status.success} />
+        <Text style={styles.completionTitle}>Session Complete!</Text>
+        <Text style={styles.completionText}>
+          Great work on completing your translation practice session.
         </Text>
 
-        {sessionStats && (
-          <View style={translationStyles.statsSection}>
-            <Text style={translationStyles.statsTitle}>Session Summary</Text>
-            <View style={translationStyles.statsGrid}>
-              <View style={translationStyles.statItem}>
-                <Text style={translationStyles.statValue}>{sessionStats.completedExercises}</Text>
-                <Text style={translationStyles.statLabel}>Exercises</Text>
-              </View>
-              <View style={translationStyles.statItem}>
-                <Text style={translationStyles.statValue}>{Math.round(sessionStats.averageScore)}%</Text>
-                <Text style={translationStyles.statLabel}>Avg Score</Text>
-              </View>
-              <View style={translationStyles.statItem}>
-                <Text style={translationStyles.statValue}>{Math.round(sessionStats.timeSpent / 60000)}m</Text>
-                <Text style={translationStyles.statLabel}>Time</Text>
-              </View>
+        <View style={styles.statsSection}>
+          <Text style={styles.statsTitle}>Session Summary</Text>
+          
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{sessionStats.completedExercises}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{sessionStats.averageScore}%</Text>
+              <Text style={styles.statLabel}>Average Score</Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{sessionStats.totalExercises}</Text>
+              <Text style={styles.statLabel}>Total Exercises</Text>
             </View>
           </View>
-        )}
+        </View>
 
-        <View style={translationStyles.actionButtons}>
-          <TouchableOpacity
-            style={translationStyles.newSessionButton}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={styles.newSessionButton}
             onPress={onStartNewSession}
           >
-            <Text style={translationStyles.newSessionButtonText}>Start New Session</Text>
+            <Text style={styles.newSessionButtonText}>Start New Session</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={translationStyles.backToDashboardButton}
+          
+          <TouchableOpacity 
+            style={styles.backToDashboardButton}
             onPress={onBackToDashboard}
           >
-            <Text style={translationStyles.backToDashboardButtonText}>Back to Dashboard</Text>
+            <Text style={styles.backToDashboardButtonText}>Back to Dashboard</Text>
           </TouchableOpacity>
         </View>
       </View>

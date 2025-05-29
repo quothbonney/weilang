@@ -2,28 +2,33 @@ import React from "react";
 import { View, Text } from "react-native";
 import { Book } from "lucide-react-native";
 import { useWordProfile } from "../WordProfileProvider";
+import { useProfileStyles, useTheme } from "../../../theme";
 
 export function GrammarTab() {
   const { profile } = useWordProfile();
+  const styles = useProfileStyles();
+  const { theme } = useTheme();
 
   return (
-    <View className="p-4 space-y-4">
+    <View style={styles.tabContent}>
       {/* Dictionary Information */}
       {profile?.dictionary && (
-        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <View className="flex-row items-center mb-6">
-            <Book size={24} color="#6b7280" />
-            <Text className="text-xl font-semibold text-gray-900 ml-3">
+        <View style={styles.exampleCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.layout.xl }}>
+            <Book size={24} color={theme.colors.text.secondary} />
+            <Text style={[styles.tabSectionTitle, { marginBottom: 0, marginLeft: theme.layout.cardGap }]}>
               Dictionary ({profile.dictionary.source})
             </Text>
           </View>
           
           {profile.dictionary.definitions.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-lg font-semibold text-gray-700 mb-4">Definitions</Text>
-              <View className="space-y-2">
+            <View style={{ marginBottom: theme.layout.xl }}>
+              <Text style={[theme.typography.bodyLarge, { fontWeight: theme.typography.label.fontWeight, color: theme.colors.text.primary, marginBottom: theme.layout.lg }]}>
+                Definitions
+              </Text>
+              <View>
                 {profile.dictionary.definitions.map((def, idx) => (
-                  <Text key={idx} className="text-lg text-gray-700 leading-relaxed">
+                  <Text key={idx} style={[theme.typography.bodyLarge, { color: theme.colors.text.secondary, lineHeight: 26, marginBottom: theme.layout.sm }]}>
                     • {def}
                   </Text>
                 ))}
@@ -32,12 +37,14 @@ export function GrammarTab() {
           )}
           
           {profile.dictionary.synonyms.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-lg font-semibold text-gray-700 mb-4">Synonyms</Text>
-              <View className="flex-row flex-wrap">
+            <View style={{ marginBottom: theme.layout.xl }}>
+              <Text style={[theme.typography.bodyLarge, { fontWeight: theme.typography.label.fontWeight, color: theme.colors.text.primary, marginBottom: theme.layout.lg }]}>
+                Synonyms
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {profile.dictionary.synonyms.map((syn, idx) => (
-                  <View key={idx} className="bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg mr-2 mb-2">
-                    <Text className="text-blue-800 font-medium">{syn}</Text>
+                  <View key={idx} style={[styles.frequencyBadge, { marginRight: theme.layout.sm, marginBottom: theme.layout.sm }]}>
+                    <Text style={styles.frequencyText}>{syn}</Text>
                   </View>
                 ))}
               </View>
@@ -46,11 +53,13 @@ export function GrammarTab() {
           
           {profile.dictionary.antonyms.length > 0 && (
             <View>
-              <Text className="text-lg font-semibold text-gray-700 mb-4">Antonyms</Text>
-              <View className="flex-row flex-wrap">
+              <Text style={[theme.typography.bodyLarge, { fontWeight: theme.typography.label.fontWeight, color: theme.colors.text.primary, marginBottom: theme.layout.lg }]}>
+                Antonyms
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {profile.dictionary.antonyms.map((ant, idx) => (
-                  <View key={idx} className="bg-red-50 border border-red-200 px-3 py-2 rounded-lg mr-2 mb-2">
-                    <Text className="text-red-800 font-medium">{ant}</Text>
+                  <View key={idx} style={[styles.difficultyBadge, styles.difficultyColors.hard, { marginRight: theme.layout.sm, marginBottom: theme.layout.sm }]}>
+                    <Text style={[styles.badgeText, { color: styles.difficultyColors.hard.color }]}>{ant}</Text>
                   </View>
                 ))}
               </View>
@@ -61,22 +70,28 @@ export function GrammarTab() {
 
       {/* Part of Speech */}
       {profile?.partOfSpeech && (
-        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <Text className="text-xl font-semibold text-gray-900 mb-4">Part of Speech</Text>
-          <View className="bg-green-100 border border-green-200 px-4 py-3 rounded-xl self-start">
-            <Text className="text-green-800 font-semibold text-lg">{profile.partOfSpeech}</Text>
+        <View style={[styles.exampleCard, { marginTop: theme.layout.lg }]}>
+          <Text style={styles.tabSectionTitle}>Part of Speech</Text>
+          <View style={[styles.difficultyBadge, styles.difficultyColors.easy, { alignSelf: 'flex-start' }]}>
+            <Text style={[theme.typography.bodyLarge, { fontWeight: theme.typography.label.fontWeight, color: styles.difficultyColors.easy.color }]}>
+              {profile.partOfSpeech}
+            </Text>
           </View>
         </View>
       )}
 
       {/* Frequency Information */}
       {profile?.frequency && (
-        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <Text className="text-xl font-semibold text-gray-900 mb-4">Frequency</Text>
-          <View className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-lg text-blue-800 font-medium">Usage Frequency</Text>
-              <Text className="text-2xl font-bold text-blue-900">{profile.frequency}</Text>
+        <View style={[styles.exampleCard, { marginTop: theme.layout.lg }]}>
+          <Text style={styles.tabSectionTitle}>Frequency</Text>
+          <View style={{ backgroundColor: theme.colors.status.infoBackground, borderWidth: 1, borderColor: theme.colors.status.infoBorder, borderRadius: theme.borderRadius.lg, padding: theme.layout.lg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={[theme.typography.bodyLarge, { color: theme.colors.status.info, fontWeight: theme.typography.label.fontWeight }]}>
+                Usage Frequency
+              </Text>
+              <Text style={[theme.typography.h3, { color: theme.colors.status.info }]}>
+                {profile.frequency}
+              </Text>
             </View>
           </View>
         </View>
@@ -84,18 +99,24 @@ export function GrammarTab() {
 
       {/* Difficulty Level */}
       {profile?.difficulty && (
-        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <Text className="text-xl font-semibold text-gray-900 mb-4">Difficulty Level</Text>
-          <View className={`px-4 py-3 rounded-xl self-start border ${
-            profile.difficulty.toLowerCase() === 'easy' ? 'bg-green-100 border-green-200' :
-            profile.difficulty.toLowerCase() === 'intermediate' ? 'bg-yellow-100 border-yellow-200' :
-            'bg-red-100 border-red-200'
-          }`}>
-            <Text className={`font-semibold text-lg ${
-              profile.difficulty.toLowerCase() === 'easy' ? 'text-green-800' :
-              profile.difficulty.toLowerCase() === 'intermediate' ? 'text-yellow-800' :
-              'text-red-800'
-            }`}>
+        <View style={[styles.exampleCard, { marginTop: theme.layout.lg }]}>
+          <Text style={styles.tabSectionTitle}>Difficulty Level</Text>
+          <View style={[
+            styles.difficultyBadge, 
+            profile.difficulty.toLowerCase() === 'easy' ? styles.difficultyColors.easy :
+            profile.difficulty.toLowerCase() === 'intermediate' || profile.difficulty.toLowerCase() === 'medium' ? styles.difficultyColors.medium :
+            styles.difficultyColors.hard,
+            { alignSelf: 'flex-start', paddingHorizontal: theme.layout.lg, paddingVertical: theme.layout.cardGap }
+          ]}>
+            <Text style={[
+              theme.typography.bodyLarge,
+              { 
+                fontWeight: theme.typography.label.fontWeight,
+                color: profile.difficulty.toLowerCase() === 'easy' ? styles.difficultyColors.easy.color :
+                       profile.difficulty.toLowerCase() === 'intermediate' || profile.difficulty.toLowerCase() === 'medium' ? styles.difficultyColors.medium.color :
+                       styles.difficultyColors.hard.color
+              }
+            ]}>
               {profile.difficulty}
             </Text>
           </View>
@@ -104,10 +125,10 @@ export function GrammarTab() {
 
       {/* Empty State */}
       {!profile?.dictionary && !profile?.partOfSpeech && !profile?.frequency && !profile?.difficulty && (
-        <View className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
-          <View className="items-center">
-            <Book size={48} color="#d1d5db" />
-            <Text className="text-gray-500 text-center mt-4 text-lg">
+        <View style={styles.emptyStateCard}>
+          <View style={{ alignItems: 'center' }}>
+            <Book size={48} color={theme.colors.text.tertiary} />
+            <Text style={[styles.emptyStateText, { marginTop: theme.layout.lg, fontSize: theme.typography.bodyLarge.fontSize }]}>
               Grammar and dictionary information will appear here once the profile is generated.
             </Text>
           </View>
