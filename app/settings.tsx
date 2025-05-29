@@ -12,6 +12,8 @@ import {
 } from "@gluestack-ui/themed";
 import { ChevronDown } from "lucide-react-native";
 import { useStore } from "../src/ui/hooks/useStore";
+import { getWordRepository } from "../src/platform/storageProvider";
+import { CloudSyncService } from "../src/infra/services/cloudSyncService";
 import { storage } from "../src/platform/storageUtils";
 import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
 import SettingsSection from "../src/ui/components/settings/SettingsSection";
@@ -75,12 +77,15 @@ export default function SettingsScreen() {
     selectedModel,
     setSelectedModel,
     flashcardSettings,
-    setFlashcardSettings
+    setFlashcardSettings,
+    loadWords
   } = useStore();
   const [inputKey, setInputKey] = useState(apiKey || '');
   const [showKey, setShowKey] = useState(false);
   const [inputTtsKey, setInputTtsKey] = useState(ttsApiKey || AZURE_TTS_KEY || '');
   const [showTtsKey, setShowTtsKey] = useState(false);
+  const cloudSync = React.useMemo(() => new CloudSyncService(), []);
+  const [syncMessage, setSyncMessage] = useState('');
 
   useEffect(() => {
     // Update input when store updates
@@ -148,6 +153,27 @@ export default function SettingsScreen() {
 
   const toggleAutoPlayTTS = () => {
     setFlashcardSettings({ autoPlayTTS: !flashcardSettings.autoPlayTTS });
+  };
+
+  const handleBackup = async () => {
+    try {
+      await cloudSync.backupWords(getWordRepository());
+      setSyncMessage('Backup uploaded to Cloudflare R2');
+    } catch (error) {
+      console.error('Backup failed', error);
+      setSyncMessage('Failed to upload backup');
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      await cloudSync.restoreWords(getWordRepository());
+      await loadWords();
+      setSyncMessage('Data synced from Cloudflare R2');
+    } catch (error) {
+      console.error('Restore failed', error);
+      setSyncMessage('Failed to sync from cloud');
+    }
   };
 
   return (
@@ -331,6 +357,26 @@ export default function SettingsScreen() {
               {MODEL_OPTIONS.find(m => m.key === selectedModel)?.description}
             </Text>
           </View>
+        </SettingsSection>
+
+        <SettingsSection title="Cloud Sync" description="Backup your data to Cloudflare R2">
+          <View className="flex-row mb-3">
+            <TouchableOpacity
+              className="flex-1 bg-blue-500 rounded-lg px-4 py-3 items-center mr-2"
+              onPress={handleBackup}
+            >
+              <Text className="text-white font-semibold text-base">Upload Backup</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 bg-blue-500 rounded-lg px-4 py-3 items-center"
+              onPress={handleRestore}
+            >
+              <Text className="text-white font-semibold text-base">Sync From Cloud</Text>
+            </TouchableOpacity>
+          </View>
+          {syncMessage ? (
+            <Text className="text-sm text-gray-700">{syncMessage}</Text>
+          ) : null}
         </SettingsSection>
 
         <SettingsSection title="About">

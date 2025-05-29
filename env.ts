@@ -15,6 +15,15 @@ export const AZURE_TTS_KEY =
 export const AZURE_TTS_REGION =
   (Constants.expoConfig?.extra as any)?.AZURE_TTS_REGION ?? "eastus";
 
+export const CLOUDFLARE_R2_ENDPOINT =
+  (Constants.expoConfig?.extra as any)?.CLOUDFLARE_R2_ENDPOINT ?? "";
+export const CLOUDFLARE_R2_BUCKET =
+  (Constants.expoConfig?.extra as any)?.CLOUDFLARE_R2_BUCKET ?? "weilang-sync";
+export const S3_CLIENT_ACCESS_KEY =
+  (Constants.expoConfig?.extra as any)?.S3_CLIENT_ACCESS_KEY ?? "";
+export const S3_CLIENT_SECRET_ACCESS_KEY =
+  (Constants.expoConfig?.extra as any)?.S3_CLIENT_SECRET_ACCESS_KEY ?? "";
+
 // Database paths
 // Use relative path for local development
 export const UNIHAN_DB_PATH = 'data/databases/unihan.db';

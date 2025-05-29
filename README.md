@@ -176,6 +176,11 @@ OPENAI_API_KEY=your_openai_api_key_here
 # Get yours at: https://azure.microsoft.com/services/cognitive-services/text-to-speech/
 AZURE_TTS_KEY=your_azure_tts_key_here
 AZURE_TTS_REGION=eastus
+# Cloudflare R2 credentials for optional cloud sync
+CLOUDFLARE_R2_ENDPOINT=https://45c66fbe749ca506d51c9e5abb532ea5.r2.cloudflarestorage.com
+CLOUDFLARE_R2_BUCKET=weilang-sync
+S3_CLIENT_ACCESS_KEY=your_access_key
+S3_CLIENT_SECRET_ACCESS_KEY=your_secret_key
 ```
 
 ### API Keys Setup
@@ -195,6 +200,12 @@ AZURE_TTS_REGION=eastus
 - Create an Azure account
 - Enable Cognitive Services
 - Provides natural Chinese voice synthesis
+
+#### 4. Cloudflare R2 (Optional)
+- Create a Cloudflare account and enable R2
+- Create a bucket (e.g., `weilang-sync`)
+- Generate an Access Key and Secret Key
+- Used for backing up your data to the cloud
 
 ## 🎯 Usage
 
@@ -228,6 +239,11 @@ Each word profile includes:
 - **Audio Settings** - Configure TTS preferences
 - **Generation Modes** - Control AI example complexity
 - **Model Selection** - Choose between different LLM models
+
+### Cloud Sync with R2
+You can back up your study progress to a Cloudflare R2 bucket. Configure the
+`CLOUDFLARE_R2_*` variables in `.env` and use the `CloudSyncService` to upload or
+restore your `words.json` file. This keeps your progress in sync across devices.
 
 ## 🧪 Development
 

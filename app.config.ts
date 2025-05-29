@@ -49,5 +49,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     AZURE_TTS_KEY: process.env.AZURE_TTS_KEY,
     AZURE_TTS_REGION: process.env.AZURE_TTS_REGION || "eastus",
+    CLOUDFLARE_R2_ENDPOINT: process.env.CLOUDFLARE_R2_ENDPOINT,
+    CLOUDFLARE_R2_BUCKET: process.env.CLOUDFLARE_R2_BUCKET,
+    S3_CLIENT_ACCESS_KEY: process.env.S3_CLIENT_ACCESS_KEY,
+    S3_CLIENT_SECRET_ACCESS_KEY: process.env.S3_CLIENT_SECRET_ACCESS_KEY,
   },
 });
