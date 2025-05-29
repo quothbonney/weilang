@@ -37,7 +37,7 @@ export const createProfileSlice = (set: any, get: any): ProfileSlice => ({
     set({ isLoading: true, error: null });
     try {
       const repo = getWordRepository();
-      const adapter = new TogetherAdapter(apiKey, get().selectedModel);
+      const adapter = new TogetherAdapter(apiKey, get().selectedModel, repo);
       const useCase = new GenerateExampleUseCase(repo, null as any, adapter);
       const example = await useCase.execute(wordId, get().exampleGenerationMode);
       set({ lastGeneratedExample: example, isLoading: false });
@@ -57,7 +57,7 @@ export const createProfileSlice = (set: any, get: any): ProfileSlice => ({
     set({ isLoading: true, error: null });
     try {
       const repo = getWordRepository();
-      const adapter = new TogetherAdapter(apiKey, get().selectedModel);
+      const adapter = new TogetherAdapter(apiKey, get().selectedModel, repo);
       const useCase = new GenerateWordProfileUseCase(repo, null as any, adapter);
       const profile = await useCase.execute(wordId);
       set({ lastGeneratedProfile: profile, isLoading: false });
@@ -113,12 +113,14 @@ export const createProfileSlice = (set: any, get: any): ProfileSlice => ({
 
   initializeProfileService: () => {
     const { apiKey } = get();
+    const wordRepo = getWordRepository();
     const config: WordProfileConfig = {
       togetherApiKey: apiKey || TOGETHER_KEY,
       lingvanexApiKey: LINGVANEX_KEY,
       unihanDbPath: UNIHAN_DB_PATH,
       enableCache: true,
-      strokeOrderBaseUrl: STROKE_ORDER_BASE_URL
+      strokeOrderBaseUrl: STROKE_ORDER_BASE_URL,
+      wordRepository: wordRepo
     };
     try {
       const service = new WordProfileService(config);

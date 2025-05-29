@@ -58,6 +58,16 @@ export class SentenceTranslationService {
       throw new Error("You need to learn at least 3 words before starting sentence translation exercises. Please review some flashcards first!");
     }
 
+    // Log word prioritization for debugging
+    try {
+      const learningCards = await this.wordRepo.listLearningCards();
+      const newCards = await this.wordRepo.listNewCards(10);
+      console.log('🔍 Currently learning words:', learningCards.map(w => w.hanzi));
+      console.log('🔍 New words available:', newCards.map(w => w.hanzi));
+    } catch (error) {
+      console.warn('Could not get learning/new cards for logging:', error);
+    }
+
     // Generate exercises for the session
     const exercises: SentenceExercise[] = [];
     
@@ -78,7 +88,7 @@ export class SentenceTranslationService {
 
         await this.exerciseRepo.save(exercise);
         exercises.push(exercise);
-        console.log(`✅ Generated exercise ${i + 1}: ${exercise.chinese.hanzi}`);
+        console.log(`✅ Generated exercise ${i + 1}: ${exercise.chinese.hanzi} (used words: ${exercise.usedWords.join(', ')})`);
       } catch (error) {
         console.error(`Failed to generate exercise ${i + 1}:`, error);
         // Continue with fewer exercises rather than failing completely

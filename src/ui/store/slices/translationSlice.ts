@@ -34,7 +34,7 @@ export const createTranslationSlice = (set: any, get: any): TranslationSlice => 
       const attemptRepo = getTranslationAttemptRepository();
       const sessionRepo = getTranslationSessionRepository();
       const translationModel = 'Qwen/Qwen2.5-7B-Instruct-Turbo';
-      const adapter = new TogetherAdapter(apiKey || TOGETHER_KEY, translationModel);
+      const adapter = new TogetherAdapter(apiKey || TOGETHER_KEY, translationModel, wordRepo);
       const service = new SentenceTranslationService({
         wordRepository: wordRepo,
         sentenceExerciseRepository: exerciseRepo,

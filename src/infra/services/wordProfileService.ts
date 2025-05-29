@@ -16,6 +16,7 @@ export interface WordProfileConfig {
   unihanDbPath?: string;
   enableCache?: boolean;
   strokeOrderBaseUrl?: string;
+  wordRepository?: any; // Add optional word repository
 }
 
 export class WordProfileService {
@@ -24,6 +25,7 @@ export class WordProfileService {
   private lingvanexApi: LingvanexApi | null;
   private profileCache: ProfileCache;
   private llmAdapter: TogetherAdapter | null;
+  private llmAdapterNonCritical: TogetherAdapter | null; // Added for Qwen model
   private config: WordProfileConfig;
 
   constructor(config: WordProfileConfig) {
@@ -37,7 +39,8 @@ export class WordProfileService {
       hasLingvanexKey: !!this.config.lingvanexApiKey,
       lingvanexKeyLength: this.config.lingvanexApiKey?.length || 0,
       hasTogetherKey: !!this.config.togetherApiKey,
-      unihanDbPath: this.config.unihanDbPath
+      unihanDbPath: this.config.unihanDbPath,
+      hasWordRepository: !!this.config.wordRepository
     });
 
     this.unihanRepo = new UnihanRepository(this.config.unihanDbPath);
@@ -47,12 +50,16 @@ export class WordProfileService {
       : null;
     this.profileCache = new ProfileCache();
     this.llmAdapter = this.config.togetherApiKey 
-      ? new TogetherAdapter(this.config.togetherApiKey) 
+      ? new TogetherAdapter(this.config.togetherApiKey, 'deepseek-ai/DeepSeek-V3', this.config.wordRepository) 
+      : null;
+    this.llmAdapterNonCritical = this.config.togetherApiKey // Initialize Qwen adapter
+      ? new TogetherAdapter(this.config.togetherApiKey, 'Qwen/Qwen2.5-7B-Instruct-Turbo', this.config.wordRepository)
       : null;
 
     console.log('🔍 WordProfileService: Services initialized:', {
       hasLingvanexApi: !!this.lingvanexApi,
       hasLlmAdapter: !!this.llmAdapter,
+      hasLlmAdapterNonCritical: !!this.llmAdapterNonCritical, // Log Qwen adapter
       hasRadicalAnalyzer: !!this.radicalAnalyzer
     });
   }
@@ -98,19 +105,22 @@ export class WordProfileService {
       if (cached) {
         // If cached, still call LLM enhancement if onUpdate is provided, 
         // in case LLM data was missing or needs refresh.
+        // Use the primary (DeepSeek) adapter for enhancing cached entries
         if (this.llmAdapter && onUpdate) {
-          this.enhanceWithLLMData(word, cached, onUpdate, true); // Pass a flag to indicate it's from cache
+          this.enhanceWithLLMData(word, cached, onUpdate, true, this.llmAdapter); 
         }
         return cached;
       }
     }
 
     // Build partial profile without LLM data for immediate display
-    const partialProfile = await this.buildPartialProfile(word);
+    // Use the non-critical (Qwen) adapter for initial partial profile
+    const partialProfile = await this.buildPartialProfile(word, this.llmAdapterNonCritical); 
     
     // Start LLM generation in background (don't await)
-    if (this.llmAdapter && onUpdate) {
-      this.enhanceWithLLMData(word, partialProfile, onUpdate, false);
+    // Use the non-critical (Qwen) adapter for the initial enhancement call
+    if (this.llmAdapterNonCritical && onUpdate) {
+      this.enhanceWithLLMData(word, partialProfile, onUpdate, false, this.llmAdapterNonCritical);
     }
 
     return partialProfile;
@@ -128,7 +138,8 @@ export class WordProfileService {
     ] = await Promise.allSettled([
       this.radicalAnalyzer.getWordBreakdown(hanzi), // Use RadicalAnalyzer
       this.getDictionaryData(hanzi),
-      this.getLLMData(word)
+      // Use non-critical adapter for the main build profile as well initially
+      this.getLLMData(word, this.llmAdapterNonCritical)
     ]);
 
     console.log(`🔍 WordProfileService: Data retrieval results for "${hanzi}":`, {
@@ -196,7 +207,7 @@ export class WordProfileService {
   /**
    * Build partial profile with API data only (no LLM) for immediate display
    */
-  private async buildPartialProfile(word: Word): Promise<WordProfileDTO> {
+  private async buildPartialProfile(word: Word, adapterForLlm?: TogetherAdapter | null): Promise<WordProfileDTO> {
     const hanzi = word.hanzi;
     console.log(`🔍 WordProfileService: Building PARTIAL profile for "${hanzi}" (API data only)...`);
     
@@ -276,10 +287,16 @@ export class WordProfileService {
     word: Word, 
     baseProfile: WordProfileDTO, 
     onUpdate: (profile: WordProfileDTO) => void,
-    isFromCache: boolean
+    isFromCache: boolean,
+    adapterToUse: TogetherAdapter | null // Pass the adapter to use
   ): Promise<void> {
+    if (!adapterToUse) {
+      console.log(`🔍 enhanceWithLLMData: No adapter provided, skipping enhancement for "${word.hanzi}".`);
+      onUpdate(baseProfile);
+      return;
+    }
     try {
-      console.log(`🔍 Enhancing profile for "${word.hanzi}" with LLM data...`);
+      console.log(`🔍 Enhancing profile for "${word.hanzi}" with LLM data using ${isFromCache ? 'DeepSeek (cache)' : 'Qwen (initial)'}...`);
       
       // If it's from cache and already has LLM data, maybe only update if LLM data is stale or missing critical fields
       if (isFromCache && baseProfile.etymology && baseProfile.examples && baseProfile.examples.length > 0) {
@@ -294,8 +311,8 @@ export class WordProfileService {
       }
 
       const [llmData, enhancedCharacterComponents] = await Promise.all([
-        this.getLLMData(word),
-        this.enhanceCharacterComponentsWithLLM(baseProfile.characterComponents || [])
+        this.getLLMData(word, adapterToUse), // Use the passed adapter
+        this.enhanceCharacterComponentsWithLLM(baseProfile.characterComponents || [], adapterToUse) // Pass adapter here too
       ]);
       
       console.log(`🔍 LLM enhancement results for "${word.hanzi}":`, {
@@ -357,13 +374,13 @@ export class WordProfileService {
     }
   }
 
-  private async getLLMData(word: Word) {
-    if (!this.llmAdapter) {
+  private async getLLMData(word: Word, adapter: TogetherAdapter | null) {
+    if (!adapter) {
       return null;
     }
 
     try {
-      return await this.llmAdapter.generateWordProfile(word);
+      return await adapter.generateWordProfile(word);
     } catch (error) {
       console.error('Failed to get LLM data:', error);
       return null;
@@ -499,138 +516,169 @@ export class WordProfileService {
    * Enhance character components with LLM-generated meanings when database lookup fails
    */
   private async enhanceCharacterComponentsWithLLM(
-    components: WordProfileDTO['characterComponents']
+    components: WordProfileDTO['characterComponents'],
+    adapter: TogetherAdapter | null 
   ): Promise<WordProfileDTO['characterComponents'] | null> {
-    if (!this.llmAdapter || !components || components.length === 0) {
+    if (!adapter || !components || components.length === 0) { 
       console.log('🔍 enhanceCharacterComponentsWithLLM: No LLM adapter or components', {
-        hasLlmAdapter: !!this.llmAdapter,
+        hasLlmAdapter: !!adapter, 
         hasComponents: !!components,
         componentsLength: components?.length || 0
       });
       return null;
     }
 
-    // Find character components that need LLM enhancement (have "Loading..." or empty meanings)
-    const charactersNeedingEnhancement = components.filter(comp => 
-      comp.type === 'character' && 
-      (comp.meaning === 'Loading...' || comp.meaning === '' || comp.pinyin === 'Loading...' || comp.pinyin === '')
+    const placeholderMeanings = ['Loading...', '', 'unknown meaning', 'meaning unavailable', 'error fetching meaning'];
+    const placeholderPinyins = ['Loading...', '', 'unknown', 'N/A', 'pinyin unavailable'];
+
+    const componentsToEnhance = components.filter(comp =>
+      placeholderMeanings.includes(comp.meaning?.trim() || '') ||
+      placeholderPinyins.includes(comp.pinyin?.trim() || '')
     );
 
     console.log('🔍 enhanceCharacterComponentsWithLLM: Analysis', {
       totalComponents: components.length,
-      characterComponents: components.filter(c => c.type === 'character').length,
-      charactersNeedingEnhancement: charactersNeedingEnhancement.length,
-      charactersToEnhance: charactersNeedingEnhancement.map(c => ({ char: c.char, meaning: c.meaning, pinyin: c.pinyin }))
+      componentsIdentifiedForEnhancement: componentsToEnhance.length,
+      // Log characters that will be fetched
+      charsToFetch: Array.from(new Set(componentsToEnhance.map(c => c.char))) 
     });
 
-    if (charactersNeedingEnhancement.length === 0) {
-      console.log('🔍 enhanceCharacterComponentsWithLLM: No characters need enhancement');
-      return null; // No enhancement needed
+    if (componentsToEnhance.length === 0) {
+      console.log('🔍 enhanceCharacterComponentsWithLLM: No components need enhancement.');
+      return null; 
+    }
+
+    const uniqueCharsToFetch = Array.from(new Set(componentsToEnhance.map(c => c.char)));
+    
+    if (uniqueCharsToFetch.length === 0) {
+        console.log('🔍 enhanceCharacterComponentsWithLLM: No unique characters to fetch, though components were identified.');
+        return null; 
     }
 
     try {
-      console.log(`🔍 Enhancing ${charactersNeedingEnhancement.length} character meanings with LLM...`);
+      console.log(`🔍 enhanceCharacterComponentsWithLLM: Making API call for ${uniqueCharsToFetch.length} unique character meanings...`);
+      const llmGeneratedMeanings = await adapter.generateCharacterMeanings(uniqueCharsToFetch);
+      console.log('🔍 enhanceCharacterComponentsWithLLM: LLM response received:', llmGeneratedMeanings);
+
+      if (!llmGeneratedMeanings || llmGeneratedMeanings.length === 0) {
+        console.log('🔍 No meanings received from LLM for enhanceCharacterComponentsWithLLM.');
+        return null; 
+      }
+
+      const meaningMap = new Map(llmGeneratedMeanings.map(m => [m.character, m]));
       
-      const charactersToEnhance = charactersNeedingEnhancement.map(comp => comp.char);
-      console.log('🔍 Characters to enhance:', charactersToEnhance);
-      
-      const llmCharacterMeanings = await this.llmAdapter.generateCharacterMeanings(charactersToEnhance);
-      console.log('🔍 LLM character meanings received:', llmCharacterMeanings);
-      
-      // Create a map for quick lookup
-      const meaningMap = new Map(llmCharacterMeanings.map(cm => [cm.character, cm]));
-      
-      // Update the components with LLM-generated meanings
-      const enhancedComponents = components.map(comp => {
-        if (comp.type === 'character' && meaningMap.has(comp.char)) {
+      let updated = false;
+      const enhancedComponentsResult = components.map(comp => {
+        const originalMeaning = comp.meaning?.trim() || '';
+        const originalPinyin = comp.pinyin?.trim() || '';
+        
+        const needsMeaningEnhancement = placeholderMeanings.includes(originalMeaning);
+        const needsPinyinEnhancement = placeholderPinyins.includes(originalPinyin);
+
+        if ((needsMeaningEnhancement || needsPinyinEnhancement) && meaningMap.has(comp.char)) {
           const llmData = meaningMap.get(comp.char)!;
-          const enhanced = {
-            ...comp,
-            meaning: comp.meaning === 'Loading...' || comp.meaning === '' ? llmData.meaning : comp.meaning,
-            pinyin: comp.pinyin === 'Loading...' || comp.pinyin === '' ? llmData.pinyin : comp.pinyin
-          };
-          console.log(`🔍 Enhanced character ${comp.char}:`, { before: comp, after: enhanced });
-          return enhanced;
+          const newMeaning = needsMeaningEnhancement ? (llmData.meaning || originalMeaning) : originalMeaning;
+          const newPinyin = needsPinyinEnhancement ? (llmData.pinyin || originalPinyin) : originalPinyin;
+
+          if (originalMeaning !== newMeaning || originalPinyin !== newPinyin) {
+            updated = true;
+            console.log(`🔍 Enhanced component ${comp.char}: M: '${originalMeaning}'->'${newMeaning}', P: '${originalPinyin}'->'${newPinyin}'`);
+            return {
+              ...comp,
+              meaning: newMeaning,
+              pinyin: newPinyin,
+            };
+          }
         }
         return comp;
       });
 
-      console.log(`🔍 Successfully enhanced character meanings with LLM`);
-      return enhancedComponents;
+      if (updated) {
+        console.log(`🔍 Successfully enhanced character meanings with LLM.`);
+        return enhancedComponentsResult;
+      } else {
+        console.log('🔍 No actual changes made to components after LLM fetch in enhanceCharacterComponentsWithLLM.');
+        return null; 
+      }
       
     } catch (error) {
       console.error('🔍 Failed to enhance character meanings with LLM:', error);
-      return null;
+      return null; 
     }
   }
 
   private async buildCharacterComponentsFromBreakdown(
-    rBreakdown: Awaited<ReturnType<RadicalAnalyzer['getWordBreakdown']>> | null,
+    rBreakdown: WordProfileDTO['radicalBreakdown'] | null,
     hanzi?: string
   ): Promise<WordProfileDTO['characterComponents']> {
     const components: WordProfileDTO['characterComponents'] = [];
 
-    if (rBreakdown && rBreakdown.characters.length > 0) {
-      // Use radical breakdown data
+    if (rBreakdown && rBreakdown.characters && rBreakdown.characters.length > 0) {
+      // Path 1: Radical breakdown IS available
+      console.log(`🔍 Building components from rBreakdown for "${hanzi || rBreakdown.characters.map(c => c.character).join('')}"`);
       for (let charIndex = 0; charIndex < rBreakdown.characters.length; charIndex++) {
         const charAnalysis = rBreakdown.characters[charIndex];
 
-        // Skip Unihan database lookup - always use LLM fallback
-        // const charData = await this.unihanRepo.getCharacterData(charAnalysis.character);
-
+        // Main character from the input word (e.g., "放" or "心")
         components.push({
           char: charAnalysis.character,
-          meaning: 'Loading...', // Always start with placeholder to trigger LLM fallback
+          meaning: 'Loading...', // To be filled by LLM via enhanceCharacterComponentsWithLLM
           type: 'character',
           strokes: charAnalysis.totalStrokes,
-          pinyin: 'Loading...', // Always start with placeholder to trigger LLM fallback
+          pinyin: 'Loading...', // To be filled by LLM
           position: charIndex,
         });
 
-        // Add its main radical
+        // Its main radical component
         if (charAnalysis.radical) {
           components.push({
             char: charAnalysis.radical.character,
-            meaning: charAnalysis.radical.meaning,
+            meaning: charAnalysis.radical.meaning || 'Loading...', 
             type: 'radical',
             strokes: charAnalysis.radical.strokes,
-            pinyin: charAnalysis.radical.pinyin,
-            // Position relative to this character could be inferred, or a general one.
-            // For simplicity, let's assign a sub-position or link to the parent char.
-            position: charIndex * 10 + 1 // Example positioning scheme
+            pinyin: charAnalysis.radical.pinyin || 'Loading...', 
+            position: charIndex * 10 + 1, 
           });
         }
-        // Add other components from its composition array
-        charAnalysis.composition.forEach((comp, compIndex) => {
-          if (comp.type !== 'radical') {
+
+        // Other composition elements
+        charAnalysis.composition.forEach((compData: {
+          component: string;
+          type: 'radical' | 'phonetic' | 'semantic' | 'variant';
+          meaning?: string;
+          pinyin?: string;
+          strokes?: number;
+          position?: string;
+        }, compIndex: number) => {
+          // Avoid duplicating the main radical if it's also listed in 'composition' by rBreakdown
+          const isMainRadical = charAnalysis.radical && charAnalysis.radical.character === compData.component && compData.type === 'radical';
+          if (!isMainRadical) {
             components.push({
-              char: comp.component,
-              meaning: comp.meaning || '',
-              type: comp.type,
-              strokes: comp.strokes || 0,
-              pinyin: comp.pinyin || '',
+              char: compData.component,
+              meaning: compData.meaning || 'Loading...', 
+              type: compData.type,
+              strokes: compData.strokes || 0,
+              pinyin: compData.pinyin || 'Loading...', 
               position: charIndex * 10 + 2 + compIndex,
             });
           }
         });
       }
     } else if (hanzi) {
-      // Fallback: create basic character components even without radical breakdown
-      console.log(`🔍 No radical breakdown available for "${hanzi}", creating basic character components`);
-      const characters = hanzi.split('');
-      characters.forEach((char, index) => {
+      // Path 2: No radical breakdown, but hanzi string is available
+      console.log(`🔍 No rBreakdown for "${hanzi}", creating basic character components for LLM enhancement.`);
+      hanzi.split('').forEach((char, index) => {
         components.push({
           char: char,
-          meaning: 'Loading...', // Will be filled by LLM
+          meaning: 'Loading...', 
           type: 'character',
-          strokes: 8, // Default estimate
-          pinyin: 'Loading...', // Will be filled by LLM
+          strokes: 0, // Unknown, LLM won't provide this. Unihan would.
+          pinyin: 'Loading...', 
           position: index,
         });
       });
     }
-
-    console.log(`🔍 Built ${components.length} character components for "${hanzi || 'unknown'}"`);
+    console.log(`🔍 Built ${components.length} initial components for "${hanzi}". Components:`, components.map(c => ({char:c.char, meaning:c.meaning, pinyin:c.pinyin, type:c.type})));
     return components;
   }
 
@@ -681,17 +729,46 @@ export class WordProfileService {
     return this.profileCache.getStats();
   }
 
-  async testConnections(): Promise<{ unihan: boolean; lingvanex: boolean; llm: boolean }> {
+  async testConnections(): Promise<{ unihan: boolean; lingvanex: boolean; llm: boolean; llmNonCritical: boolean }> {
+    let unihanOk = false;
     try {
       // Test RadicalAnalyzer via getWordBreakdown as it uses UnihanRepo
       const unihanTest = await this.radicalAnalyzer.getWordBreakdown('人').then(rb => !!rb).catch(() => false);
-      const lingvanexTest = this.lingvanexApi ? await this.lingvanexApi.getDictionaryDefinition('测试').then(res => !!res).catch(() => false) : false;
-      const llmTest = this.llmAdapter ? true : false; // Assume adapter initializes if key is present
-      
-      return { unihan: unihanTest, lingvanex: lingvanexTest, llm: llmTest };
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      return { unihan: false, lingvanex: false, llm: false };
+      unihanOk = unihanTest;
+    } catch (e) { /* ignore */ }
+
+    let lingvanexOk = false;
+    if (this.lingvanexApi) {
+      try {
+        // A simple test call, e.g. translate 'hello'
+        const testResult = await this.lingvanexApi.lookupWord('你好');
+        lingvanexOk = !!testResult;
+      } catch (e) { /* ignore */ }
+    } else {
+      lingvanexOk = true; // No API key, so connection is "ok" (not expected to work)
     }
+
+    let llmOk = false;
+    if (this.llmAdapter) {
+      try {
+        // A simple test call, e.g. generate profile for a common word
+        await this.llmAdapter.generateWordProfile({ id: 'test1', hanzi: '你好', pinyin: 'nǐ hǎo', meaning: 'hello', ease:0, interval:0, repetitions:0, due: Date.now(), status: 'new', learningStep: 0, createdAt: Date.now() });
+        llmOk = true;
+      } catch (e) { /* ignore */ }
+    } else {
+      llmOk = true; // No API key, so connection is "ok"
+    }
+    
+    let llmNonCriticalOk = false;
+    if (this.llmAdapterNonCritical) {
+      try {
+        await this.llmAdapterNonCritical.generateWordProfile({ id: 'test2', hanzi: '你好', pinyin: 'nǐ hǎo', meaning: 'hello', ease:0, interval:0, repetitions:0, due: Date.now(), status: 'new', learningStep: 0, createdAt: Date.now() });
+        llmNonCriticalOk = true;
+      } catch (e) { /* ignore */ }
+    } else {
+      llmNonCriticalOk = true; // No API key, so connection is "ok"
+    }
+
+    return { unihan: unihanOk, lingvanex: lingvanexOk, llm: llmOk, llmNonCritical: llmNonCriticalOk };
   }
 }

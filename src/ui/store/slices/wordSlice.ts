@@ -1,7 +1,7 @@
 import { getWordRepository } from '../../../platform/storageProvider';
 import { AddWordUseCase } from '../../../domain/usecases/addWord';
 import { ReviewWordUseCase } from '../../../domain/usecases/reviewWord';
-const wordsData = require('../../data/words_import.json') as Word[];
+const wordsData = require('../../../data/words_import.json') as Word[];
 import { Word, ReviewQuality } from '../../../domain/entities';
 import type { WeiLangStore } from '../useStore';
 

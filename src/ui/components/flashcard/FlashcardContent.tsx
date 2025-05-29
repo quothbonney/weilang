@@ -129,7 +129,8 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
                 <Volume2 size={20} color="#4b5563" />
               </TouchableOpacity>
             </View>
-            {flashcardSettings.showPinyin && (
+            {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
+            {!flashcardSettings.showPinyin && (
               <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
             )}
             
@@ -193,13 +194,18 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
               <Volume2 size={20} color="#4b5563" />
             </TouchableOpacity>
           </View>
-          {flashcardSettings.showPinyin && (
-            <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
-          )}
+            {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
+            {!flashcardSettings.showPinyin && (
+              <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
+            )}
           <View style={styles.wordStats}>
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
           </View>
+          {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
+          {!flashcardSettings.showPinyin && (
+            <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
+          )}
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => router.push(`/profile/${currentCard.id}` as any)}
@@ -236,14 +242,18 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
               <Volume2 size={20} color="#4b5563" />
             </TouchableOpacity>
           </View>
-          {flashcardSettings.showPinyin && (
-            <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
-          )}
+            {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
+            {!flashcardSettings.showPinyin && (
+              <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
+            )}
           <View style={styles.wordStats}>
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
           </View>
-          
+          {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
+          {!flashcardSettings.showPinyin && (
+            <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
+          )}
           <TouchableOpacity 
             style={styles.profileButton}
             onPress={() => router.push(`/profile/${currentCard.id}` as any)}
@@ -266,6 +276,7 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
       </View>
       
       <Text style={styles.hanzi}>{currentCard.hanzi}</Text>
+      {/* Pinyin on the front of the card (normal mode) if showPinyin is ON */}
       {flashcardSettings.showPinyin && (
         <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
       )}
@@ -274,6 +285,10 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
         <>
           <View style={styles.divider} />
           <Text style={styles.meaning}>{currentCard.meaning}</Text>
+          {/* Pinyin on the back of the card (normal mode, answer shown) if showPinyin is OFF */}
+          {!flashcardSettings.showPinyin && (
+            <Text style={styles.pinyin}>{currentCard.pinyin}</Text>
+          )}
           
           <View style={styles.hanziWithSpeaker}>
             <TouchableOpacity 

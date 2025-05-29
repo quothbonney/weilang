@@ -36,14 +36,16 @@ interface CharacterMeaning {
 export class TogetherAdapter {
   private openai: OpenAI;
   private model: ModelOption;
+  private wordRepository?: any; // Add optional word repository
 
-  constructor(apiKey: string, model: ModelOption = 'deepseek-ai/DeepSeek-V3') {
+  constructor(apiKey: string, model: ModelOption = 'deepseek-ai/DeepSeek-V3', wordRepository?: any) {
     this.openai = new OpenAI({
       apiKey,
       baseURL: "https://api.together.xyz/v1",
       dangerouslyAllowBrowser: true, // Required for browser environments
     });
     this.model = model;
+    this.wordRepository = wordRepository;
   }
 
   private static parseJson(text: string): any {
@@ -327,6 +329,98 @@ Return as JSON array only.`;
   }
 
   /**
+   * Generate pinyin for a Chinese sentence by looking up stored words
+   * Falls back to AI generation for unknown words
+   */
+  private async generatePinyinFromStoredWords(hanzi: string): Promise<string> {
+    if (!this.wordRepository) {
+      // Fallback to AI generation if no word repository available
+      return this.generatePinyinWithAI(hanzi);
+    }
+
+    try {
+      // Get all stored words to create a lookup map
+      const allWords = await this.wordRepository.listAll();
+      const pinyinMap = new Map<string, string>();
+      
+      // Create a map of hanzi -> pinyin from stored words
+      allWords.forEach((word: any) => {
+        pinyinMap.set(word.hanzi, word.pinyin);
+      });
+
+      // Split the sentence into individual characters and words
+      const characters = hanzi.split('');
+      const pinyinParts: string[] = [];
+      let i = 0;
+
+      while (i < characters.length) {
+        let found = false;
+        
+        // Try to match longer words first (up to 4 characters)
+        for (let len = Math.min(4, characters.length - i); len >= 1; len--) {
+          const substring = characters.slice(i, i + len).join('');
+          if (pinyinMap.has(substring)) {
+            pinyinParts.push(pinyinMap.get(substring)!);
+            i += len;
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          // Character not found in stored words, skip for now
+          // We'll handle unknown characters later
+          pinyinParts.push('?');
+          i++;
+        }
+      }
+
+      // If we have any unknown characters (?), fall back to AI for the whole sentence
+      if (pinyinParts.includes('?')) {
+        console.log('🔍 Some characters not found in stored words, falling back to AI for pinyin generation');
+        return this.generatePinyinWithAI(hanzi);
+      }
+
+      return pinyinParts.join(' ');
+    } catch (error) {
+      console.error('Failed to generate pinyin from stored words:', error);
+      // Fallback to AI generation
+      return this.generatePinyinWithAI(hanzi);
+    }
+  }
+
+  /**
+   * Generate pinyin using AI (fallback method)
+   */
+  private async generatePinyinWithAI(hanzi: string): Promise<string> {
+    const systemPrompt = `You are an expert Chinese language tutor.
+Return ONLY the pinyin with tone marks for the given Chinese text.
+Do NOT include any other text, explanations, or formatting.`;
+
+    const userPrompt = `Provide pinyin with tone marks for: ${hanzi}`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 100,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error("No response from Together API");
+
+      return content.trim();
+    } catch (error) {
+      console.error('Failed to generate pinyin with AI:', error);
+      throw new Error("Failed to generate pinyin");
+    }
+  }
+
+  /**
    * Step 1: Generate Chinese sentence using only known words
    */
   private async generateChineseSentence(
@@ -340,16 +434,37 @@ Return as JSON array only.`;
     const maxLength = difficulty === 'beginner' ? 8 : difficulty === 'intermediate' ? 12 : 15;
     const minWords = difficulty === 'beginner' ? 3 : difficulty === 'intermediate' ? 4 : 5;
     
+    // Add randomization seed to ensure different sentences each time
+    const randomSeed = Math.floor(Math.random() * 10000);
+    const timestamp = Date.now();
+    
+    // Get currently learning words if available (prioritize these)
+    let prioritizedWords = knownWords;
+    if (this.wordRepository) {
+      try {
+        const learningCards = await this.wordRepository.listLearningCards();
+        const newCards = await this.wordRepository.listNewCards(10);
+        const currentlyLearningWords = [...learningCards, ...newCards].map(word => word.hanzi);
+        
+        // Prioritize currently learning words by putting them first
+        const otherKnownWords = knownWords.filter(word => !currentlyLearningWords.includes(word));
+        prioritizedWords = [...currentlyLearningWords, ...otherKnownWords];
+        
+        console.log(`🔍 Prioritized ${currentlyLearningWords.length} currently learning words out of ${knownWords.length} total known words`);
+      } catch (error) {
+        console.warn('Failed to get learning cards for prioritization:', error);
+      }
+    }
+    
     const systemPrompt = `You are an expert Chinese language tutor.
 Return ONLY valid JSON in this exact format:
 {
   "hanzi": "...",
-  "pinyin": "...",
   "usedWords": ["word1", "word2", ...]
 }
 Do NOT include any other text, markdown, or explanation.`;
 
-    const userPrompt = `Generate a natural Chinese sentence using ONLY these learned words: [${knownWords.join(', ')}]
+    const userPrompt = `Generate a natural Chinese sentence using ONLY these learned words: [${prioritizedWords.join(', ')}]
 
 Requirements:
 - Use ONLY the provided words (no additional characters)
@@ -358,13 +473,14 @@ Requirements:
 - Sentence length: ${maxLength} characters maximum
 - Use at least ${minWords} different words from the list
 - Focus on common daily situations (greetings, food, family, work, etc.)
+- IMPORTANT: Create a UNIQUE sentence - use this randomization context: seed=${randomSeed}, time=${timestamp}
+- If possible, prioritize using words from the beginning of the list (these are currently being learned)
 
 Provide:
 1. hanzi: The Chinese sentence using only the provided words
-2. pinyin: Complete pinyin with tone marks
-3. usedWords: Array of which words from the list were actually used
+2. usedWords: Array of which words from the list were actually used
 
-Return as JSON only.`;
+Return as JSON only. Do NOT include pinyin - it will be generated separately.`;
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -373,7 +489,7 @@ Return as JSON only.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.8,
+        temperature: 0.9, // Increased temperature for more variety
         max_tokens: 200,
       });
 
@@ -384,13 +500,16 @@ Return as JSON only.`;
       if (!parsed) throw new Error("Invalid JSON response from Together API");
 
       // Validate the response structure
-      if (!parsed.hanzi || !parsed.pinyin || !Array.isArray(parsed.usedWords)) {
+      if (!parsed.hanzi || !Array.isArray(parsed.usedWords)) {
         throw new Error("Incomplete Chinese sentence response from Together API");
       }
 
+      // Generate pinyin using stored words
+      const pinyin = await this.generatePinyinFromStoredWords(parsed.hanzi);
+
       return {
         hanzi: parsed.hanzi,
-        pinyin: parsed.pinyin,
+        pinyin: pinyin,
         usedWords: parsed.usedWords
       };
     } catch (error) {
