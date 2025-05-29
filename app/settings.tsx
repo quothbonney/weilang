@@ -12,6 +12,8 @@ import {
 } from "@gluestack-ui/themed";
 import { ChevronDown } from "lucide-react-native";
 import { useStore } from "../src/ui/hooks/useStore";
+import { getWordRepository } from "../src/platform/storageProvider";
+import { CloudSyncService } from "../src/infra/services/cloudSyncService";
 import { storage } from "../src/platform/storageUtils";
 import { ExampleGenerationMode, ModelOption } from "../src/ui/hooks/useStore";
 import SettingsSection from "../src/ui/components/settings/SettingsSection";
@@ -84,6 +86,8 @@ export default function SettingsScreen() {
   const [showKey, setShowKey] = useState(false);
   const [inputTtsKey, setInputTtsKey] = useState(ttsApiKey || AZURE_TTS_KEY || '');
   const [showTtsKey, setShowTtsKey] = useState(false);
+  const cloudSync = React.useMemo(() => new CloudSyncService(), []);
+  const [syncMessage, setSyncMessage] = useState('');
 
   useEffect(() => {
     // Update input when store updates
@@ -154,27 +158,23 @@ export default function SettingsScreen() {
   };
 
   const handleBackup = async () => {
-    const repo = getWordRepository();
-    const service = new CloudSyncService();
     try {
-      await service.backupWords(repo);
-      Alert.alert('Success', 'Data uploaded to Cloudflare R2');
+      await cloudSync.backupWords(getWordRepository());
+      setSyncMessage('Backup uploaded to Cloudflare R2');
     } catch (error) {
-      console.error('Failed to backup words:', error);
-      Alert.alert('Error', 'Failed to upload data');
+      console.error('Backup failed', error);
+      setSyncMessage('Failed to upload backup');
     }
   };
 
   const handleRestore = async () => {
-    const repo = getWordRepository();
-    const service = new CloudSyncService();
     try {
-      await service.restoreWords(repo);
+      await cloudSync.restoreWords(getWordRepository());
       await loadWords();
-      Alert.alert('Success', 'Data synced from Cloudflare R2');
+      setSyncMessage('Data synced from Cloudflare R2');
     } catch (error) {
-      console.error('Failed to restore words:', error);
-      Alert.alert('Error', 'Failed to sync data');
+      console.error('Restore failed', error);
+      setSyncMessage('Failed to sync from cloud');
     }
   };
 
@@ -361,19 +361,24 @@ export default function SettingsScreen() {
           </View>
         </SettingsSection>
 
-        <SettingsSection title="Cloud Sync" description="Backup or restore your words using Cloudflare R2.">
-          <TouchableOpacity
-            className="bg-blue-500 rounded-lg px-6 py-3 items-center mb-3"
-            onPress={handleBackup}
-          >
-            <Text className="text-white font-semibold text-base">Upload to Cloud</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="bg-green-500 rounded-lg px-6 py-3 items-center"
-            onPress={handleRestore}
-          >
-            <Text className="text-white font-semibold text-base">Sync from Cloud</Text>
-          </TouchableOpacity>
+        <SettingsSection title="Cloud Sync" description="Backup your data to Cloudflare R2">
+          <View className="flex-row mb-3">
+            <TouchableOpacity
+              className="flex-1 bg-blue-500 rounded-lg px-4 py-3 items-center mr-2"
+              onPress={handleBackup}
+            >
+              <Text className="text-white font-semibold text-base">Upload Backup</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 bg-blue-500 rounded-lg px-4 py-3 items-center"
+              onPress={handleRestore}
+            >
+              <Text className="text-white font-semibold text-base">Sync From Cloud</Text>
+            </TouchableOpacity>
+          </View>
+          {syncMessage ? (
+            <Text className="text-sm text-gray-700">{syncMessage}</Text>
+          ) : null}
         </SettingsSection>
 
         <SettingsSection title="About">

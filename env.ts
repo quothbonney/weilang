@@ -18,7 +18,7 @@ export const AZURE_TTS_REGION =
 export const CLOUDFLARE_R2_ENDPOINT =
   (Constants.expoConfig?.extra as any)?.CLOUDFLARE_R2_ENDPOINT ?? "";
 export const CLOUDFLARE_R2_BUCKET =
-  (Constants.expoConfig?.extra as any)?.CLOUDFLARE_R2_BUCKET ?? "weilang";
+  (Constants.expoConfig?.extra as any)?.CLOUDFLARE_R2_BUCKET ?? "weilang-sync";
 export const S3_CLIENT_ACCESS_KEY =
   (Constants.expoConfig?.extra as any)?.S3_CLIENT_ACCESS_KEY ?? "";
 export const S3_CLIENT_SECRET_ACCESS_KEY =

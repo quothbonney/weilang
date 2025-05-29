@@ -46,7 +46,9 @@
     "shadcn-ui": "^0.9.5",
     "tailwindcss": "^3.4.0",
     "wa-sqlite": "^1.0.0",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "@aws-sdk/client-s3": "^3.596.0",
+    "@aws-sdk/util-stream-node": "^3.596.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

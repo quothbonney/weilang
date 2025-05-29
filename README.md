@@ -178,7 +178,7 @@ AZURE_TTS_KEY=your_azure_tts_key_here
 AZURE_TTS_REGION=eastus
 # Cloudflare R2 credentials for optional cloud sync
 CLOUDFLARE_R2_ENDPOINT=https://45c66fbe749ca506d51c9e5abb532ea5.r2.cloudflarestorage.com
-CLOUDFLARE_R2_BUCKET=weilang
+CLOUDFLARE_R2_BUCKET=weilang-sync
 S3_CLIENT_ACCESS_KEY=your_access_key
 S3_CLIENT_SECRET_ACCESS_KEY=your_secret_key
 ```
@@ -203,7 +203,8 @@ S3_CLIENT_SECRET_ACCESS_KEY=your_secret_key
 
 #### 4. Cloudflare R2 (Optional)
 - Create a Cloudflare account and enable R2
-- Create a bucket (e.g., `weilang`)
+- Create a bucket (e.g., `weilang-sync`)
+
 - Generate an Access Key and Secret Key
 - Used for backing up your data to the cloud
 
@@ -240,11 +241,6 @@ Each word profile includes:
 - **Generation Modes** - Control AI example complexity
 - **Model Selection** - Choose between different LLM models
 
-### Cloud Sync with R2
-Configure the `CLOUDFLARE_R2_*` variables in `.env`. Then use the **Cloud Sync**
-buttons on the Settings screen to back up or restore your progress. These
-buttons call `CloudSyncService` to upload or download a `words.json` file in
-your R2 bucket, keeping progress in sync across devices.
 
 ## 🧪 Development
 
