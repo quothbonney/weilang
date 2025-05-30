@@ -15,6 +15,7 @@ export interface WordSlice {
   reviewWord: (wordId: string, quality: ReviewQuality) => Promise<Word>;
   deleteWord: (wordId: string) => Promise<void>;
   importWords: () => Promise<void>;
+  toggleFavorite: (wordId: string) => Promise<void>;
 }
 
 export const createWordSlice = (set: any, get: any): WordSlice => ({
@@ -82,6 +83,24 @@ export const createWordSlice = (set: any, get: any): WordSlice => ({
       });
     } catch (error: any) {
       set({ error: error.message || 'Failed to delete word', isLoading: false });
+    }
+  },
+
+  toggleFavorite: async (wordId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const repo = getWordRepository();
+      const word = await repo.get(wordId);
+      if (word) {
+        const updatedWord = { ...word, isFavorite: !word.isFavorite };
+        await repo.update(updatedWord);
+        set({
+          words: get().words.map((w: Word) => (w.id === wordId ? updatedWord : w)),
+          isLoading: false,
+        });
+      }
+    } catch (error: any) {
+      set({ error: error.message || 'Failed to toggle favorite', isLoading: false });
     }
   },
 

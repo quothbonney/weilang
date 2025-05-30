@@ -7,6 +7,7 @@ export interface Word {
   hanzi: string;
   pinyin: string;
   meaning: string;
+  isFavorite?: boolean;
   
   // Spaced repetition fields
   ease: number;          // SM-2 factor (default 2.5)

@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useStore } from "../src/ui/hooks/useStore";
-import { Settings } from "lucide-react-native";
+import { Settings, Heart } from "lucide-react-native";
 import { useDeckStyles, useTheme } from "../src/ui/theme";
 
 export default function DeckScreen() {
@@ -82,15 +82,34 @@ export default function DeckScreen() {
                   </View>
                 </View>
                 <View style={styles.wordMeta}>
-                  <View style={[
-                    styles.statusBadge,
-                    styles.statusColors[item.status as 'new' | 'learning' | 'review']
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      { color: styles.statusColors[item.status as 'new' | 'learning' | 'review'].color }
-                    ]}>{item.status}</Text>
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    marginBottom: theme.layout.xs
+                  }}>
+                    {item.isFavorite && (
+                      <View style={[
+                        styles.favoriteBadge, 
+                        { 
+                          marginBottom: 0,
+                          marginRight: theme.layout.xs
+                        }
+                      ]}>
+                        <Text style={styles.favoriteText}>Favorite</Text>
+                      </View>
+                    )}
+                    <View style={[
+                      styles.statusBadge,
+                      styles.statusColors[item.status as 'new' | 'learning' | 'review'],
+                      { marginBottom: 0 }
+                    ]}>
+                      <Text style={[
+                        styles.statusText,
+                        { color: styles.statusColors[item.status as 'new' | 'learning' | 'review'].color }
+                      ]}>{item.status}</Text>
+                    </View>
                   </View>
+                  
                   <Text style={styles.intervalText}>
                     {item.interval}d
                   </Text>

@@ -132,10 +132,8 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
                 <Volume2 size={20} color={theme.colors.text.secondary} />
               </TouchableOpacity>
             </View>
-            {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
-            {!flashcardSettings.showPinyin && (
-              <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
-            )}
+            {/* Pinyin on the back of the card (flipped) */}
+            <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
             
             {inputFeedback && (
               <View style={[
@@ -197,10 +195,8 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
               <Volume2 size={20} color={theme.colors.text.secondary} />
             </TouchableOpacity>
           </View>
-          {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
-          {!flashcardSettings.showPinyin && (
-            <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
-          )}
+          {/* Pinyin on the back of the card (flipped) */}
+          <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
           <View style={styles.wordStats}>
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
@@ -241,10 +237,8 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
               <Volume2 size={20} color={theme.colors.text.secondary} />
             </TouchableOpacity>
           </View>
-          {/* Pinyin on the back of the card (flipped) if showPinyin is OFF */}
-          {!flashcardSettings.showPinyin && (
-            <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
-          )}
+          {/* Pinyin on the back of the card (flipped) */}
+          <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
           <View style={styles.wordStats}>
             <Text style={styles.wordStatsText}>Ease: {currentCard.ease.toFixed(2)}</Text>
             <Text style={styles.wordStatsText}>Interval: {currentCard.interval} days</Text>
@@ -280,10 +274,8 @@ export const FlashcardContent: React.FC<FlashcardContentProps> = ({
         <>
           <View style={styles.divider} />
           <Text style={styles.flashcardMeaning}>{currentCard.meaning}</Text>
-          {/* Pinyin on the back of the card (normal mode, answer shown) if showPinyin is OFF */}
-          {!flashcardSettings.showPinyin && (
-            <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
-          )}
+          {/* Pinyin on the back of the card (normal mode, answer shown) */}
+          <Text style={styles.flashcardPinyin}>{currentCard.pinyin}</Text>
           
           <View style={styles.hanziWithSpeaker}>
             <TouchableOpacity 

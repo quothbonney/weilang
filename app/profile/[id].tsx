@@ -9,7 +9,7 @@ import { useProfileStyles } from "../../src/ui/theme";
 
 export default function WordProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { words } = useStore();
+  const { words, toggleFavorite } = useStore();
   const styles = useProfileStyles();
   
   const word = words.find(w => w.id === id);

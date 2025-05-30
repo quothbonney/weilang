@@ -113,6 +113,20 @@ export const createDeckStyles = (theme: Theme, helpers: StyleHelpers) => ({
     },
   },
 
+  favoriteBadge: {
+    paddingHorizontal: theme.layout.sm,
+    paddingVertical: theme.layout.xs,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.layout.xs,
+    backgroundColor: theme.colors.status.errorBackground,
+  },
+
+  favoriteText: {
+    fontSize: theme.typography.caption.fontSize,
+    fontWeight: theme.typography.label.fontWeight,
+    color: theme.colors.status.error,
+  },
+
   statusText: {
     fontSize: theme.typography.caption.fontSize,
     fontWeight: theme.typography.label.fontWeight,

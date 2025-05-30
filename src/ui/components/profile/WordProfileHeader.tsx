@@ -15,7 +15,7 @@ interface WordProfileHeaderProps {
 export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProps) {
   const router = useRouter();
   const { word, profile, isLoading, error } = useWordProfile();
-  const { apiKey } = useStore();
+  const { apiKey, toggleFavorite } = useStore();
   const styles = useProfileStyles();
   const { theme } = useTheme();
 
@@ -107,8 +107,8 @@ export function WordProfileHeader({ isCollapsed = false }: WordProfileHeaderProp
         </TouchableOpacity>
         <Text style={[theme.typography.h5, { color: theme.colors.text.primary }]}>Word Profile</Text>
         <View style={{ flexDirection: 'row', gap: theme.layout.xs }}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Heart size={20} color={theme.colors.text.secondary} />
+          <TouchableOpacity style={styles.iconButton} onPress={() => toggleFavorite(word.id)}>
+            <Heart size={20} color={word.isFavorite ? theme.colors.status.error : theme.colors.text.secondary} fill={word.isFavorite ? theme.colors.status.error : "none"} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <Share size={20} color={theme.colors.text.secondary} />
