@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { Card, Text } from '../themed';
+import { useTheme } from '../../theme';
 
 interface Props {
   title: string;
@@ -7,14 +8,22 @@ interface Props {
   children: React.ReactNode;
 }
 
-export const SettingsSection: React.FC<Props> = ({ title, description, children }) => (
-  <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-    <Text className="text-lg font-semibold text-gray-900 mb-2">{title}</Text>
-    {description ? (
-      <Text className="text-sm text-gray-600 mb-3">{description}</Text>
-    ) : null}
-    {children}
-  </View>
-);
+export const SettingsSection: React.FC<Props> = ({ title, description, children }) => {
+  const { theme } = useTheme();
+
+  return (
+    <Card variant="flat" style={{ marginBottom: theme.layout.sectionGap }}>
+      <Text variant="h5" style={{ marginBottom: theme.layout.cardGap }}>
+        {title}
+      </Text>
+      {description ? (
+        <Text color="secondary" style={{ marginBottom: theme.layout.md }}>
+          {description}
+        </Text>
+      ) : null}
+      {children}
+    </Card>
+  );
+};
 
 export default SettingsSection;

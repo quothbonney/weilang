@@ -3,7 +3,7 @@ import { View, ViewProps } from 'react-native';
 import { useTheme } from '../../theme';
 
 interface ThemedCardProps extends Omit<ViewProps, 'style'> {
-  variant?: 'default' | 'elevated';
+  variant?: 'default' | 'elevated' | 'flat';
   padding?: 'none' | 'small' | 'medium' | 'large';
   style?: ViewProps['style'];
 }
@@ -20,21 +20,25 @@ export const Card: React.FC<ThemedCardProps> = ({
   const getCardStyle = () => {
     const baseStyle = {
       backgroundColor: theme.colors.surface.primary,
-      borderRadius: theme.borderRadius.lg,
+      borderRadius: theme.borderRadius.md,
     };
 
     const variantStyles = {
       default: {
         ...baseStyle,
-        ...theme.shadows.sm,
         borderWidth: 1,
         borderColor: theme.colors.border.subtle,
       },
       elevated: {
         ...baseStyle,
         backgroundColor: theme.colors.surface.elevated,
-        ...theme.shadows.lg,
-        borderRadius: theme.borderRadius.xl,
+        borderRadius: theme.borderRadius.lg,
+      },
+      flat: {
+        ...baseStyle,
+        borderRadius: theme.borderRadius.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.border.subtle,
       },
     };
 
