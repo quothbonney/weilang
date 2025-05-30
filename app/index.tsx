@@ -5,6 +5,7 @@ import { useStore } from "../src/ui/hooks/useStore";
 import { BookOpen, Brain, BarChart3, Settings, Calendar, Trophy, Target, Languages } from "lucide-react-native";
 import { useThemedStyles, useTheme } from "../src/ui/theme";
 import { Text, Button, Card, Screen } from "../src/ui/components/themed";
+import { updateStreakWidget } from "../src/platform/streakWidget";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -284,6 +285,10 @@ export default function DashboardScreen() {
       weeklyProgress,
       accuracy,
     });
+
+    if (Platform.OS === 'android') {
+      updateStreakWidget(currentStreak);
+    }
   }, [words, dueWords]);
 
   const navigationCards = [
