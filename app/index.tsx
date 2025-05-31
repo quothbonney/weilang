@@ -34,8 +34,8 @@ export default function DashboardScreen() {
       backgroundColor: theme.colors.background.primary,
     },
     headerContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
     },
     logo: {
       width: 52,
@@ -56,22 +56,26 @@ export default function DashboardScreen() {
       paddingHorizontal: theme.layout.screenPadding,
       marginBottom: theme.layout.sectionGap,
     },
+    navigationSection: {
+      paddingHorizontal: theme.layout.sm,
+      marginBottom: theme.layout.sectionGap,
+    },
     sectionTitle: {
       ...theme.typography.h4,
       color: theme.colors.text.primary,
       marginBottom: theme.layout.lg,
     },
     navigationGrid: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
       gap: theme.layout.cardGap,
       marginBottom: theme.layout.cardGap,
     },
     navigationCard: {
       flex: 1,
-      padding: theme.layout.lg,
+      padding: theme.layout.md,
       borderRadius: theme.borderRadius.xl,
-      alignItems: 'center',
+      alignItems: 'center' as const,
       borderWidth: 1,
       borderColor: theme.colors.border.subtle,
       marginHorizontal: 2,
@@ -80,21 +84,21 @@ export default function DashboardScreen() {
       width: 48,
       height: 48,
       borderRadius: theme.borderRadius.full,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
       marginBottom: theme.layout.cardGap,
     },
     cardTitle: {
       ...theme.typography.label,
       color: theme.colors.text.primary,
       marginBottom: theme.layout.xs,
-      textAlign: 'center',
+      textAlign: 'center' as const,
     },
     cardSubtitle: {
       ...theme.typography.caption,
       color: theme.colors.text.secondary,
-      textAlign: 'center',
-      fontWeight: '500',
+      textAlign: 'center' as const,
+      fontWeight: '500' as const,
     },
     statsGrid: {
       flexDirection: 'row' as const,
@@ -192,7 +196,7 @@ export default function DashboardScreen() {
       marginRight: theme.layout.cardGap,
     },
     accuracyBarFill: {
-      height: '100%',
+      height: '100%' as const,
       backgroundColor: theme.colors.status.success,
       borderRadius: theme.borderRadius.sm,
     },
@@ -294,11 +298,11 @@ export default function DashboardScreen() {
   const navigationCards = [
     {
       id: 'translation',
-      title: 'Translation',
+      title: 'Translate',
       subtitle: 'Practice sentences',
       icon: Languages,
-      color: theme.colors.chinese.accent,
-      backgroundColor: theme.colors.surface.secondary,
+      color: theme.colors.status.warning,
+      backgroundColor: theme.colors.status.warningBackground,
       onPress: () => router.push('/translation'),
     },
     {
@@ -378,7 +382,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.section}>
+        <View style={styles.navigationSection}>
           <View style={styles.navigationGrid}>
             {navigationCards.map((card) => {
               return (

@@ -14,6 +14,7 @@ export function useTranslation() {
     startTranslationSession,
     submitTranslation,
     getCurrentTranslationExercise,
+    skipCurrentTranslationExercise,
     getTranslationSessionStats,
     clearError
   } = useStore();
@@ -133,6 +134,31 @@ export function useTranslation() {
     setShowModeSelector(true);
   };
 
+  const handleSkipExercise = () => {
+    // Skip this exercise without penalty - clear current state and advance
+    setUserTranslation('');
+    setShowEvaluation(false);
+    setLastSubmittedExercise(null);
+    setLastUserTranslation('');
+    
+    // Use the store's skip function to advance the session state
+    skipCurrentTranslationExercise();
+    
+    // Get the next exercise using the updated session state
+    const nextExercise = getCurrentTranslationExercise();
+    setCurrentExercise(nextExercise);
+    
+    if (!nextExercise) {
+      // No more exercises, session is complete
+      handleSessionComplete();
+    }
+  };
+
+  const handleEndSession = () => {
+    // End the session immediately and go back to mode selector
+    resetToModeSelector();
+  };
+
   return {
     // State
     showModeSelector,
@@ -162,5 +188,7 @@ export function useTranslation() {
     handleNextExercise,
     playTTS,
     resetToModeSelector,
+    handleSkipExercise,
+    handleEndSession,
   };
 } 

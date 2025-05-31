@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Languages, ArrowLeft } from 'lucide-react-native';
+import { Languages } from 'lucide-react-native';
 import { useTranslationStyles, useTheme } from '../../theme';
 
 interface TranslationModeSelectorProps {
@@ -13,7 +13,6 @@ interface TranslationModeSelectorProps {
   onDirectionChange: (direction: 'en-to-zh' | 'zh-to-en') => void;
   onExerciseCountChange: (count: number) => void;
   onStartSession: () => void;
-  onBack: () => void;
 }
 
 export function TranslationModeSelector({
@@ -26,20 +25,12 @@ export function TranslationModeSelector({
   onDirectionChange,
   onExerciseCountChange,
   onStartSession,
-  onBack,
 }: TranslationModeSelectorProps) {
   const styles = useTranslationStyles();
   const { theme } = useTheme();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <ArrowLeft size={24} color={theme.colors.text.secondary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Sentence Translation</Text>
-      </View>
-
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Languages size={32} color={theme.colors.interactive.primary} />

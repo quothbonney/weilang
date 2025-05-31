@@ -6,6 +6,11 @@ type TranslationStyles = {
   container: ViewStyle;
   scrollContent: ViewStyle;
   header: ViewStyle;
+  headerButtons: ViewStyle;
+  headerButton: ViewStyle;
+  headerButtonDanger: ViewStyle;
+  headerButtonText: TextStyle;
+  headerButtonTextDanger: TextStyle;
   backButton: ViewStyle;
   title: TextStyle;
   
@@ -148,6 +153,43 @@ export const createTranslationStyles = (theme: Theme): TranslationStyles => {
       alignItems: 'center',
       marginBottom: theme.layout.xl,
     }),
+    headerButtons: createStyle({
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: theme.layout.xl,
+      gap: theme.layout.md,
+    }),
+    headerButton: createStyle({
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.layout.xs,
+      paddingHorizontal: theme.layout.md,
+      backgroundColor: theme.colors.surface.secondary,
+      borderRadius: theme.borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border.primary,
+    }),
+    headerButtonDanger: createStyle({
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.layout.xs,
+      paddingHorizontal: theme.layout.md,
+      backgroundColor: theme.colors.status.error,
+      borderRadius: theme.borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border.primary,
+    }),
+    headerButtonText: createStyle({
+      ...theme.typography.body,
+      color: theme.colors.text.secondary,
+      fontWeight: '500',
+    }),
+    headerButtonTextDanger: createStyle({
+      ...theme.typography.body,
+      color: theme.colors.text.inverse,
+      fontWeight: '500',
+    }),
     backButton: createStyle({
       padding: theme.layout.cardGap,
       marginRight: theme.layout.lg,
@@ -196,12 +238,15 @@ export const createTranslationStyles = (theme: Theme): TranslationStyles => {
       gap: theme.layout.cardGap,
     }),
     optionButton: createStyle({
-      paddingHorizontal: theme.layout.lg,
-      paddingVertical: theme.layout.cardGap,
+      flexGrow: 1,
+      flexBasis: 0,
+      paddingHorizontal: theme.layout.md,
+      paddingVertical: theme.layout.sm,
       borderRadius: theme.borderRadius.md,
       borderWidth: 1,
       borderColor: theme.colors.border.primary,
       backgroundColor: theme.colors.surface.primary,
+      minWidth: 100,
     }),
     optionButtonActive: createStyle({
       borderColor: theme.colors.interactive.primary,
@@ -210,6 +255,7 @@ export const createTranslationStyles = (theme: Theme): TranslationStyles => {
     optionText: createStyle({
       ...theme.typography.body,
       color: theme.colors.text.secondary,
+      textAlign: 'center',
     }),
     optionTextActive: createStyle({
       color: theme.colors.interactive.primary,

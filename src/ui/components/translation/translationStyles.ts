@@ -14,13 +14,35 @@ export const translationStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  headerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  headerButtonText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
   backButton: {
     padding: 8,
     marginRight: 12,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     color: '#1f2937',
   },
   card: {
@@ -85,7 +107,7 @@ export const translationStyles = StyleSheet.create({
   },
   startButton: {
     backgroundColor: '#3b82f6',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
@@ -186,7 +208,7 @@ export const translationStyles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: '#3b82f6',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
@@ -319,7 +341,7 @@ export const translationStyles = StyleSheet.create({
   },
   nextButton: {
     backgroundColor: '#3b82f6',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
@@ -386,7 +408,7 @@ export const translationStyles = StyleSheet.create({
   },
   newSessionButton: {
     backgroundColor: '#3b82f6',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },

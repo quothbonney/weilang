@@ -13,6 +13,7 @@ export interface TranslationSlice {
   startTranslationSession: (difficulty: 'beginner' | 'intermediate' | 'advanced', direction: 'en-to-zh' | 'zh-to-en', exerciseCount?: number) => Promise<TranslationSession>;
   submitTranslation: (sessionId: string, exerciseId: string, userTranslation: string) => Promise<{ attempt: TranslationAttempt; evaluation: TranslationEvaluation; isSessionComplete: boolean }>;
   getCurrentTranslationExercise: () => SentenceExercise | null;
+  skipCurrentTranslationExercise: () => void;
   getTranslationSessionStats: (sessionId: string) => Promise<any>;
   getActiveTranslationSession: () => Promise<TranslationSession | null>;
 }
@@ -91,6 +92,19 @@ export const createTranslationSlice = (set: any, get: any): TranslationSlice => 
     const session = get().currentTranslationSession;
     if (!service || !session) return null;
     return service.getCurrentExercise(session);
+  },
+
+  skipCurrentTranslationExercise: () => {
+    const session = get().currentTranslationSession;
+    if (session && session.currentExerciseIndex < session.exercises.length) {
+      session.currentExerciseIndex++;
+      set({ currentTranslationSession: { ...session } });
+      // Persist the updated session to storage if necessary
+      const service = get().sentenceTranslationService;
+      if (service && service.updateSession) {
+        service.updateSession(session);
+      }
+    }
   },
 
   getTranslationSessionStats: async (sessionId) => {
