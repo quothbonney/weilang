@@ -7,6 +7,8 @@ module.exports = function (api) {
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
       'nativewind/babel',        // NativeWind v4 is a *preset*
     ],
-    // plugins: [/* other plugins, put reanimated last if you keep it */],
+    plugins: [
+      '@babel/plugin-transform-class-static-block'
+    ],
   };
 };
