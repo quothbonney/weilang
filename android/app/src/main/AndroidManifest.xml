@@ -27,6 +27,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="weilang"/>
+        <data android:scheme="com.yourname.weilang"/>
       </intent-filter>
     </activity>
   </application>
