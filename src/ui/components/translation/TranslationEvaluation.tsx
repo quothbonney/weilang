@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { SentenceExercise, TranslationEvaluation, TranslationSession } from '../../../domain/entities';
 import { useTranslationStyles, useTheme } from '../../theme';
@@ -19,7 +18,6 @@ interface TranslationEvaluationProps {
   direction: 'en-to-zh' | 'zh-to-en';
   currentTranslationSession: TranslationSession | null;
   onNextExercise: () => void;
-  onBack: () => void;
 }
 
 export function TranslationEvaluationComponent({
@@ -29,7 +27,6 @@ export function TranslationEvaluationComponent({
   direction,
   currentTranslationSession,
   onNextExercise,
-  onBack,
 }: TranslationEvaluationProps) {
   const router = useRouter();
   const styles = useTranslationStyles();
@@ -347,13 +344,6 @@ export function TranslationEvaluationComponent({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <ArrowLeft size={24} color={theme.colors.text.secondary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Translation Feedback</Text>
-      </View>
-
       <View style={styles.evaluationCard}>
         {/* Overall Score */}
         <View style={styles.scoreSection}>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
-import { Volume2, ArrowLeft } from 'lucide-react-native';
+import { Volume2 } from 'lucide-react-native';
 import { useTranslationStyles, useTheme } from '../../theme';
 
 interface TranslationExerciseProps {
@@ -11,8 +11,9 @@ interface TranslationExerciseProps {
   isLoading: boolean;
   onUserTranslationChange: (text: string) => void;
   onSubmitTranslation: () => void;
-  onPlayTTS: () => void;
-  onBack: () => void;
+  onPlayTTS: (text: string) => void;
+  onEndSession: () => void;
+  onSkipExercise: () => void;
 }
 
 export function TranslationExercise({
@@ -24,7 +25,8 @@ export function TranslationExercise({
   onUserTranslationChange,
   onSubmitTranslation,
   onPlayTTS,
-  onBack,
+  onEndSession,
+  onSkipExercise,
 }: TranslationExerciseProps) {
   const styles = useTranslationStyles();
   const { theme } = useTheme();
@@ -41,13 +43,6 @@ export function TranslationExercise({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <ArrowLeft size={24} color={theme.colors.text.secondary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Translate</Text>
-      </View>
-
       {/* Progress */}
       <View style={styles.progressContainer}>
         <Text style={styles.progressText}>
@@ -67,7 +62,7 @@ export function TranslationExercise({
             {isChineseToEnglish && (
               <TouchableOpacity 
                 style={styles.speakerButton}
-                onPress={onPlayTTS}
+                onPress={() => onPlayTTS(sourceSentence)}
               >
                 <Volume2 size={20} color={theme.colors.text.secondary} />
               </TouchableOpacity>
@@ -100,6 +95,15 @@ export function TranslationExercise({
           <Text style={styles.submitButtonText}>
             {isLoading ? 'Evaluating...' : 'Submit'}
           </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.headerButtons}>
+        <TouchableOpacity style={styles.headerButton} onPress={onSkipExercise}>
+          <Text style={styles.headerButtonText}>Skip</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButtonDanger} onPress={onEndSession}>
+          <Text style={styles.headerButtonTextDanger}>End</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

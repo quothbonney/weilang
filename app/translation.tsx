@@ -39,6 +39,8 @@ export default function TranslationScreen() {
     handleNextExercise,
     playTTS,
     resetToModeSelector,
+    handleSkipExercise,
+    handleEndSession,
   } = useTranslation();
 
   // Determine what to render
@@ -54,15 +56,20 @@ export default function TranslationScreen() {
         onDirectionChange={setDirection}
         onExerciseCountChange={setExerciseCount}
         onStartSession={handleStartSession}
-        onBack={() => router.back()}
       />
     );
   }
 
   if (!currentExercise) {
+    // If sessionStats is null (e.g., all exercises skipped), provide default stats
+    const displayStats = sessionStats || { 
+      totalExercises: currentTranslationSession?.exercises.length || 0,
+      completedExercises: 0, 
+      averageScore: 0 
+    };
     return (
       <TranslationSessionComplete
-        sessionStats={sessionStats}
+        sessionStats={displayStats}
         onStartNewSession={resetToModeSelector}
         onBackToDashboard={() => router.back()}
       />
@@ -78,7 +85,6 @@ export default function TranslationScreen() {
         direction={direction}
         currentTranslationSession={currentTranslationSession}
         onNextExercise={handleNextExercise}
-        onBack={() => router.back()}
       />
     );
   }
@@ -93,7 +99,8 @@ export default function TranslationScreen() {
       onUserTranslationChange={setUserTranslation}
       onSubmitTranslation={handleSubmitTranslation}
       onPlayTTS={playTTS}
-      onBack={() => router.back()}
+      onEndSession={handleEndSession}
+      onSkipExercise={handleSkipExercise}
     />
   );
 } 
